@@ -2,7 +2,7 @@
 
 Paltong Restaurant 근로계약서 기준 급여 앱. 보름치 시프트 표를 넣으면 기본급·초과·야간·휴일 할증·SIL·지각 공제·가불·현금 부족분까지 자동 계산하고, 급여명세서를 뽑아요.
 
-- **Supabase**: 데이터베이스, 로그인
+- **Supabase**: 캐시북(MONEY TRACKER) 프로젝트에 `pr_` 테이블로 추가 · 로그인은 캐시북 계정 공용
 - **Vercel**: 앱 호스팅 (정적 파일, 서버 함수 없음)
 
 ## 폴더
@@ -16,9 +16,10 @@ supabase/schema.sql                       테이블 · 권한(RLS) · admin 계�
 
 ## 설치 (처음 한 번)
 
-1. **Supabase** → 새 프로젝트 → SQL Editor → `supabase/schema.sql` 전체 실행
-   - 관리자 계정 `admin` / `paltong1234` 가 만들어져요. 로그인 후 메뉴(⋯) → 비밀번호 변경.
-2. Supabase → Project Settings → API 에서 **Project URL** 과 **anon public key** 를 복사해 `config.js` 에 붙여넣기
+1. **Supabase (MONEY TRACKER = 캐시북 프로젝트)** → SQL Editor → `supabase/schema.sql` 전체 실행
+   - 캐시북과 같은 프로젝트를 쓰지만 테이블 이름이 `pr_`로 시작해서 캐시북 데이터는 건드리지 않아요.
+   - 로그인은 **캐시북 admin(관리자) 계정 그대로**. 급여 데이터는 관리자만 볼 수 있어요 (직원 계정은 로그인해도 안 보임).
+2. `config.js` 에는 이미 캐시북과 같은 URL/anon key가 들어 있어요.
 3. **GitHub** 에 올리고 **Vercel** → Add New Project → 이 저장소 Import → Framework: Other → Deploy
 4. 폰에서 Vercel 주소 열고 "홈 화면에 추가"
 

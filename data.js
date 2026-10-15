@@ -24,26 +24,26 @@ export async function signOut() { await sb.auth.signOut(); }
 export async function changePassword(pw) { must(await sb.auth.updateUser({ password: pw })); }
 export async function me() {
   const { data } = await sb.auth.getUser(); if (!data.user) return null;
-  const row = must(await sb.from("app_users").select("*").eq("user_id", data.user.id).maybeSingle());
-  return row ? { ...row, email: data.user.email } : { user_id: data.user.id, name: data.user.email, role: "viewer", email: data.user.email };
+  const row = must(await sb.from("staff").select("*").eq("user_id", data.user.id).maybeSingle());
+  return row ? { ...row, email: data.user.email } : { user_id: data.user.id, name: data.user.email, role: "staff", email: data.user.email };
 }
 
-export async function getSettings() { return must(await sb.from("settings").select("*").eq("id", 1).single()); }
-export async function saveSettings(patch) { return must(await sb.from("settings").update(patch).eq("id", 1).select().single()); }
+export async function getSettings() { return must(await sb.from("pr_settings").select("*").eq("id", 1).single()); }
+export async function saveSettings(patch) { return must(await sb.from("pr_settings").update(patch).eq("id", 1).select().single()); }
 
 export async function listEmployees(all = false) {
-  let q = sb.from("employees").select("*").order("active", { ascending: false }).order("name");
+  let q = sb.from("pr_employees").select("*").order("active", { ascending: false }).order("name");
   if (!all) q = q.eq("active", true);
   return must(await q);
 }
 export async function saveEmployee(row) {
-  return row.id ? must(await sb.from("employees").update(row).eq("id", row.id).select().single())
-                : must(await sb.from("employees").insert(row).select().single());
+  return row.id ? must(await sb.from("pr_employees").update(row).eq("id", row.id).select().single())
+                : must(await sb.from("pr_employees").insert(row).select().single());
 }
-export async function deleteEmployee(id) { must(await sb.from("employees").delete().eq("id", id)); }
+export async function deleteEmployee(id) { must(await sb.from("pr_employees").delete().eq("id", id)); }
 
 export async function listLedger({ employeeId, from, to, kind, unpaidOnly } = {}) {
-  let q = sb.from("ledger").select("*, employees(name)").order("biz_date", { ascending: false }).order("created_at", { ascending: false }).limit(500);
+  let q = sb.from("pr_ledger").select("*, employees:pr_employees(name)").order("biz_date", { ascending: false }).order("created_at", { ascending: false }).limit(500);
   if (employeeId) q = q.eq("employee_id", employeeId);
   if (from) q = q.gte("biz_date", from);
   if (to) q = q.lte("biz_date", to);
@@ -52,25 +52,25 @@ export async function listLedger({ employeeId, from, to, kind, unpaidOnly } = {}
   return must(await q);
 }
 export async function saveLedger(row) {
-  return row.id ? must(await sb.from("ledger").update(row).eq("id", row.id).select().single())
-                : must(await sb.from("ledger").insert(row).select().single());
+  return row.id ? must(await sb.from("pr_ledger").update(row).eq("id", row.id).select().single())
+                : must(await sb.from("pr_ledger").insert(row).select().single());
 }
-export async function deleteLedger(id) { must(await sb.from("ledger").delete().eq("id", id)); }
-export async function attachLedger(ids, payrollId) { if (ids.length) must(await sb.from("ledger").update({ payroll_id: payrollId }).in("id", ids)); }
-export async function detachLedger(payrollId) { must(await sb.from("ledger").update({ payroll_id: null }).eq("payroll_id", payrollId)); }
+export async function deleteLedger(id) { must(await sb.from("pr_ledger").delete().eq("id", id)); }
+export async function attachLedger(ids, payrollId) { if (ids.length) must(await sb.from("pr_ledger").update({ payroll_id: payrollId }).in("id", ids)); }
+export async function detachLedger(payrollId) { must(await sb.from("pr_ledger").update({ payroll_id: null }).eq("payroll_id", payrollId)); }
 
 export async function getPayroll(employeeId, start, end) {
-  return must(await sb.from("payrolls").select("*").eq("employee_id", employeeId).eq("period_start", start).eq("period_end", end).maybeSingle());
+  return must(await sb.from("pr_payrolls").select("*").eq("employee_id", employeeId).eq("period_start", start).eq("period_end", end).maybeSingle());
 }
 export async function listPayrolls({ from, to, employeeId } = {}) {
-  let q = sb.from("payrolls").select("*, employees(name, position)").order("period_start", { ascending: false }).limit(300);
+  let q = sb.from("pr_payrolls").select("*, employees:pr_employees(name, position)").order("period_start", { ascending: false }).limit(300);
   if (from) q = q.gte("period_start", from);
   if (to) q = q.lte("period_end", to);
   if (employeeId) q = q.eq("employee_id", employeeId);
   return must(await q);
 }
 export async function savePayroll(row) {
-  return row.id ? must(await sb.from("payrolls").update(row).eq("id", row.id).select().single())
-                : must(await sb.from("payrolls").insert(row).select().single());
+  return row.id ? must(await sb.from("pr_payrolls").update(row).eq("id", row.id).select().single())
+                : must(await sb.from("pr_payrolls").insert(row).select().single());
 }
-export async function deletePayroll(id) { must(await sb.from("payrolls").delete().eq("id", id)); }
+export async function deletePayroll(id) { must(await sb.from("pr_payrolls").delete().eq("id", id)); }
