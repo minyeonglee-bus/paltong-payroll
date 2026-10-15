@@ -9,7 +9,7 @@ const I18N = {
     employee: "직원", period: "급여 기간", first: "1 – 15일", second: "16일 – 말일", month: "월", daily: "일급", breakH: "식사 휴게 (시간/일)",
     roster: "보름치 시프트 표", off: "휴무", sil: "SIL 유급휴가", wkend: "주말",
     type_regular: "평일", type_rest: "휴무일 근무", type_special: "특별공휴일", type_specialRest: "특별공휴일+휴무일", type_holiday: "정규공휴일", type_holidayRest: "정규공휴일+휴무일", type_holidayOff: "정규공휴일 쉼 (100%)", type_sil: "SIL 유급휴가", type_off: "휴무",
-    fill: "채우기", fillHelp: "주 6일 기준: 휴무 요일 하나 고르고 시프트 선택 → 전체 날짜에 적용",
+    fill: "전체 채우기", fillHelp: "휴무는 고정이 아니에요: 시프트로 전체 채운 뒤, 쉬는 날은 날짜를 눌러 휴무로 바꾸세요 (다시 누르면 근무). 캐시북 근무 스케줄을 그대로 불러올 수도 있어요.", fromSched: "캐시북 스케줄 불러오기", schedLoaded: "캐시북 스케줄에서 {n}일 불러왔어요", schedNone: "이 기간 캐시북 스케줄에 이 직원이 없어요",
     restDay: "주 휴무 요일", dow: ["일", "월", "화", "수", "목", "금", "토"],
     late: "지각·조퇴 합계 (분)", lateHelp: "실제 미근무 시간만 공제 · 분당 ₱", incentive: "인센티브·수당 (+)", other: "기타 공제 (−)",
     deductions: "공제", advAuto: "이 기간 가불 (자동)", shortAuto: "확인된 현금 부족분 (자동 · 웨이터)", none: "없음",
@@ -37,7 +37,7 @@ const I18N = {
       "13월급: 연 기본급 ÷ 12",
     ],
     noPerm: "권한이 없어요 (관리자만 가능)", paidLocked: "지급 완료된 급여는 관리자만 바꿀 수 있어요", loginFail: "아이디 또는 비밀번호가 틀려요",
-    pickEmp: "직원을 먼저 고르세요", deleted: "삭제됨", weekendHelp: "금·토·일 = 주말",
+    pickEmp: "직원을 먼저 고르세요", deleted: "삭제됨", weekendHelp: "금·토 = 주말",
     cbTitle: "캐시북 현금 부족 (확인 필요)", cbHelp: "중간마감·마감에서 센 현금이 장부보다 모자라면 여기 들어와요. 자동으로 빠지지 않아요 — 조사 후 책임 웨이터를 지정하고, 가불·부족분에서 '본인 책임 확인'과 '서면 동의'를 둘 다 체크해야 급여에서 공제돼요.", cbNone: "확인할 부족분이 없어요", cbDone: "처리한 것", cbMid: "중간마감", cbFinal: "마감", cbCounted: "센 현금", cbBook: "장부", cbBy: "센 사람", cbReason: "사유", cbDuty: "근무", is_open: "확인 필요", is_assigned: "웨이터 지정됨", is_dismissed: "해결됨 (공제 안 함)",
     cbLaw: "근무 중이었다는 이유만으로 나눠서 빼면 안 돼요. 본인에게 설명할 기회를 주고, 책임이 확인된 한 사람에게만 지정하세요. 지정 후 가불·부족분에서 '본인 책임 확인'과 '서면 동의 받음'을 체크해야 공제돼요.", cbWho: "책임 웨이터", cbAssign: "이 웨이터의 부족분으로 넣기 (미확인)", cbAssigned: "부족분에 넣었어요 — 확인·동의 체크 후 공제돼요", cbDismissLbl: "찾았거나 장부 실수였다면 (메모)", cbFoundPh: "예: 다음날 서랍에서 찾음 / 매출 입력 실수", cbDismiss: "해결됨 — 공제 안 함", notDeducted: "공제 전 (확인·동의 필요)",
     asStaff: "직원", asAdmin: "관리자", empNo: "직원 번호", pin: "PIN (숫자)", pinFirst: "처음이면 PIN 0000", pinWrong: "번호 또는 PIN이 틀려요", pinLocked: "5번 틀려서 10분 동안 잠겼어요",
@@ -50,7 +50,7 @@ const I18N = {
     employee: "Employee", period: "Pay period", first: "1st – 15th", second: "16th – end", month: "Month", daily: "Daily rate", breakH: "Meal break (hrs/day)",
     roster: "Half-month shift roster", off: "Off", sil: "SIL paid leave", wkend: "Weekend",
     type_regular: "Regular day", type_rest: "Rest day worked", type_special: "Special holiday", type_specialRest: "Special holiday + rest day", type_holiday: "Regular holiday", type_holidayRest: "Regular holiday + rest day", type_holidayOff: "Regular holiday, not worked (100%)", type_sil: "SIL paid leave", type_off: "Off",
-    fill: "Fill", fillHelp: "6-day week: pick the rest day and a shift → applied to every date",
+    fill: "Fill all", fillHelp: "Days off aren’t fixed: fill every date with a shift, then tap a date to make it a day off (tap again to work). Or load the Cash Book work schedule.", fromSched: "Load Cash Book schedule", schedLoaded: "Loaded {n} days from the Cash Book schedule", schedNone: "This employee isn’t on the Cash Book schedule for this period",
     restDay: "Weekly rest day", dow: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
     late: "Tardiness / undertime (minutes)", lateHelp: "Only actual unworked time · per minute ₱", incentive: "Incentive / allowance (+)", other: "Other deduction (−)",
     deductions: "Deductions", advAuto: "Advances this period (auto)", shortAuto: "Verified cash shortage (auto · waiters)", none: "none",
@@ -78,7 +78,7 @@ const I18N = {
       "13th-month pay: annual basic ÷ 12",
     ],
     noPerm: "No permission (owner only)", paidLocked: "A paid payroll can only be changed by the owner", loginFail: "Wrong ID or password",
-    pickEmp: "Pick an employee first", deleted: "Deleted", weekendHelp: "Fri · Sat · Sun = weekend",
+    pickEmp: "Pick an employee first", deleted: "Deleted", weekendHelp: "Fri · Sat = weekend",
     cbTitle: "Cash Book shortages (to check)", cbHelp: "When counted cash at a mid-close or close is less than the book, it lands here. Nothing is deducted automatically — investigate, assign the responsible waiter, then tick both 'responsibility established' and 'written authorization' in Advances & shortages before it comes off pay.", cbNone: "No shortages to check", cbDone: "Handled", cbMid: "Mid-close", cbFinal: "Close", cbCounted: "Counted", cbBook: "Book", cbBy: "Counted by", cbReason: "Reason", cbDuty: "On duty", is_open: "To check", is_assigned: "Waiter assigned", is_dismissed: "Resolved (no deduction)",
     cbLaw: "Don’t split a shortage among everyone on duty. Give the waiter a chance to explain and assign it only to the one person found responsible. It is deducted only after you tick 'responsibility established' and 'written authorization on file'.", cbWho: "Responsible waiter", cbAssign: "Add as this waiter’s shortage (unverified)", cbAssigned: "Added — deducted after verification & authorization", cbDismissLbl: "Found it / book mistake (note)", cbFoundPh: "e.g. found in drawer next day / sale entered wrong", cbDismiss: "Resolved — no deduction", notDeducted: "not deducted (needs verification & consent)",
     asStaff: "Staff", asAdmin: "Admin", empNo: "Employee no.", pin: "PIN (numbers)", pinFirst: "First time? PIN is 0000", pinWrong: "Wrong number or PIN", pinLocked: "Locked for 10 minutes after 5 wrong tries",
@@ -304,23 +304,33 @@ async function renderPay() {
   function drawRoster() {
     rosterEl.innerHTML = "";
     for (const d of P.days) {
-      const dt = new Date(d.date + "T00:00:00"); const dow = dt.getDay(); const wk = dow === 5 || dow === 6 || dow === 0;
+      const dt = new Date(d.date + "T00:00:00"); const dow = dt.getDay(); const wk = dow === 5 || dow === 6;   // 주말 = 금·토
       const sh = DAY_TYPES[d.type]?.worked ? shiftHours(d.shift, P.break_hours) : null;
       const cls = "day" + (d.type === "off" ? " off" : "") + (d.type === "sil" ? " sil" : "") + (/holiday|special/.test(d.type) ? " hol" : "") + (wk ? " wknd" : "");
       const shiftSel = sel(shiftOpts, d.shift, { disabled: locked, "aria-label": "shift", onchange: e => { d.shift = e.target.value; if (!d.shift && DAY_TYPES[d.type].worked) d.type = "off"; if (d.shift && !DAY_TYPES[d.type].worked && d.type !== "holidayOff") d.type = "regular"; drawRoster(); refresh(); } });
       const typeSel = sel(typeOpts, d.type, { disabled: locked, "aria-label": "day type", onchange: e => { d.type = e.target.value; if (!DAY_TYPES[d.type].worked) d.shift = ""; else if (!d.shift) d.shift = P.fillShift; drawRoster(); refresh(); } });
       rosterEl.append(h("div", { class: cls },
-        h("div", { class: "d" }, t("dow")[dow], h("b", {}, +d.date.slice(8))),
+        h("div", { class: "d", role: "button", title: t("off"), style: locked ? "" : "cursor:pointer", onclick: () => { if (locked) return;
+          if (d.type === "off") { d.shift = d.shift || P.fillShift; d.type = "regular"; } else { d.shift = ""; d.type = "off"; } drawRoster(); refresh(); } }, t("dow")[dow], h("b", {}, +d.date.slice(8))),
         shiftSel, typeSel,
         sh && sh.worked > 0 && h("div", { class: "hrs" }, `${sh.hours}h` + (sh.ot ? ` · OT ${sh.ot}h` : "") + (sh.nd ? ` · ND ${sh.nd}h` : ""))));
     }
     sumEl.textContent = t("summary").replace("{d}", R.daysWorked).replace("{h}", R.hoursWorked).replace("{o}", R.otHours).replace("{n}", R.ndHours).replace("{s}", R.silDays);
   }
-  const restSel = sel(t("dow").map((l, i) => [i, l]), P.restDow, { onchange: e => P.restDow = +e.target.value });
   const fillSel = sel(SHIFTS.map(v => [v, SHIFT_LABEL(v)]), P.fillShift, { onchange: e => P.fillShift = e.target.value });
-  const fillBtn = h("button", { class: "btn sm", type: "button", disabled: locked, onclick: () => { for (const d of P.days) { const dow = new Date(d.date + "T00:00:00").getDay(); if (dow === P.restDow) { d.shift = ""; d.type = "off"; } else { d.shift = P.fillShift; d.type = "regular"; } } drawRoster(); refresh(); } }, t("fill"));
+  const fillBtn = h("button", { class: "btn sm", type: "button", id: "fillAll", disabled: locked, onclick: () => { for (const d of P.days) { d.shift = P.fillShift; d.type = "regular"; } drawRoster(); refresh(); } }, t("fill"));
+  const schedBtn = h("button", { class: "btn sm", type: "button", id: "fromSched", disabled: locked || !emp, onclick: async () => {
+    try {
+      const rows = (await db.cashbookShifts(P.start, P.end)).filter(r => String(r.staff_name || "").trim().toLowerCase() === String(emp.name).trim().toLowerCase() && r.shift);
+      if (!rows.length) return toast(t("schedNone"));
+      const by = Object.fromEntries(rows.map(r => [r.day, r.shift]));
+      let n = 0;
+      for (const d of P.days) { const sh = by[d.date]; if (!sh) continue; n++;
+        if (sh === "off") { d.shift = ""; d.type = "off"; } else if (SHIFTS.includes(sh)) { d.shift = sh; if (!DAY_TYPES[d.type]?.worked) d.type = "regular"; } }
+      drawRoster(); refresh(); toast(t("schedLoaded").replace("{n}", n));
+    } catch (e) { toast(errMsg(e)); } } }, t("fromSched"));
   const roster = h("div", { class: "card" }, h("h2", {}, t("roster")),
-    h("div", { class: "row" }, h("span", { class: "muted" }, t("restDay")), restSel, fillSel, fillBtn, h("span", { class: "muted" }, t("weekendHelp"))),
+    h("div", { class: "row" }, fillSel, fillBtn, schedBtn, h("span", { class: "muted" }, t("weekendHelp"))),
     h("small", { class: "muted" }, t("fillHelp")), rosterEl, sumEl);
 
   // --- adjustments & deductions ---

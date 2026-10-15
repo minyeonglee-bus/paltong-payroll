@@ -84,3 +84,6 @@ export async function resetEmpPin(id) { must(await sb.rpc("pr_emp_reset_pin", { 
 export async function listCashIssues() { return must(await sb.from("pr_cash_issues").select("*").order("biz_date", { ascending: false }).order("created_at", { ascending: false }).limit(200)); }
 export async function assignCashIssue(id, employeeId) { return must(await sb.rpc("pr_cash_issue_assign", { p_issue: id, p_employee: employeeId })); }
 export async function dismissCashIssue(id, note) { return must(await sb.from("pr_cash_issues").update({ status: "dismissed", resolved_note: note || null }).eq("id", id).select().single()); }
+
+// ---------- 캐시북 근무 스케줄 (shifts) 불러오기 ----------
+export async function cashbookShifts(from, to) { return must(await sb.from("shifts").select("day, staff_name, shift").gte("day", from).lte("day", to)); }
