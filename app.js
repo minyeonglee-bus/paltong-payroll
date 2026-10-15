@@ -38,6 +38,9 @@ const I18N = {
     ],
     noPerm: "권한이 없어요 (관리자만 가능)", paidLocked: "지급 완료된 급여는 관리자만 바꿀 수 있어요", loginFail: "아이디 또는 비밀번호가 틀려요",
     pickEmp: "직원을 먼저 고르세요", deleted: "삭제됨", weekendHelp: "금·토·일 = 주말",
+    asStaff: "직원", asAdmin: "관리자", empNo: "직원 번호", pin: "PIN (숫자)", pinFirst: "처음이면 PIN 0000", pinWrong: "번호 또는 PIN이 틀려요", pinLocked: "5번 틀려서 10분 동안 잠겼어요",
+    newPinTitle: "내 PIN 등록", newPinHelp: "처음 로그인이에요. 나만 아는 숫자 4~6자리로 PIN을 새로 정해주세요 (0000 안 됨).", newPin: "새 PIN", newPin2: "새 PIN 다시", pinMismatch: "두 PIN이 달라요", pinBad: "숫자 4~6자리로 정해주세요 (0000 안 됨)", pinSaved: "PIN을 등록했어요",
+    myPay: "내 급여명세서", myLedger: "내 가불·부족분", myShifts: "내 근무 기록", notPaidYet: "아직 지급 전", noData: "아직 기록이 없어요", empNoLbl: "번호", resetPin: "PIN 초기화 (0000)", pinReset: "PIN을 0000으로 초기화했어요. 다음 로그인 때 본인이 다시 등록해요.", pinSet: "PIN 등록됨", pinNotSet: "PIN 미등록 (0000)",
   },
   en: {
     app: "Paltong Payroll", login: "Sign in", id: "ID", pw: "Password", logout: "Sign out", changePw: "Change password", newPw: "New password (6+ chars)",
@@ -74,6 +77,9 @@ const I18N = {
     ],
     noPerm: "No permission (owner only)", paidLocked: "A paid payroll can only be changed by the owner", loginFail: "Wrong ID or password",
     pickEmp: "Pick an employee first", deleted: "Deleted", weekendHelp: "Fri · Sat · Sun = weekend",
+    asStaff: "Staff", asAdmin: "Admin", empNo: "Employee no.", pin: "PIN (numbers)", pinFirst: "First time? PIN is 0000", pinWrong: "Wrong number or PIN", pinLocked: "Locked for 10 minutes after 5 wrong tries",
+    newPinTitle: "Set your PIN", newPinHelp: "First sign-in. Choose your own 4–6 digit PIN (not 0000).", newPin: "New PIN", newPin2: "New PIN again", pinMismatch: "The PINs don’t match", pinBad: "Use 4–6 digits (not 0000)", pinSaved: "PIN saved",
+    myPay: "My payslips", myLedger: "My advances & shortages", myShifts: "My shifts", notPaidYet: "not paid yet", noData: "Nothing yet", empNoLbl: "No.", resetPin: "Reset PIN (0000)", pinReset: "PIN reset to 0000. They set a new one at next sign-in.", pinSet: "PIN set", pinNotSet: "PIN not set (0000)",
   },
 };
 let lang = "ko"; try { lang = localStorage.getItem("pp-lang") || "ko"; } catch {}
@@ -120,20 +126,90 @@ async function boot() {
   render();
 }
 
+let loginMode = "staff"; try { loginMode = localStorage.getItem("pp-login") || "staff"; } catch {}
 function renderLogin(err) {
+  if (loginMode === "staff") return renderStaffLogin(err);
   const id = h("input", { type: "text", id: "lid", autocomplete: "username", placeholder: "admin" });
   const pw = h("input", { type: "password", id: "lpw", autocomplete: "current-password" });
   const form = h("form", { onsubmit: async e => { e.preventDefault(); try { await db.signIn(id.value, pw.value); boot(); } catch { renderLogin(t("loginFail")); } } },
-    h("div", { class: "card" }, h("h1", {}, t("app")), field(t("id"), id), field(t("pw"), pw), err && h("div", { class: "err" }, err),
+    h("div", { class: "card" }, h("h1", {}, t("app")), modeSwitch(), field(t("id"), id), field(t("pw"), pw), err && h("div", { class: "err" }, err),
       h("button", { class: "btn primary", type: "submit" }, t("login")), langSwitch()));
   root.innerHTML = ""; root.append(h("div", { class: "login" }, form));
 }
+function modeSwitch() {
+  const set = m => { loginMode = m; try { localStorage.setItem("pp-login", m); } catch {} renderLogin(); };
+  return h("div", { class: "row seg" },
+    h("button", { type: "button", class: "btn sm", id: "mode-staff", "aria-pressed": loginMode === "staff", onclick: () => set("staff") }, t("asStaff")),
+    h("button", { type: "button", class: "btn sm", id: "mode-admin", "aria-pressed": loginMode === "admin", onclick: () => set("admin") }, t("asAdmin")));
+}
+/* ================= 직원 본인 보기 (번호 + PIN) ================= */
+const EMP = { no: "", pin: "", data: null };
+function renderStaffLogin(err, typedNo) {
+  let last = typedNo || ""; if (!last) try { last = localStorage.getItem("pp-empno") || ""; } catch {}
+  const no = h("input", { type: "text", id: "eno", inputmode: "numeric", autocomplete: "username", placeholder: "00001", value: last });
+  const pin = h("input", { type: "password", id: "epin", inputmode: "numeric", autocomplete: "current-password", maxlength: 6, placeholder: "••••" });
+  const form = h("form", { onsubmit: async e => { e.preventDefault(); await staffSignIn(no.value, pin.value); } },
+    h("div", { class: "card" }, h("h1", {}, t("app")), modeSwitch(), field(t("empNo"), no), field(t("pin"), pin, t("pinFirst")), err && h("div", { class: "err", id: "elogin-err" }, err),
+      h("button", { class: "btn primary", type: "submit", id: "elogin" }, t("login")), langSwitch()));
+  root.innerHTML = ""; root.append(h("div", { class: "login" }, form));
+}
+async function staffSignIn(no, pin) {
+  try {
+    await db.init();
+    const v = await db.empView(no, pin);
+    if (!v.ok) return renderStaffLogin(v.err === "locked" ? t("pinLocked") : t("pinWrong"), no);
+    EMP.no = String(no).trim(); EMP.pin = String(pin);
+    try { localStorage.setItem("pp-empno", EMP.no); } catch {}
+    if (v.must_change) return renderSetPin(v.name);
+    EMP.data = v; renderStaffHome();
+  } catch (e) { renderStaffLogin(String(e.message || e), no); }
+}
+function renderSetPin(name, err) {
+  const a = h("input", { type: "password", id: "np1", inputmode: "numeric", maxlength: 6 }), b = h("input", { type: "password", id: "np2", inputmode: "numeric", maxlength: 6 });
+  const form = h("form", { onsubmit: async e => { e.preventDefault();
+      if (a.value !== b.value) return renderSetPin(name, t("pinMismatch"));
+      if (!/^[0-9]{4,6}$/.test(a.value) || a.value === "0000") return renderSetPin(name, t("pinBad"));
+      try { const r = await db.empSetPin(EMP.no, EMP.pin, a.value); if (!r.ok) return renderSetPin(name, r.err === "locked" ? t("pinLocked") : t("pinBad"));
+        toast(t("pinSaved")); await staffSignIn(EMP.no, a.value); } catch (er) { renderSetPin(name, String(er.message || er)); } } },
+    h("div", { class: "card" }, h("h1", {}, t("newPinTitle")), h("p", { class: "muted" }, name ? name + " · " : "", t("newPinHelp")),
+      field(t("newPin"), a), field(t("newPin2"), b), err && h("div", { class: "err", id: "np-err" }, err),
+      h("button", { class: "btn primary", type: "submit", id: "np-save" }, t("save"))));
+  root.innerHTML = ""; root.append(h("div", { class: "login" }, form));
+}
+function renderStaffHome() {
+  const v = EMP.data, emp = v.employee;
+  root.innerHTML = "";
+  const paid = v.payrolls.filter(p => p.status === "paid" && p.result);
+  const payList = h("div", { class: "list", id: "my-pay" }, paid.length ? paid.map(p => h("div", { class: "item", onclick: () => {
+      const P = { start: p.period_start, end: p.period_end, daily_rate: p.daily_rate, status: p.status, paid_on: p.paid_on, paid_via: p.paid_via };
+      payslip(P, { name: emp.name, position: emp.position }, p.result); } },
+    h("div", { class: "t" }, periodLabel(p.period_start, p.period_end)), h("div", { class: "s" }, `${t("paid")} ${p.paid_on || ""} · ${p.paid_via || ""}`), h("div", { class: "m money" }, "₱" + money(p.result.net))))
+    : h("span", { class: "muted" }, t("noData")));
+  const ledList = h("div", { class: "list", id: "my-ledger" }, v.ledger.length ? v.ledger.map(l => { const p = periodForDate(l.biz_date);
+    return h("div", { class: "item" }, h("div", { class: "t" }, t("k_" + l.kind), " ", h("span", { class: "pill " + (l.deducted ? "paid" : "draft") }, l.deducted ? t("led_deducted") : t("led_pending"))),
+      h("div", { class: "s" }, l.biz_date, " ", t("led_applies").replace("{p}", periodLabel(p.start, p.end)), l.note ? ` · ${l.note}` : ""), h("div", { class: "m money neg" }, "−" + money(l.amount))); })
+    : h("span", { class: "muted" }, t("noData")));
+  const shifts = h("div", { id: "my-shifts" }, v.payrolls.length ? v.payrolls.map(p => h("details", { class: "card", style: "margin:0 0 8px" },
+      h("summary", {}, h("b", {}, periodLabel(p.period_start, p.period_end)), " ", h("span", { class: "pill " + p.status }, p.status === "paid" ? t("paid") : t("notPaidYet"))),
+      h("div", { class: "tbl" }, h("table", {}, (p.days || []).filter(d => d.type !== "off" || d.shift).map(d => h("tr", {}, h("td", {}, d.date.slice(5) + " " + t("dow")[new Date(d.date + "T00:00:00").getDay()]),
+        h("td", {}, d.shift ? SHIFT_LABEL(d.shift) : "—"), h("td", {}, t("type_" + d.type)))))))) : h("span", { class: "muted" }, t("noData")));
+  root.append(
+    h("div", { class: "top" }, h("span", { class: "brand" }, t("app")), h("span", { class: "sp" }),
+      h("span", { style: "opacity:.85;font-size:13px" }, `${emp.name} · ${t("empNoLbl")} ${emp.emp_no}`),
+      h("button", { onclick: () => { setLangOnly(lang === "ko" ? "en" : "ko"); renderStaffHome(); } }, lang === "ko" ? "EN" : "한"),
+      h("button", { id: "e-logout", onclick: () => { EMP.pin = ""; EMP.data = null; renderStaffLogin(); } }, t("logout"))),
+    h("main", { id: "main" },
+      h("div", { class: "card" }, h("h2", {}, t("myPay")), payList),
+      h("div", { class: "card" }, h("h2", {}, t("myLedger")), ledList),
+      h("div", { class: "card" }, h("h2", {}, t("myShifts")), shifts)));
+}
+function setLangOnly(l) { lang = l; try { localStorage.setItem("pp-lang", l); } catch {} document.documentElement.lang = l; }
 function langSwitch() {
   return h("div", { class: "row" },
     h("button", { type: "button", class: "btn sm", "aria-pressed": lang === "ko", onclick: () => setLang("ko") }, "한국어"),
     h("button", { type: "button", class: "btn sm", "aria-pressed": lang === "en", onclick: () => setLang("en") }, "English"));
 }
-function setLang(l) { lang = l; try { localStorage.setItem("pp-lang", l); } catch {} document.documentElement.lang = l; S.user ? render() : renderLogin(); }
+function setLang(l) { lang = l; try { localStorage.setItem("pp-lang", l); } catch {} document.documentElement.lang = l; S.user ? render() : EMP.data ? renderStaffHome() : renderLogin(); }
 
 function render() {
   root.innerHTML = "";
@@ -152,13 +228,13 @@ function menu() {
     h("h3", {}, S.user?.name || ""),
     h("button", { class: "btn", onclick: () => { close(); changePw(); } }, t("changePw")),
     h("button", { class: "btn", onclick: async () => { await db.signOut(); location.reload(); } }, t("logout")),
-    h("button", { class: "btn ghost", onclick: close }, t("close")),
+    h("button", { class: "btn ghost", onclick: () => close() }, t("close")),
   ]);
 }
 function changePw() {
   const pw = h("input", { type: "password", id: "npw", minlength: 6 });
   const close = sheet(h("form", { onsubmit: async e => { e.preventDefault(); try { await db.changePassword(pw.value); toast(t("saved")); close(); } catch (er) { toast(errMsg(er)); } } },
-    h("h3", {}, t("changePw")), field(t("newPw"), pw), h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: close }, t("cancel")), h("button", { class: "btn primary", type: "submit" }, t("save")))));
+    h("h3", {}, t("changePw")), field(t("newPw"), pw), h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => close() }, t("cancel")), h("button", { class: "btn primary", type: "submit" }, t("save")))));
 }
 
 /* ================= PAYROLL TAB ================= */
@@ -304,7 +380,7 @@ async function renderPay() {
     const dIn = h("input", { type: "date", id: "paidOn", value: today() });
     const vIn = sel([["CASH", "Cash"], ["GCASH", "GCash"], ["MAYA", "Maya"], ["METROBANK", "Metrobank"], ["SAVINGBOX", "Saving box"]], P.paid_via || "CASH", { id: "paidVia" });
     const close = sheet([h("h3", {}, t("markPaid")), h("div", { class: "grid2" }, field(t("paidOn"), dIn), field(t("paidVia"), vIn)),
-      h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", onclick: close }, t("cancel")), h("button", { class: "btn primary", onclick: async () => { close(); await save(true, { paid_on: dIn.value, paid_via: vIn.value }); } }, t("markPaid")))]);
+      h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", onclick: () => close() }, t("cancel")), h("button", { class: "btn primary", onclick: async () => { close(); await save(true, { paid_on: dIn.value, paid_via: vIn.value }); } }, t("markPaid")))]);
   }
   async function unpay() { try { await db.savePayroll({ id: P.id, status: "draft", paid_on: null, paid_via: null }); await re(); } catch (e) { toast(errMsg(e)); } }
 }
@@ -326,7 +402,7 @@ function payslip(P, emp, R) {
     h("table", {}, rows), h("br"), days,
     P.status === "paid" && h("p", { class: "muted" }, `${t("paid")}: ${P.paid_on} · ${P.paid_via}`),
     h("div", { class: "sig" }, h("div", {}, "Employer / Paltong Restaurant"), h("div", {}, "Employee / " + (emp?.name || ""))),
-    h("div", { class: "row noprint", style: "margin-top:14px" }, h("span", { class: "sp" }), h("button", { class: "btn", onclick: close }, t("close")), h("button", { class: "btn primary", onclick: () => window.print() }, t("print")))));
+    h("div", { class: "row noprint", style: "margin-top:14px" }, h("span", { class: "sp" }), h("button", { class: "btn", onclick: () => close() }, t("close")), h("button", { class: "btn primary", onclick: () => window.print() }, t("print")))));
 }
 
 /* ================= EMPLOYEES ================= */
@@ -335,12 +411,13 @@ function renderEmp() {
   const list = h("div", { class: "list" });
   for (const e of S.employees) list.append(h("div", { class: "item", onclick: () => owner && empForm(e) },
     h("div", { class: "t" }, e.name, " ", h("span", { class: "pill " + (e.position === "waiter" ? "waiter" : "") }, t("pos_" + e.position)), !e.active && h("span", { class: "pill", style: "margin-left:6px" }, "✕")),
-    h("div", { class: "s" }, `${t("st_" + e.status)} · ${t("pt_" + e.pay_type)}${e.hired_on ? " · " + e.hired_on : ""}`), h("div", { class: "m money" }, "₱" + money(e.daily_rate))));
+    h("div", { class: "s" }, `${e.emp_no ? t("empNoLbl") + " " + e.emp_no + " · " : ""}${t("st_" + e.status)} · ${t("pt_" + e.pay_type)}${e.hired_on ? " · " + e.hired_on : ""} · ${e.pin_hash ? t("pinSet") : t("pinNotSet")}`), h("div", { class: "m money" }, "₱" + money(e.daily_rate))));
   main.append(h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_emp")), h("span", { class: "sp" }), owner && h("button", { class: "btn primary sm", onclick: () => empForm({ name: "", position: "waiter", daily_rate: S.settings.min_wage, pay_type: "daily", status: "probationary", active: true }) }, "+ " + t("emp_add"))), list));
 }
 function empForm(e) {
-  const E = { ...e }; delete E.created_at;
+  const E = { ...e }; delete E.created_at; delete E.pin_hash; delete E.pin_fails; delete E.pin_locked_until;
   const name = h("input", { type: "text", id: "eName", value: E.name, required: true });
+  const eno = h("input", { type: "text", id: "eNo", inputmode: "numeric", value: E.emp_no || "", placeholder: "00013" });
   const pos = sel([["waiter", t("pos_waiter")], ["kitchen", t("pos_kitchen")], ["rider", t("pos_rider")], ["other", t("pos_other")]], E.position, { id: "ePos" });
   const rate = h("input", { type: "number", id: "eRate", value: E.daily_rate, step: 1, min: 0 });
   const pt = sel([["daily", t("pt_daily")], ["monthly", t("pt_monthly")]], E.pay_type, { id: "ePt" });
@@ -348,13 +425,15 @@ function empForm(e) {
   const hired = h("input", { type: "date", id: "eHired", value: E.hired_on || "" }); const bday = h("input", { type: "date", id: "eBday", value: E.birthday || "" });
   const active = h("input", { type: "checkbox", id: "eActive", checked: E.active }); const note = h("input", { type: "text", id: "eNote", value: E.note || "" });
   const close = sheet(h("form", { onsubmit: async ev => { ev.preventDefault(); try {
-      await db.saveEmployee({ ...E, name: name.value.trim(), position: pos.value, daily_rate: +rate.value, pay_type: pt.value, status: st.value, hired_on: hired.value || null, birthday: bday.value || null, active: active.checked, note: note.value || null });
+      await db.saveEmployee({ ...E, emp_no: eno.value.trim() || null, name: name.value.trim(), position: pos.value, daily_rate: +rate.value, pay_type: pt.value, status: st.value, hired_on: hired.value || null, birthday: bday.value || null, active: active.checked, note: note.value || null });
       S.employees = await db.listEmployees(true); toast(t("saved")); close(); render(); } catch (er) { toast(errMsg(er)); } } },
     h("h3", {}, E.id ? E.name : t("emp_add")),
-    h("div", { class: "grid2" }, field(t("emp_name"), name), field(t("emp_pos"), pos), field(t("daily"), rate), field(t("emp_payType"), pt), field(t("emp_status"), st), field(t("emp_hired"), hired), field(t("emp_bday"), bday), field(t("emp_note"), note)),
+    h("div", { class: "grid2" }, field(t("empNo"), eno), field(t("emp_name"), name), field(t("emp_pos"), pos), field(t("daily"), rate), field(t("emp_payType"), pt), field(t("emp_status"), st), field(t("emp_hired"), hired), field(t("emp_bday"), bday), field(t("emp_note"), note)),
     h("label", { class: "check" }, active, t("emp_active")),
+    E.id && h("div", { class: "row" }, h("span", { class: "muted" }, e.pin_hash ? t("pinSet") : t("pinNotSet")), h("span", { class: "sp" }),
+      h("button", { class: "btn sm", type: "button", id: "e-reset-pin", onclick: async () => { try { await db.resetEmpPin(E.id); S.employees = await db.listEmployees(true); toast(t("pinReset")); close(); render(); } catch (er) { toast(errMsg(er)); } } }, t("resetPin"))),
     h("div", { class: "row" }, E.id && h("button", { class: "btn danger sm", type: "button", onclick: () => confirmSheet(t("confirmDel"), async () => { await db.deleteEmployee(E.id); S.employees = await db.listEmployees(true); close(); render(); }) }, t("delete")),
-      h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: close }, t("cancel")), h("button", { class: "btn primary", type: "submit" }, t("save")))));
+      h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => close() }, t("cancel")), h("button", { class: "btn primary", type: "submit" }, t("save")))));
 }
 
 /* ================= LEDGER ================= */
@@ -390,7 +469,7 @@ function ledgerForm(l, after) {
     h("h3", {}, t("led_add")),
     h("div", { class: "grid2" }, field(t("employee"), empSel), field(t("led_kind"), kind), field(t("led_date"), date, hint), field(t("led_amount"), amt), field(t("led_note"), note)), shortBox,
     h("div", { class: "row" }, L.id && h("button", { class: "btn danger sm", type: "button", onclick: () => confirmSheet(t("confirmDel"), async () => { await db.deleteLedger(L.id); close(); after(); }) }, t("delete")),
-      h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: close }, t("cancel")), h("button", { class: "btn primary", type: "submit" }, t("save")))));
+      h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => close() }, t("cancel")), h("button", { class: "btn primary", type: "submit" }, t("save")))));
 }
 
 /* ================= HISTORY ================= */

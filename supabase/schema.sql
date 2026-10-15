@@ -106,3 +106,13 @@ drop policy if exists pr_payrolls_write on public.pr_payrolls; create policy pr_
 drop policy if exists pr_settings_read  on public.pr_settings; create policy pr_settings_read  on public.pr_settings for select using (public.is_owner());
 drop policy if exists pr_settings_write on public.pr_settings; create policy pr_settings_write on public.pr_settings for update using (public.is_owner()) with check (public.is_owner());
 
+
+-- ---------- 직원 번호 + PIN (직원 본인 보기, 2026-10-16) ----------
+-- 처음 PIN 0000 → 본인이 4~6자리로 재등록. 5번 틀리면 10분 잠김. 본인 급여(지급된 것)·가불·근무만 읽기 전용
+alter table public.pr_employees add column if not exists emp_no text;
+create unique index if not exists pr_employees_emp_no_uniq on public.pr_employees (emp_no) where emp_no is not null;
+alter table public.pr_employees add column if not exists pin_hash text;
+alter table public.pr_employees add column if not exists pin_fails int not null default 0;
+alter table public.pr_employees add column if not exists pin_locked_until timestamptz;
+-- 함수 pr_emp_check / pr_emp_view / pr_emp_set_pin / pr_emp_reset_pin 는 MONEY TRACKER 에 적용되어 있어요
+-- (migrations: pr_employee_pin_portal, pr_emp_check_fix)
