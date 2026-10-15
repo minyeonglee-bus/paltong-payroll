@@ -1,0 +1,9 @@
+{
+  "name": "paltong-payroll",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Paltong Restaurant payroll — half-month shift roster, DOLE premiums, advances & cash-shortage ledger (Supabase + Vercel)",
+  "engines": { "node": ">=20" },
+  "scripts": { "test": "node test/payroll.test.js" }
+}
