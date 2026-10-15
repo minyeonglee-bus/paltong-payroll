@@ -38,6 +38,8 @@ const I18N = {
     ],
     noPerm: "권한이 없어요 (관리자만 가능)", paidLocked: "지급 완료된 급여는 관리자만 바꿀 수 있어요", loginFail: "아이디 또는 비밀번호가 틀려요",
     pickEmp: "직원을 먼저 고르세요", deleted: "삭제됨", weekendHelp: "금·토·일 = 주말",
+    cbTitle: "캐시북 현금 부족 (확인 필요)", cbHelp: "중간마감·마감에서 센 현금이 장부보다 모자라면 여기 들어와요. 자동으로 빠지지 않아요 — 조사 후 책임 웨이터를 지정하고, 가불·부족분에서 '본인 책임 확인'과 '서면 동의'를 둘 다 체크해야 급여에서 공제돼요.", cbNone: "확인할 부족분이 없어요", cbDone: "처리한 것", cbMid: "중간마감", cbFinal: "마감", cbCounted: "센 현금", cbBook: "장부", cbBy: "센 사람", cbReason: "사유", cbDuty: "근무", is_open: "확인 필요", is_assigned: "웨이터 지정됨", is_dismissed: "해결됨 (공제 안 함)",
+    cbLaw: "근무 중이었다는 이유만으로 나눠서 빼면 안 돼요. 본인에게 설명할 기회를 주고, 책임이 확인된 한 사람에게만 지정하세요. 지정 후 가불·부족분에서 '본인 책임 확인'과 '서면 동의 받음'을 체크해야 공제돼요.", cbWho: "책임 웨이터", cbAssign: "이 웨이터의 부족분으로 넣기 (미확인)", cbAssigned: "부족분에 넣었어요 — 확인·동의 체크 후 공제돼요", cbDismissLbl: "찾았거나 장부 실수였다면 (메모)", cbFoundPh: "예: 다음날 서랍에서 찾음 / 매출 입력 실수", cbDismiss: "해결됨 — 공제 안 함", notDeducted: "공제 전 (확인·동의 필요)",
     asStaff: "직원", asAdmin: "관리자", empNo: "직원 번호", pin: "PIN (숫자)", pinFirst: "처음이면 PIN 0000", pinWrong: "번호 또는 PIN이 틀려요", pinLocked: "5번 틀려서 10분 동안 잠겼어요",
     newPinTitle: "내 PIN 등록", newPinHelp: "처음 로그인이에요. 나만 아는 숫자 4~6자리로 PIN을 새로 정해주세요 (0000 안 됨).", newPin: "새 PIN", newPin2: "새 PIN 다시", pinMismatch: "두 PIN이 달라요", pinBad: "숫자 4~6자리로 정해주세요 (0000 안 됨)", pinSaved: "PIN을 등록했어요",
     myPay: "내 급여명세서", myLedger: "내 가불·부족분", myShifts: "내 근무 기록", notPaidYet: "아직 지급 전", noData: "아직 기록이 없어요", empNoLbl: "번호", resetPin: "PIN 초기화 (0000)", pinReset: "PIN을 0000으로 초기화했어요. 다음 로그인 때 본인이 다시 등록해요.", pinSet: "PIN 등록됨", pinNotSet: "PIN 미등록 (0000)",
@@ -77,6 +79,8 @@ const I18N = {
     ],
     noPerm: "No permission (owner only)", paidLocked: "A paid payroll can only be changed by the owner", loginFail: "Wrong ID or password",
     pickEmp: "Pick an employee first", deleted: "Deleted", weekendHelp: "Fri · Sat · Sun = weekend",
+    cbTitle: "Cash Book shortages (to check)", cbHelp: "When counted cash at a mid-close or close is less than the book, it lands here. Nothing is deducted automatically — investigate, assign the responsible waiter, then tick both 'responsibility established' and 'written authorization' in Advances & shortages before it comes off pay.", cbNone: "No shortages to check", cbDone: "Handled", cbMid: "Mid-close", cbFinal: "Close", cbCounted: "Counted", cbBook: "Book", cbBy: "Counted by", cbReason: "Reason", cbDuty: "On duty", is_open: "To check", is_assigned: "Waiter assigned", is_dismissed: "Resolved (no deduction)",
+    cbLaw: "Don’t split a shortage among everyone on duty. Give the waiter a chance to explain and assign it only to the one person found responsible. It is deducted only after you tick 'responsibility established' and 'written authorization on file'.", cbWho: "Responsible waiter", cbAssign: "Add as this waiter’s shortage (unverified)", cbAssigned: "Added — deducted after verification & authorization", cbDismissLbl: "Found it / book mistake (note)", cbFoundPh: "e.g. found in drawer next day / sale entered wrong", cbDismiss: "Resolved — no deduction", notDeducted: "not deducted (needs verification & consent)",
     asStaff: "Staff", asAdmin: "Admin", empNo: "Employee no.", pin: "PIN (numbers)", pinFirst: "First time? PIN is 0000", pinWrong: "Wrong number or PIN", pinLocked: "Locked for 10 minutes after 5 wrong tries",
     newPinTitle: "Set your PIN", newPinHelp: "First sign-in. Choose your own 4–6 digit PIN (not 0000).", newPin: "New PIN", newPin2: "New PIN again", pinMismatch: "The PINs don’t match", pinBad: "Use 4–6 digits (not 0000)", pinSaved: "PIN saved",
     myPay: "My payslips", myLedger: "My advances & shortages", myShifts: "My shifts", notPaidYet: "not paid yet", noData: "Nothing yet", empNoLbl: "No.", resetPin: "Reset PIN (0000)", pinReset: "PIN reset to 0000. They set a new one at next sign-in.", pinSet: "PIN set", pinNotSet: "PIN not set (0000)",
@@ -266,7 +270,7 @@ async function loadPay(P) {
 }
 function payOpts(P) {
   const adv = P.ledger.filter(l => l.kind === "advance").reduce((a, l) => a + +l.amount, 0);
-  const sh = P.ledger.filter(l => l.kind === "shortage" && l.verified).reduce((a, l) => a + +l.amount, 0);
+  const sh = P.ledger.filter(l => l.kind === "shortage" && l.verified && l.authorized).reduce((a, l) => a + +l.amount, 0);   // 본인 책임 확인 + 서면 동의 둘 다 있어야 공제
   const oth = P.ledger.filter(l => l.kind === "other").reduce((a, l) => a + +l.amount, 0);
   return { daily: P.daily_rate, breakHrs: P.break_hours, lateMinutes: P.late_minutes, incentive: P.incentive, advances: adv, shortage: sh,
     otherDeduction: (+P.other_deduction || 0) + oth, gov: P.gov, govShare: +P.gov.share === 1 ? 1 : 0.5 };
@@ -327,7 +331,7 @@ async function renderPay() {
   const shareSel = sel([[0.5, t("govShare")], [1, t("govFull")]], P.gov.share, { disabled: locked, onchange: e => { P.gov.share = +e.target.value; refresh(); } });
   const ledList = h("div", { class: "list" });
   for (const l of P.ledger) ledList.append(h("div", { class: "item", onclick: () => ledgerForm(l, re) },
-    h("div", { class: "t" }, t("k_" + l.kind), l.kind === "shortage" && !l.verified && h("span", { class: "pill draft", style: "margin-left:6px" }, "?")),
+    h("div", { class: "t" }, t("k_" + l.kind), l.kind === "shortage" && !(l.verified && l.authorized) && h("span", { class: "pill draft", style: "margin-left:6px" }, t("notDeducted"))),
     h("div", { class: "s" }, l.biz_date, l.note ? ` · ${l.note}` : ""), h("div", { class: "m money neg" }, "−" + money(l.amount))));
   const ded = h("div", { class: "card" }, h("h2", {}, t("deductions")),
     h("div", { class: "grid2" }, field(t("late"), lateIn, t("lateHelp") + money(R.perMinute)), field(t("incentive"), incIn), field(t("other"), othIn)),
@@ -448,11 +452,42 @@ async function renderLedger() {
     const p = periodForDate(l.biz_date);
     list.append(h("div", { class: "item", onclick: () => owner && ledgerForm(l, () => render()) },
       h("div", { class: "t" }, l.employees?.name, " · ", t("k_" + l.kind), " ", h("span", { class: "pill " + (l.payroll_id ? "paid" : "draft") }, l.payroll_id ? t("led_deducted") : t("led_pending"))),
-      h("div", { class: "s" }, l.biz_date, " ", t("led_applies").replace("{p}", periodLabel(p.start, p.end)), l.note ? ` · ${l.note}` : "", l.kind === "shortage" && !l.verified ? " · ⚠" : ""),
+      h("div", { class: "s" }, l.biz_date, " ", t("led_applies").replace("{p}", periodLabel(p.start, p.end)), l.note ? ` · ${l.note}` : "", l.kind === "shortage" && !(l.verified && l.authorized) ? " · ⚠ " + t("notDeducted") : ""),
       h("div", { class: "m money neg" }, "−" + money(l.amount))));
   }
+  if (owner) main.append(await cashIssuesCard());
   main.append(h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_ledger")), h("span", { class: "sp" }), owner && h("button", { class: "btn primary sm", onclick: () => ledgerForm({ employee_id: S.employees[0]?.id || "", kind: "advance", biz_date: today(), amount: "" }, () => render()) }, "+ " + t("led_add"))),
     h("div", { class: "row" }, empSel, kindSel), rows.length ? list : h("span", { class: "muted" }, t("none"))));
+}
+// 캐시북 중간마감·마감 현금 부족 → 조사 후 책임 웨이터 지정 (자동 공제 아님)
+async function cashIssuesCard() {
+  let rows = []; try { rows = await db.listCashIssues(); } catch { return h("span"); }
+  const open = rows.filter(r => r.status === "open"), done = rows.filter(r => r.status !== "open").slice(0, 10);
+  const waiters = S.employees.filter(e => e.active && e.position === "waiter");
+  const stg = r => r.stage === "mid" ? t("cbMid") : t("cbFinal");
+  const item = r => h("div", { class: "item", "data-issue": r.id, onclick: () => r.status === "open" && issueForm(r, waiters) },
+    h("div", { class: "t" }, `${r.biz_date} · ${stg(r)}`, " ", h("span", { class: "pill " + (r.status === "open" ? "draft" : r.status === "assigned" ? "waiter" : "paid") }, t("is_" + r.status))),
+    h("div", { class: "s" }, `${t("cbCounted")} ₱${money(r.counted)} / ${t("cbBook")} ₱${money(r.expected)}` + (r.counted_by ? ` · ${t("cbBy")} ${r.counted_by}` : "") + (r.reason ? ` · ${t("cbReason")}: ${r.reason}` : "") + (r.on_duty?.length ? ` · ${t("cbDuty")}: ${r.on_duty.join(", ")}` : "") + (r.resolved_note ? ` · ${r.resolved_note}` : "")),
+    h("div", { class: "m money neg" }, "−" + money(r.amount)));
+  return h("div", { class: "card", id: "cash-issues" },
+    h("div", { class: "row" }, h("h2", {}, t("cbTitle")), h("span", { class: "sp" }), open.length ? h("span", { class: "pill draft" }, open.length) : null),
+    h("small", { class: "muted" }, t("cbHelp")),
+    open.length ? h("div", { class: "list" }, open.map(item)) : h("span", { class: "muted" }, t("cbNone")),
+    done.length ? h("details", {}, h("summary", { class: "muted" }, t("cbDone")), h("div", { class: "list" }, done.map(item))) : null);
+}
+function issueForm(r, waiters) {
+  const emp = sel([["", "—"], ...waiters.map(e => [e.id, e.name])], waiters.find(e => e.name.toLowerCase() === String(r.counted_by || "").toLowerCase())?.id || "", { id: "iEmp" });
+  const note = h("input", { type: "text", id: "iNote", placeholder: t("cbFoundPh") });
+  const close = sheet([h("h3", {}, `${r.biz_date} · ${r.stage === "mid" ? t("cbMid") : t("cbFinal")} · −₱${money(r.amount)}`),
+    h("p", { class: "muted" }, t("cbLaw")),
+    field(t("cbWho"), emp, r.on_duty?.length ? `${t("cbDuty")}: ${r.on_duty.join(", ")}` : null),
+    h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn primary", id: "iAssign", onclick: async () => {
+      if (!emp.value) return toast(t("pickEmp"));
+      try { await db.assignCashIssue(r.id, emp.value); toast(t("cbAssigned")); close(); render(); } catch (e) { toast(errMsg(e)); } } }, t("cbAssign"))),
+    h("hr"),
+    field(t("cbDismissLbl"), note),
+    h("div", { class: "row" }, h("button", { class: "btn", onclick: () => close() }, t("cancel")), h("span", { class: "sp" }),
+      h("button", { class: "btn", id: "iDismiss", onclick: async () => { try { await db.dismissCashIssue(r.id, note.value.trim()); toast(t("saved")); close(); render(); } catch (e) { toast(errMsg(e)); } } }, t("cbDismiss")))]);
 }
 function ledgerForm(l, after) {
   const L = { ...l }; delete L.employees; delete L.created_at; delete L.created_by;

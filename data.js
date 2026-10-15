@@ -79,3 +79,8 @@ export async function deletePayroll(id) { must(await sb.from("pr_payrolls").dele
 export async function empView(no, pin) { return must(await sb.rpc("pr_emp_view", { p_no: String(no).trim(), p_pin: String(pin) })); }
 export async function empSetPin(no, oldPin, newPin) { return must(await sb.rpc("pr_emp_set_pin", { p_no: String(no).trim(), p_old: String(oldPin), p_new: String(newPin) })); }
 export async function resetEmpPin(id) { must(await sb.rpc("pr_emp_reset_pin", { p_id: id })); }
+
+// ---------- 캐시북 현금 부족 (중간마감·마감) → 확인 필요 목록 ----------
+export async function listCashIssues() { return must(await sb.from("pr_cash_issues").select("*").order("biz_date", { ascending: false }).order("created_at", { ascending: false }).limit(200)); }
+export async function assignCashIssue(id, employeeId) { return must(await sb.rpc("pr_cash_issue_assign", { p_issue: id, p_employee: employeeId })); }
+export async function dismissCashIssue(id, note) { return must(await sb.from("pr_cash_issues").update({ status: "dismissed", resolved_note: note || null }).eq("id", id).select().single()); }

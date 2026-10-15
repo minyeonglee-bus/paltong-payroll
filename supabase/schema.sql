@@ -116,3 +116,9 @@ alter table public.pr_employees add column if not exists pin_fails int not null 
 alter table public.pr_employees add column if not exists pin_locked_until timestamptz;
 -- 함수 pr_emp_check / pr_emp_view / pr_emp_set_pin / pr_emp_reset_pin 는 MONEY TRACKER 에 적용되어 있어요
 -- (migrations: pr_employee_pin_portal, pr_emp_check_fix)
+
+-- ---------- 캐시북 현금 부족 연동 (2026-10-16) ----------
+-- checkpoints(중간마감/마감) 저장 때 센 현금 < 장부 → pr_cash_issues '확인 필요' (자동 공제 아님)
+-- 관리자가 pr_cash_issue_assign 으로 책임 웨이터 지정 → pr_ledger 부족분(verified=false, authorized=false)
+-- 급여 계산은 verified AND authorized 인 부족분만 공제
+-- (migration: pr_cash_issues_from_cashbook)
