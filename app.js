@@ -659,8 +659,7 @@ async function render13() {
     const before = e.basic_before_year === year ? +e.basic_before_app || 0 : 0;
     const total = basicApp + before, amount = Math.round(total / 12 * 100) / 100;
     const avg = mine.length ? basicApp / mine.length : 0;
-    const months = new Set(mine.map(r => String(r.period_start).slice(0, 7))).size;
-    const monthAvg = months ? Math.round(basicApp / months * 100) / 100 : 0; // 1년 이상 근속자: 한 달치(월평균 기본급)
+    const monthAvg = mine.length ? Math.round(basicApp / mine.length * 2 * 100) / 100 : 0; // 1년 이상 근속자: 한 달치 = 보름 평균 × 2
     const proj = Math.round((total + avg * Math.max(0, 24 - elapsedHalves - (before ? 0 : 0))) / 12 * 100) / 100;
     const p = paidBy[e.id]; tot += amount; totBasic += total; totAvg += monthAvg;
     const drafts = mine.filter(r => r.status !== "paid").length;
