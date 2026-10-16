@@ -1,44 +1,39 @@
 import * as db from "./data.js";
-import { computePayroll, shiftHours, SHIFTS, SHIFT_LABEL, DAY_TYPES, DAY_TYPES_FOR, PT_TYPES, PT_DEFAULTS, MONTHLY_FACTOR,
-         periodOf, periodForDate, weekOf, datesBetween, addDays } from "./payroll-calc.js";
+import { computePayroll, shiftHours, SHIFTS, SHIFT_LABEL, DAY_TYPES, DAY_TYPES_FOR, periodOf, periodForDate, datesBetween } from "./payroll-calc.js";
 
 /* ---------- i18n ---------- */
 const I18N = {
   ko: {
     app: "Paltong 급여", login: "로그인", id: "아이디", pw: "비밀번호", logout: "로그아웃", changePw: "비밀번호 변경", newPw: "새 비밀번호 (6자 이상)",
     tab_pay: "급여 계산", tab_emp: "직원", tab_ledger: "가불·부족분·보너스", tab_hist: "급여 내역", tab_set: "설정",
-    employee: "직원", period: "급여 기간", first: "1 – 15일", second: "16일 – 말일", month: "월", week: "주 (월~일)", weekPaid: "토요일 지급",
+    employee: "직원", period: "급여 기간", first: "1 – 15일", second: "16일 – 말일", month: "월",
     daily: "일급", monthlyRate: "월급 (초과근무 포함)", breakH: "식사 휴게 (시간/일)", allowDay: "정비비 (₱/근무일)",
-    roster: "보름치 시프트 표", rosterW: "이번 주 근무표", off: "휴무", wkend: "주말",
+    roster: "보름치 시프트 표", off: "휴무", wkend: "주말",
     type_regular: "평일", type_rest: "휴무일 근무", type_special: "특별공휴일", type_specialRest: "특별공휴일+휴무일", type_holiday: "정규공휴일", type_holidayRest: "정규공휴일+휴무일", type_holidayOff: "정규공휴일 쉼", type_sil: "SIL 유급휴가", type_absent: "결근 (공제)", type_off: "휴무",
-    pt_work: "근무 (지정일)", pt_extra: "추가 근무일", pt_absent: "결근", pt_off: "휴무", hours: "근무 시간", otHours: "초과 (h)",
-    fill: "채우기", fillHelp: "휴무는 고정이 아니에요: 시프트로 전체 채운 뒤, 쉬는 날은 날짜를 눌러 휴무로 바꾸세요 (다시 누르면 근무). 캐시북 근무 스케줄을 그대로 불러올 수도 있어요.", fillHelpW: "지정 휴무일 2개 (계약: 목·일) 빼고 나머지를 4시간 근무로 채워요",
+    fill: "채우기", fillHelp: "휴무는 고정이 아니에요: 시프트로 전체 채운 뒤, 쉬는 날은 날짜를 눌러 휴무로 바꾸세요 (다시 누르면 근무). 캐시북 근무 스케줄을 그대로 불러올 수도 있어요.",
     restDay: "주 휴무 요일", dow: ["일", "월", "화", "수", "목", "금", "토"],
     late: "지각·조퇴 합계 (분)", lateHelp: "실제 미근무 시간만 공제 · 분당 ₱", incentive: "수동 인센티브·수당 (+)", other: "기타 공제 (−)",
     deductions: "공제 · 보너스", ledgerAuto: "이 기간 자동 반영 (가불 · 현금 부족분 · 보너스)", none: "없음",
     gov: "법정 공제 (근로자 부담분)", govShare: "반달치 (½)", govFull: "한 달치", govHelp: "참고값 · SSS 5% · PhilHealth 2.5% · Pag-IBIG 2% (최대 ₱200)",
-    result: "계산 내역", basic: "기본급 (근무시간 × 시급)", basicM: "기본급 (월급 ÷ 2)", basicW: "기본급 (근무시간 × ₱{h}/h)", premium: "휴무일·공휴일 할증", ot: "초과근무", otIncl: "초과근무 (월급에 포함 · 별도 지급 없음)", nd: "야간근무 가산 (10%)",
-    silPay: "SIL · 유급휴가", holOff: "정규공휴일 유급 (쉼)", allowance: "오토바이 정비비 ({d}일 × ₱{a})", allowanceW: "교통비·식대 (근무일 기준)", extraPay: "추가 근무일 (₱{r}/h)", absentDed: "결근 공제 ({d}일)",
+    result: "계산 내역", basic: "기본급 (근무시간 × 시급)", basicM: "기본급 (월급 ÷ 2)", premium: "휴무일·공휴일 할증", ot: "초과근무", otIncl: "초과근무 (월급에 포함 · 별도 지급 없음)", nd: "야간근무 가산 (10%)",
+    silPay: "SIL · 유급휴가", holOff: "정규공휴일 유급 (쉼)", allowance: "오토바이 정비비 ({d}일 × ₱{a})", absentDed: "결근 공제 ({d}일)",
     lateDed: "지각·조퇴 공제", gross: "총 지급액 (Gross)", adv: "가불금", shortage: "현금 부족분", bonus: "보너스 (최고매출일 · 신메뉴 등)", net: "실수령액 (Net)",
-    summary: "근무 {d}일 · {h}h · 초과 {o}h · 야간 {n}h · SIL {s}일", summaryW: "근무 {d}일 · {h}h · 초과 {o}h · 추가근무 {e}h · 결근 {a}일", netLbl: "실수령액",
+    summary: "근무 {d}일 · {h}h · 초과 {o}h · 야간 {n}h · SIL {s}일", netLbl: "실수령액",
     for13: "13월급 산정용 기본급", riderNote: "배달비·유류비는 당일 현금 지급 (캐시북 직원 탭) · 급여에 포함 안 됨", monthlyNote: "₱30,000 월급은 초과근무 포함 (계약 2.2) · 야간·공휴일·휴무일 할증은 별도 지급 · 결근·지각은 일할 공제",
-    weeklyNote: "주급 ₱2,000 = 기본 1,500 + 교통 400 + 식대 100 · 주 5일 × 4h · 토요일 지급 · 가불 상환 주 ₱500",
     save: "저장", saved: "저장됨", markPaid: "지급 완료로 기록", paid: "지급됨", draft: "작성중", unpay: "지급 취소", paidOn: "지급일", paidVia: "지급 계좌", slip: "급여명세서", print: "인쇄", delete: "삭제", confirmDel: "정말 삭제할까요?", yes: "삭제", cancel: "취소", close: "닫기",
-    emp_add: "직원 추가", emp_name: "이름", emp_pos: "직위", pos_waiter: "웨이터/서버", pos_kitchen: "주방", pos_rider: "라이더", pos_helper: "가사도우미 (파트타임)", pos_other: "기타",
+    emp_add: "직원 추가", emp_name: "이름", emp_pos: "직위", pos_waiter: "웨이터/서버", pos_kitchen: "주방", pos_rider: "라이더", pos_other: "기타",
     emp_status: "고용 형태", st_regular: "정규직", st_probationary: "수습", st_fixed: "계약직", st_other: "기타", emp_hired: "입사일", emp_bday: "생일", emp_active: "재직 중", emp_note: "메모",
-    emp_payType: "급여 형태", pt_daily: "일급 (₱718)", pt_monthly: "월급 (₱30,000 OT 포함)", pt_weekly: "주급 (파트타임 ₱2,000)",
-    w_basic: "주 기본급", w_transport: "교통비/주", w_meal: "식대/주", w_days: "주 근무일", w_hours: "일 근무시간", w_ot: "초과 ₱/h", w_extra: "추가근무일 ₱/h", w_adv: "가불 상환/주",
+    emp_payType: "급여 형태", pt_daily: "일급 (₱718)", pt_monthly: "월급 (₱30,000 OT 포함)",
     led_add: "기록 추가", led_kind: "종류", k_advance: "가불", k_shortage: "현금 부족분", k_bonus: "보너스 (+)", k_other: "기타 공제", led_date: "날짜", led_amount: "금액", led_note: "메모",
     led_verified: "조사 완료 · 본인 책임 확인", led_auth: "서면 동의 받음", led_applies: "→ {p} 급여에 반영", led_deducted: "반영됨", led_pending: "미반영", led_filter_all: "전체",
-    bonusHint: "최고매출일 보너스 = 그날 총매출 × 2% ÷ 근무한 대상자 수 · 주방 신메뉴 인센티브 등", advBalance: "가불 잔액",
+    bonusHint: "최고매출일 보너스 = 그날 총매출 × 2% ÷ 근무한 대상자 수 · 주방 신메뉴 인센티브 등",
     hist_empty: "저장된 급여가 없어요. 급여 계산 탭에서 저장하세요.", total: "합계",
     set_wage: "기본 일급 (최저임금)", set_break: "기본 식사 휴게 (시간)", set_gov: "법정 공제 기본값", set_lang: "언어", set_rider: "라이더 정비비 (₱/근무일)", set_kitchen: "주방 월급 기본값",
-    contract: "계약서 요약 (4종)", contractText: [
+    contract: "계약서 요약", contractText: [
       "공통 — 지급일 15일·30일 · 초과근무는 승인된 시간만 · 야간(22~06시) +10% · 휴무일 130% · 특별공휴일 130% · 정규공휴일 200%(쉬어도 100%) · 지각은 실제 미근무 분만 공제 · 개근 시 다음 달 유급휴가 1일(SIL) · 생일 달 직전 3개월 개근 시 생일 인센티브 · 가불 1~15일 신청→15일, 16일~→30일 급여 공제 · 주간 최고매출일 보너스 = 매출 2% ÷ 근무 대상자 수 · 13월급 = 기본급 기준",
       "웨이터/서버 (일급 ₱718) — 현금 부족분은 조사 후 본인 책임 확정 + 서면 동의 시에만 공제. 근무 중이었다는 이유만으로 분담 불가",
       "주방 (일급 ₱718 또는 월급 ₱30,000) — 월급은 주6일·8시간 기준이며 초과근무 포함(별도 OT 없음). 야간·공휴일·휴무일 할증은 법대로 지급. 신메뉴 개발 성공 시 특별 인센티브",
       "라이더 (일급 ₱718) — 배달비는 당일 지급(급여 별도) · 유류비는 근무 중 영수증 당일 환급 · 오토바이 정비비 ₱100/실근무일을 급여에 포함(기본급 아님, 13월급 제외) · 배달 거부 시 해당 배달비 없음",
-      "파트타임 가사도우미 (주급) — 기본 ₱1,500 + 교통 ₱400 + 식대 ₱100 = ₱2,000/주 · 주 5일(평일 4 + 주말 1) × 4h, 08~12시 · 휴무 목·일 · 월~일 집계, 토요일 지급 · 결근·지각·조퇴 일할 공제 · 승인된 초과 ₱80/h, 비지정일 근무 ₱100/h · 가불 최대 ₱5,000, 주 ₱500 상환 · 13월급 기본급 기준(1년 미만 비례)",
     ],
     noPerm: "권한이 없어요 (관리자만 가능)", paidLocked: "지급 완료된 급여는 관리자만 바꿀 수 있어요", loginFail: "아이디 또는 비밀번호가 틀려요",
     pickEmp: "직원을 먼저 고르세요", deleted: "삭제됨", weekendHelp: "금·토 = 주말",
@@ -52,38 +47,34 @@ const I18N = {
   en: {
     app: "Paltong Payroll", login: "Sign in", id: "ID", pw: "Password", logout: "Sign out", changePw: "Change password", newPw: "New password (6+ chars)",
     tab_pay: "Payroll", tab_emp: "Staff", tab_ledger: "Advances · shortages · bonuses", tab_hist: "History", tab_set: "Settings",
-    employee: "Employee", period: "Pay period", first: "1st – 15th", second: "16th – end", month: "Month", week: "Week (Mon–Sun)", weekPaid: "paid Saturday",
+    employee: "Employee", period: "Pay period", first: "1st – 15th", second: "16th – end", month: "Month",
     daily: "Daily rate", monthlyRate: "Monthly salary (OT-inclusive)", breakH: "Meal break (hrs/day)", allowDay: "Maintenance (₱/duty day)",
-    roster: "Half-month shift roster", rosterW: "This week's schedule", off: "Off", wkend: "Weekend",
+    roster: "Half-month shift roster", off: "Off", wkend: "Weekend",
     type_regular: "Regular day", type_rest: "Rest day worked", type_special: "Special holiday", type_specialRest: "Special holiday + rest day", type_holiday: "Regular holiday", type_holidayRest: "Regular holiday + rest day", type_holidayOff: "Regular holiday, not worked", type_sil: "SIL paid leave", type_absent: "Absent (deducted)", type_off: "Off",
-    pt_work: "Work (scheduled)", pt_extra: "Extra day", pt_absent: "Absent", pt_off: "Off", hours: "Hours", otHours: "OT (h)",
-    fill: "Fill", fillHelp: "Days off aren’t fixed: fill every date with a shift, then tap a date to make it a day off (tap again to work). Or load the Cash Book work schedule.", fillHelpW: "Skips the two designated days off (contract: Thu & Sun), fills the rest with 4h work",
+    fill: "Fill", fillHelp: "Days off aren’t fixed: fill every date with a shift, then tap a date to make it a day off (tap again to work). Or load the Cash Book work schedule.",
     restDay: "Weekly rest day", dow: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
     late: "Tardiness / undertime (minutes)", lateHelp: "Only actual unworked time · per minute ₱", incentive: "Manual incentive / allowance (+)", other: "Other deduction (−)",
     deductions: "Deductions · bonuses", ledgerAuto: "Applied automatically this period (advances · shortage · bonuses)", none: "none",
     gov: "Statutory deductions (employee share)", govShare: "Half-month (½)", govFull: "Full month", govHelp: "Reference · SSS 5% · PhilHealth 2.5% · Pag-IBIG 2% (max ₱200)",
-    result: "Computation", basic: "Basic pay (hours × hourly)", basicM: "Basic pay (monthly ÷ 2)", basicW: "Basic pay (hours × ₱{h}/h)", premium: "Rest-day / holiday premium", ot: "Overtime", otIncl: "Overtime (included in monthly salary · not paid separately)", nd: "Night differential (10%)",
-    silPay: "SIL · paid leave", holOff: "Regular holiday paid (not worked)", allowance: "Motorcycle maintenance ({d} days × ₱{a})", allowanceW: "Transport & meal allowance (days worked)", extraPay: "Extra days (₱{r}/h)", absentDed: "Absence deduction ({d} days)",
+    result: "Computation", basic: "Basic pay (hours × hourly)", basicM: "Basic pay (monthly ÷ 2)", premium: "Rest-day / holiday premium", ot: "Overtime", otIncl: "Overtime (included in monthly salary · not paid separately)", nd: "Night differential (10%)",
+    silPay: "SIL · paid leave", holOff: "Regular holiday paid (not worked)", allowance: "Motorcycle maintenance ({d} days × ₱{a})", absentDed: "Absence deduction ({d} days)",
     lateDed: "Tardiness / undertime", gross: "Gross pay", adv: "Salary advance", shortage: "Cash shortage", bonus: "Bonus (highest-sales day · new menu)", net: "Net pay",
-    summary: "{d} days · {h}h · OT {o}h · night {n}h · SIL {s} days", summaryW: "{d} days · {h}h · OT {o}h · extra {e}h · absent {a} days", netLbl: "Net pay",
+    summary: "{d} days · {h}h · OT {o}h · night {n}h · SIL {s} days", netLbl: "Net pay",
     for13: "Basic for 13th-month pay", riderNote: "Delivery fee & fuel are paid same day in cash (cash book Staff tab) · not part of payroll", monthlyNote: "₱30,000 is OT-inclusive (contract 2.2) · night / holiday / rest-day premiums paid separately · absence & tardiness deducted pro-rata",
-    weeklyNote: "Weekly ₱2,000 = basic 1,500 + transport 400 + meal 100 · 5 days × 4h · paid Saturday · advance repaid ₱500/week",
     save: "Save", saved: "Saved", markPaid: "Record as paid", paid: "Paid", draft: "Draft", unpay: "Undo paid", paidOn: "Paid on", paidVia: "Paid via", slip: "Payslip", print: "Print", delete: "Delete", confirmDel: "Delete this?", yes: "Delete", cancel: "Cancel", close: "Close",
-    emp_add: "Add employee", emp_name: "Name", emp_pos: "Position", pos_waiter: "Waiter / Server", pos_kitchen: "Kitchen", pos_rider: "Rider", pos_helper: "Household helper (part-time)", pos_other: "Other",
+    emp_add: "Add employee", emp_name: "Name", emp_pos: "Position", pos_waiter: "Waiter / Server", pos_kitchen: "Kitchen", pos_rider: "Rider", pos_other: "Other",
     emp_status: "Employment status", st_regular: "Regular", st_probationary: "Probationary", st_fixed: "Fixed-term", st_other: "Other", emp_hired: "Date hired", emp_bday: "Birthday", emp_active: "Active", emp_note: "Note",
-    emp_payType: "Pay type", pt_daily: "Daily (₱718)", pt_monthly: "Monthly (₱30,000 OT-inclusive)", pt_weekly: "Weekly (part-time ₱2,000)",
-    w_basic: "Weekly basic", w_transport: "Transport/wk", w_meal: "Meal/wk", w_days: "Days/week", w_hours: "Hours/day", w_ot: "OT ₱/h", w_extra: "Extra day ₱/h", w_adv: "Advance repay/wk",
+    emp_payType: "Pay type", pt_daily: "Daily (₱718)", pt_monthly: "Monthly (₱30,000 OT-inclusive)",
     led_add: "Add record", led_kind: "Kind", k_advance: "Advance", k_shortage: "Cash shortage", k_bonus: "Bonus (+)", k_other: "Other deduction", led_date: "Date", led_amount: "Amount", led_note: "Note",
     led_verified: "Investigated · responsibility established", led_auth: "Written authorization on file", led_applies: "→ applied to {p} payroll", led_deducted: "applied", led_pending: "pending", led_filter_all: "All",
-    bonusHint: "Highest-sales-day bonus = that day's sales × 2% ÷ eligible staff on duty · kitchen new-menu incentive, etc.", advBalance: "Advance balance",
+    bonusHint: "Highest-sales-day bonus = that day's sales × 2% ÷ eligible staff on duty · kitchen new-menu incentive, etc.",
     hist_empty: "No saved payrolls yet. Save one from the Payroll tab.", total: "Total",
     set_wage: "Default daily rate (minimum wage)", set_break: "Default meal break (hours)", set_gov: "Statutory deduction defaults", set_lang: "Language", set_rider: "Rider maintenance (₱/duty day)", set_kitchen: "Kitchen monthly default",
-    contract: "Contract summary (4 contracts)", contractText: [
+    contract: "Contract summary", contractText: [
       "Common — paydays 15th & 30th · OT only when approved · night (10pm–6am) +10% · rest day 130% · special holiday 130% · regular holiday 200% (100% if not worked) · tardiness: actual unworked minutes only · perfect month → 1 paid leave day (SIL) · birthday incentive after 3 perfect months · advance 1st–15th → 15th payroll, 16th on → 30th · weekly highest-sales-day bonus = sales × 2% ÷ eligible staff on duty · 13th month on basic pay",
       "Waiter / Server (₱718/day) — cash shortage deducted only after investigation, established responsibility and written authorization; no automatic splitting among staff on duty",
       "Kitchen (₱718/day or ₱30,000/month) — monthly is 6 days × 8h and OT-inclusive (no separate OT pay); night, holiday and rest-day premiums paid per law; special incentive for a successful new menu item",
       "Rider (₱718/day) — delivery fee paid same day (outside payroll) · fuel reimbursed same day with receipt · motorcycle maintenance ₱100 per duty day paid with payroll (not basic, excluded from 13th month) · refused delivery earns no fee",
-      "Part-time household helper (weekly) — basic ₱1,500 + transport ₱400 + meal ₱100 = ₱2,000/week · 5 days (4 weekdays + 1 weekend) × 4h, 8–12am · days off Thu & Sun · Mon–Sun week paid Saturday · absence / tardiness pro-rata · approved OT ₱80/h, non-scheduled day ₱100/h · advance up to ₱5,000, repaid ₱500/week · 13th month on basic (pro-rata under 1 year)",
     ],
     noPerm: "No permission (owner only)", paidLocked: "A paid payroll can only be changed by the owner", loginFail: "Wrong ID or password",
     pickEmp: "Pick an employee first", deleted: "Deleted", weekendHelp: "Fri · Sat = weekend",
@@ -111,7 +102,7 @@ const h = (tag, attrs = {}, ...kids) => {
 };
 const money = v => (+v || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
-const periodLabel = (s, e) => { const w = weekOf(s); return w.start === s && w.end === e ? `${s} ~ ${e.slice(5)}` : `${s.slice(0, 7)} · ${+s.slice(8) === 1 ? t("first") : t("second")}`; };
+const periodLabel = (s, e) => `${s.slice(0, 7)} · ${+s.slice(8) === 1 ? t("first") : t("second")}`;
 let toastT; function toast(msg) { const el = document.getElementById("toast"); el.textContent = msg; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => el.hidden = true, 2200); }
 function sheet(content) {
   const root = document.getElementById("sheetRoot"); root.innerHTML = "";
@@ -197,7 +188,7 @@ function renderStaffHome() {
   const paid = v.payrolls.filter(p => p.status === "paid" && p.result);
   const payList = h("div", { class: "list", id: "my-pay" }, paid.length ? paid.map(p => h("div", { class: "item", onclick: () => {
       const P = { start: p.period_start, end: p.period_end, daily_rate: p.daily_rate, status: p.status, paid_on: p.paid_on, paid_via: p.paid_via };
-      payslip({ ...P, pay_type: p.pay_type || 'daily', monthly_rate: p.monthly_rate, weekly: p.weekly || {}, advBalance: 0 }, { name: emp.name, position: emp.position }, p.result); } },
+      payslip({ ...P, pay_type: p.pay_type || 'daily', monthly_rate: p.monthly_rate }, { name: emp.name, position: emp.position }, p.result); } },
     h("div", { class: "t" }, periodLabel(p.period_start, p.period_end)), h("div", { class: "s" }, `${t("paid")} ${p.paid_on || ""} · ${p.paid_via || ""}`), h("div", { class: "m money" }, "₱" + money(p.result.net))))
     : h("span", { class: "muted" }, t("noData")));
   const ledList = h("div", { class: "list", id: "my-ledger" }, v.ledger.length ? v.ledger.map(l => { const p = periodForDate(l.biz_date);
@@ -253,15 +244,14 @@ function changePw() {
 }
 
 function resultRows(R, P) {
-const weekly = P.pay_type === "weekly", monthly = P.pay_type === "monthly";
+const monthly = P.pay_type === "monthly";
   const rows = []; const row = (l, v, cls = "") => rows.push(h("tr", { class: cls }, h("td", {}, l), h("td", { class: "r" }, v)));
-  row(weekly ? tf("basicW", { h: money(R.hourly) }) : monthly ? t("basicM") : t("basic"), money(R.basic));
+  row(monthly ? t("basicM") : t("basic"), money(R.basic));
   if (R.premium) row(t("premium"), money(R.premium));
   if (monthly && R.otHours) row(`${t("otIncl")} · ${R.otHours}h`, "0.00"); else if (R.otPay) row(`${t("ot")} (${R.otHours}h)`, money(R.otPay));
-  if (R.extraPay) row(tf("extraPay", { r: (P.weekly || {}).extraRate ?? PT_DEFAULTS.extraRate }) + ` (${R.extraHours}h)`, money(R.extraPay));
   if (R.ndPay) row(`${t("nd")} (${R.ndHours}h)`, money(R.ndPay));
   if (R.silPay) row(`${t("silPay")} (${R.silDays})`, money(R.silPay)); if (R.holidayOffPay) row(t("holOff"), money(R.holidayOffPay));
-  if (R.allowance) row(weekly ? t("allowanceW") : tf("allowance", { d: R.daysWorked, a: money(P.allowance_per_day ?? (R.daysWorked ? R.allowance / R.daysWorked : 0)) }), money(R.allowance));
+  if (R.allowance) row(tf("allowance", { d: R.daysWorked, a: money(P.allowance_per_day ?? (R.daysWorked ? R.allowance / R.daysWorked : 0)) }), money(R.allowance));
   if (R.bonus) row(t("bonus"), money(R.bonus)); if (R.incentive) row(t("incentive"), money(R.incentive));
   if (R.absentDed) row(tf("absentDed", { d: R.absentDays }), "−" + money(R.absentDed), "neg");
   if (R.late) row(`${t("lateDed")} (${R.lateMinutes}m)`, "−" + money(R.late), "neg");
@@ -276,50 +266,41 @@ const weekly = P.pay_type === "weekly", monthly = P.pay_type === "monthly";
 /* ================= PAYROLL TAB ================= */
 function defaultPay() {
   const d = new Date(); const half = d.getDate() <= 15 ? 1 : 2; const p = periodOf(d.getFullYear(), d.getMonth() + 1, half);
-  return { employee_id: "", month: p.start.slice(0, 7), half, weekDate: today(), start: p.start, end: p.end, id: null, status: "draft", loaded: false,
-    pay_type: "daily", daily_rate: +S.settings.min_wage || 718, monthly_rate: +S.settings.kitchen_monthly || 30000, allowance_per_day: 0, weekly: { ...PT_DEFAULTS },
+  return { employee_id: "", month: p.start.slice(0, 7), half, start: p.start, end: p.end, id: null, status: "draft", loaded: false,
+    pay_type: "daily", daily_rate: +S.settings.min_wage || 718, monthly_rate: +S.settings.kitchen_monthly || 30000, allowance_per_day: 0,
     break_hours: +S.settings.break_hours || 1, days: [], late_minutes: 0, incentive: 0, other_deduction: 0,
     gov: { sss: !!S.settings.sss_on, philhealth: !!S.settings.philhealth_on, pagibig: !!S.settings.pagibig_on, share: +S.settings.gov_share || 0.5 },
-    ledger: [], advBalance: 0, paid_on: null, paid_via: null, restDow: 1, fillShift: "8-18" };
+    ledger: [], paid_on: null, paid_via: null, restDow: 1, fillShift: "8-18" };
 }
-function emptyDay(date, payType) { return payType === "weekly" ? { date, type: "off", hours: 0, ot: 0 } : { date, shift: "", type: "off" }; }
+function emptyDay(date) { return { date, shift: "", type: "off" }; }
 async function loadPay(P) {
   const emp = S.employees.find(e => e.id === P.employee_id);
   P.pay_type = payTypeOf(emp);
-  if (P.pay_type === "weekly") { const w = weekOf(P.weekDate); P.start = w.start; P.end = w.end; }
-  else { const [y, m] = P.month.split("-").map(Number); const p = periodOf(y, m, P.half); P.start = p.start; P.end = p.end; }
+  const [y, m] = P.month.split("-").map(Number); const p = periodOf(y, m, P.half); P.start = p.start; P.end = p.end;
   const dates = datesBetween(P.start, P.end);
   if (emp) {
     const row = await db.getPayroll(P.employee_id, P.start, P.end);
     if (row) {
-      Object.assign(P, { id: row.id, status: row.status, daily_rate: +row.daily_rate, monthly_rate: +row.monthly_rate || +emp.monthly_rate, allowance_per_day: +row.allowance_per_day, weekly: { ...PT_DEFAULTS, ...(row.weekly || {}) },
+      Object.assign(P, { id: row.id, status: row.status, daily_rate: +row.daily_rate, monthly_rate: +row.monthly_rate || +emp.monthly_rate, allowance_per_day: +row.allowance_per_day,
         break_hours: +row.break_hours, late_minutes: row.late_minutes, incentive: +row.incentive, other_deduction: +row.other_deduction, gov: row.gov, paid_on: row.paid_on, paid_via: row.paid_via });
       const byDate = Object.fromEntries((row.days || []).map(d => [d.date, d]));
-      P.days = dates.map(d => byDate[d] || emptyDay(d, P.pay_type));
+      P.days = dates.map(d => byDate[d] || emptyDay(d));
     } else {
-      Object.assign(P, { id: null, status: "draft", daily_rate: +emp.daily_rate, monthly_rate: +emp.monthly_rate || +S.settings.kitchen_monthly, allowance_per_day: +emp.allowance_per_day || 0, weekly: { ...PT_DEFAULTS, ...(emp.weekly || {}) },
+      Object.assign(P, { id: null, status: "draft", daily_rate: +emp.daily_rate, monthly_rate: +emp.monthly_rate || +S.settings.kitchen_monthly, allowance_per_day: +emp.allowance_per_day || 0,
         late_minutes: 0, incentive: 0, other_deduction: 0, paid_on: null, paid_via: null });
-      P.days = dates.map(d => emptyDay(d, P.pay_type));
+      P.days = dates.map(d => emptyDay(d));
     }
     const led = await db.listLedger({ employeeId: P.employee_id });
-    const inPeriod = l => P.pay_type === "weekly" ? (l.biz_date >= P.start && l.biz_date <= P.end) : periodForDate(l.biz_date).start === P.start;
+    const inPeriod = l => periodForDate(l.biz_date).start === P.start;
     P.ledger = led.filter(l => (P.id && l.payroll_id === P.id) || (!l.payroll_id && inPeriod(l)));
     if (emp.position !== "waiter") P.ledger = P.ledger.filter(l => l.kind !== "shortage");
-    // part-time: advances repaid ₱500/week regardless of request date → outstanding balance
-    if (P.pay_type === "weekly") {
-      const granted = led.filter(l => l.kind === "advance").reduce((a, l) => a + +l.amount, 0);
-      const repaid = (await db.listPayrolls({ employeeId: P.employee_id })).filter(r => r.id !== P.id && r.period_start < P.start).reduce((a, r) => a + (+r.result?.advances || 0), 0);
-      P.advBalance = Math.max(0, granted - repaid);
-      P.ledger = P.ledger.filter(l => l.kind !== "advance");
-    }
-  } else { P.days = dates.map(d => emptyDay(d, P.pay_type)); P.ledger = []; }
+  } else { P.days = dates.map(d => emptyDay(d)); P.ledger = []; }
 }
 function payOpts(P) {
   const sum = k => P.ledger.filter(l => l.kind === k && (k !== "shortage" || (l.verified && l.authorized))).reduce((a, l) => a + +l.amount, 0);
-  const o = { payType: P.pay_type, daily: P.daily_rate, monthly: P.monthly_rate, weekly: P.weekly, breakHrs: P.break_hours, allowancePerDay: P.allowance_per_day,
+  const o = { payType: P.pay_type, daily: P.daily_rate, monthly: P.monthly_rate, breakHrs: P.break_hours, allowancePerDay: P.allowance_per_day,
     lateMinutes: P.late_minutes, incentive: P.incentive, bonus: sum("bonus"), advances: sum("advance"), shortage: sum("shortage"),
     otherDeduction: (+P.other_deduction || 0) + sum("other"), gov: P.gov, govShare: +P.gov.share === 1 ? 1 : 0.5 };
-  if (P.pay_type === "weekly") { o.advances = Math.min(+P.weekly.advanceWeekly || 0, P.advBalance); o.advanceBalance = P.advBalance; }
   return o;
 }
 async function renderPay() {
@@ -331,26 +312,21 @@ async function renderPay() {
   const R = computePayroll(P.days, payOpts(P));
   const owner = S.user?.role === "owner";
   const locked = P.status === "paid";
-  const weekly = P.pay_type === "weekly", monthly = P.pay_type === "monthly";
+  const monthly = P.pay_type === "monthly";
   const re = async () => { P.loaded = false; render(); };
 
   // --- header ---
   const empSel = sel([["", "—"], ...S.employees.filter(e => e.active || e.id === P.employee_id).map(e => [e.id, e.name])], P.employee_id, { id: "pEmp", onchange: async e => { P.employee_id = e.target.value; await re(); } });
   const monthIn = h("input", { type: "month", id: "pMonth", value: P.month, onchange: async e => { P.month = e.target.value; await re(); } });
   const halfSel = sel([[1, t("first")], [2, t("second")]], P.half, { id: "pHalf", onchange: async e => { P.half = +e.target.value; await re(); } });
-  const weekIn = h("input", { type: "date", id: "pWeek", value: P.weekDate, onchange: async e => { P.weekDate = e.target.value; await re(); } });
-  const weekNav = h("div", { class: "row", style: "flex-wrap:nowrap" }, h("button", { class: "btn sm", type: "button", onclick: async () => { P.weekDate = addDays(P.start, -7); await re(); } }, "◀"), weekIn, h("button", { class: "btn sm", type: "button", onclick: async () => { P.weekDate = addDays(P.start, 7); await re(); } }, "▶"));
   const numIn = (id, key, step, obj = P) => h("input", { type: "number", id, value: obj[key], step, min: 0, disabled: locked, oninput: e => { obj[key] = +e.target.value || 0; refresh(); } });
   const headFields = [field(t("employee"), empSel)];
-  if (weekly) headFields.push(field(`${t("week")} · ${t("weekPaid")}`, weekNav, `${P.start} ~ ${P.end}`));
-  else headFields.push(field(t("month"), monthIn), field(t("period"), halfSel));
+  headFields.push(field(t("month"), monthIn), field(t("period"), halfSel));
   if (monthly) headFields.push(field(t("monthlyRate"), numIn("pMonthly", "monthly_rate", 100)));
-  else if (!weekly) headFields.push(field(t("daily"), numIn("pDaily", "daily_rate", 1)));
-  if (!weekly) headFields.push(field(t("breakH"), numIn("pBreak", "break_hours", 0.5)));
+  else headFields.push(field(t("daily"), numIn("pDaily", "daily_rate", 1)));
+  headFields.push(field(t("breakH"), numIn("pBreak", "break_hours", 0.5)));
   if (emp?.position === "rider") headFields.push(field(t("allowDay"), numIn("pAllow", "allowance_per_day", 10)));
-  if (weekly) for (const [k, l] of [["basic", "w_basic"], ["transport", "w_transport"], ["meal", "w_meal"], ["daysPerWeek", "w_days"], ["hoursPerDay", "w_hours"], ["otRate", "w_ot"], ["extraRate", "w_extra"], ["advanceWeekly", "w_adv"]])
-    headFields.push(field(t(l), numIn("w_" + k, k, 1, P.weekly)));
-  const note = weekly ? t("weeklyNote") : monthly ? t("monthlyNote") : emp?.position === "rider" ? t("riderNote") : null;
+  const note = monthly ? t("monthlyNote") : emp?.position === "rider" ? t("riderNote") : null;
   const head = h("div", { class: "card" },
     h("div", { class: "row" }, h("h2", {}, t("tab_pay")), h("span", { class: "sp" }), P.id && h("span", { class: "pill " + P.status }, locked ? t("paid") : t("draft")),
       emp && h("span", { class: "pill " + (emp.position === "waiter" ? "waiter" : "") }, t("pos_" + emp.position), " · ", t("pt_" + P.pay_type).split(" (")[0])),
@@ -359,22 +335,13 @@ async function renderPay() {
   // --- roster ---
   const rosterEl = h("div", { class: "roster", id: "roster" });
   const sumEl = h("p", { class: "muted", id: "rosterSum" });
-  const summary = () => weekly ? tf("summaryW", { d: R.daysWorked, h: R.hoursWorked, o: R.otHours, e: R.extraHours, a: R.absentDays }) : tf("summary", { d: R.daysWorked, h: R.hoursWorked, o: R.otHours, n: R.ndHours, s: R.silDays });
+  const summary = () => tf("summary", { d: R.daysWorked, h: R.hoursWorked, o: R.otHours, n: R.ndHours, s: R.silDays });
   function drawRoster() {
     rosterEl.innerHTML = "";
     for (const d of P.days) {
       const dt = new Date(d.date + "T00:00:00"); const dow = dt.getDay(); const wk = dow === 5 || dow === 6;   // 주말 = 금·토
-      const toggle = () => { if (locked) return; if (weekly) { d.type = d.type === "off" ? "work" : "off"; d.hours = d.type === "work" ? P.weekly.hoursPerDay : 0; d.ot = 0; }
-        else if (d.type === "off") { d.shift = d.shift || P.fillShift; d.type = "regular"; } else { d.shift = ""; d.type = "off"; } drawRoster(); refresh(); };
+      const toggle = () => { if (locked) return; if (d.type === "off") { d.shift = d.shift || P.fillShift; d.type = "regular"; } else { d.shift = ""; d.type = "off"; } drawRoster(); refresh(); };
       const lbl = h("div", { class: "d", role: "button", title: t("off"), style: locked ? "" : "cursor:pointer", onclick: toggle }, t("dow")[dow], h("b", {}, +d.date.slice(8)));
-      if (weekly) {
-        const typeSel = sel(PT_TYPES.map(k => [k, t("pt_" + k)]), d.type, { disabled: locked, "aria-label": "day type", onchange: e => { d.type = e.target.value; if (d.type === "work" && !d.hours) d.hours = P.weekly.hoursPerDay; if (d.type === "off" || d.type === "absent") { d.hours = 0; d.ot = 0; } drawRoster(); refresh(); } });
-        const hrs = h("input", { type: "number", value: d.hours || 0, step: 0.5, min: 0, disabled: locked || d.type === "off" || d.type === "absent", "aria-label": t("hours"), oninput: e => { d.hours = +e.target.value || 0; refresh(); } });
-        const ot = h("input", { type: "number", value: d.ot || 0, step: 0.5, min: 0, disabled: locked || d.type !== "work", "aria-label": t("otHours"), placeholder: "OT", oninput: e => { d.ot = +e.target.value || 0; refresh(); } });
-        rosterEl.append(h("div", { class: "day" + (d.type === "off" ? " off" : "") + (d.type === "absent" ? " hol" : "") + (wk ? " wknd" : "") }, lbl, typeSel, h("div", { class: "row", style: "gap:4px;flex-wrap:nowrap" }, hrs, ot),
-          d.type !== "off" && h("div", { class: "hrs" }, `${t("hours")} ${d.hours || 0}h` + (d.ot ? ` · OT ${d.ot}h` : ""))));
-        continue;
-      }
       const sh = DAY_TYPES[d.type]?.worked ? shiftHours(d.shift, P.break_hours) : null;
       const cls = "day" + (d.type === "off" ? " off" : "") + (d.type === "sil" ? " sil" : "") + (/holiday|special|absent/.test(d.type) ? " hol" : "") + (wk ? " wknd" : "");
       const shiftSel = sel([["", t("off")], ...SHIFTS.map(v => [v, SHIFT_LABEL(v)])], d.shift, { disabled: locked, "aria-label": "shift", onchange: e => { d.shift = e.target.value; if (!d.shift && DAY_TYPES[d.type].worked) d.type = "off"; if (d.shift && !DAY_TYPES[d.type].worked) d.type = "regular"; drawRoster(); refresh(); } });
@@ -385,13 +352,7 @@ async function renderPay() {
     sumEl.textContent = summary();
   }
   let fillRow;
-  if (weekly) {
-    if (P.offW == null) P.offW = [4, 0]; // contract: Thursday & Sunday off
-    const off1 = sel(t("dow").map((l, i) => [i, l]), P.offW[0], { onchange: e => P.offW[0] = +e.target.value });
-    const off2 = sel(t("dow").map((l, i) => [i, l]), P.offW[1], { onchange: e => P.offW[1] = +e.target.value });
-    fillRow = h("div", { class: "row" }, h("span", { class: "muted" }, t("off")), off1, off2,
-      h("button", { class: "btn sm", type: "button", disabled: locked, onclick: () => { for (const d of P.days) { const dow = new Date(d.date + "T00:00:00").getDay(); if (P.offW.includes(dow)) Object.assign(d, { type: "off", hours: 0, ot: 0 }); else Object.assign(d, { type: "work", hours: P.weekly.hoursPerDay, ot: 0 }); } drawRoster(); refresh(); } }, t("fill")));
-  } else {
+  {
     const fillSel = sel(SHIFTS.map(v => [v, SHIFT_LABEL(v)]), P.fillShift, { onchange: e => P.fillShift = e.target.value });
     const fillBtn = h("button", { class: "btn sm", type: "button", id: "fillAll", disabled: locked, onclick: () => { for (const d of P.days) { d.shift = P.fillShift; d.type = "regular"; } drawRoster(); refresh(); } }, t("fillAll"));
     const schedBtn = h("button", { class: "btn sm", type: "button", id: "fromSched", disabled: locked || !emp, onclick: async () => {
@@ -406,11 +367,11 @@ async function renderPay() {
       } catch (e) { toast(errMsg(e)); } } }, t("fromSched"));
     fillRow = h("div", { class: "row" }, fillSel, fillBtn, schedBtn, h("span", { class: "muted" }, t("weekendHelp")));
   }
-  const roster = h("div", { class: "card" }, h("h2", {}, weekly ? t("rosterW") : t("roster")), fillRow, h("small", { class: "muted" }, weekly ? t("fillHelpW") : t("fillHelp")), rosterEl, sumEl);
+  const roster = h("div", { class: "card" }, h("h2", {}, t("roster")), fillRow, h("small", { class: "muted" }, t("fillHelp")), rosterEl, sumEl);
 
   // --- adjustments & deductions ---
   const adjFields = [];
-  if (!weekly) adjFields.push(field(t("late"), numIn("pLate", "late_minutes", 1), t("lateHelp") + money(R.perMinute)));
+  adjFields.push(field(t("late"), numIn("pLate", "late_minutes", 1), t("lateHelp") + money(R.perMinute)));
   adjFields.push(field(t("incentive"), numIn("pInc", "incentive", 1)), field(t("other"), numIn("pOth", "other_deduction", 1)));
   const govBox = (k, label) => h("label", { class: "check" }, h("input", { type: "checkbox", id: "g_" + k, checked: !!P.gov[k], disabled: locked, onchange: e => { P.gov[k] = e.target.checked; refresh(); } }), label);
   const shareSel = sel([[0.5, t("govShare")], [1, t("govFull")]], P.gov.share, { disabled: locked, onchange: e => { P.gov.share = +e.target.value; refresh(); } });
@@ -421,9 +382,8 @@ async function renderPay() {
   const ded = h("div", { class: "card" }, h("h2", {}, t("deductions")),
     h("div", { class: "grid2" }, adjFields),
     h("div", { class: "row" }, h("b", {}, t("ledgerAuto")), h("span", { class: "sp" }), emp && h("button", { class: "btn sm", type: "button", onclick: () => ledgerForm({ employee_id: emp.id, kind: "advance", biz_date: P.end, amount: "" }, re) }, "+ " + t("led_add"))),
-    weekly && h("div", { class: "row" }, h("span", { class: "muted" }, t("advBalance")), h("span", { class: "money" }, "₱" + money(P.advBalance)), h("span", { class: "muted" }, `→ −₱${money(R.advances)} / wk`)),
     P.ledger.length ? ledList : h("span", { class: "muted" }, t("none")),
-    !weekly && h("div", { class: "row" }, h("b", {}, t("gov")), shareSel), !weekly && h("div", { class: "row" }, govBox("sss", "SSS"), govBox("philhealth", "PhilHealth"), govBox("pagibig", "Pag-IBIG")), !weekly && h("small", { class: "muted" }, t("govHelp")));
+    h("div", { class: "row" }, h("b", {}, t("gov")), shareSel), h("div", { class: "row" }, govBox("sss", "SSS"), govBox("philhealth", "PhilHealth"), govBox("pagibig", "Pag-IBIG")), h("small", { class: "muted" }, t("govHelp")));
 
   // --- result ---
   const tbl = h("table");
@@ -449,7 +409,7 @@ async function renderPay() {
     if (!P.employee_id) return toast(t("pickEmp"));
     const res = computePayroll(P.days, payOpts(P));
     try {
-      const row = await db.savePayroll({ id: P.id || undefined, employee_id: P.employee_id, period_start: P.start, period_end: P.end, pay_type: P.pay_type, daily_rate: P.daily_rate, monthly_rate: P.monthly_rate, allowance_per_day: P.allowance_per_day, weekly: P.weekly,
+      const row = await db.savePayroll({ id: P.id || undefined, employee_id: P.employee_id, period_start: P.start, period_end: P.end, pay_type: P.pay_type, daily_rate: P.daily_rate, monthly_rate: P.monthly_rate, allowance_per_day: P.allowance_per_day,
         break_hours: P.break_hours, days: P.days, late_minutes: P.late_minutes, incentive: P.incentive, other_deduction: P.other_deduction, gov: P.gov, result: res, status: paid ? "paid" : P.status, ...extra });
       await db.attachLedger(P.ledger.map(l => l.id), row.id);
       P.id = row.id; toast(t("saved")); await re();
@@ -465,17 +425,15 @@ async function renderPay() {
 }
 
 function payslip(P, emp, R) {
-  const weekly = P.pay_type === "weekly";
-  const days = h("div", { class: "tbl" }, h("table", {}, h("tr", {}, h("th", {}, "Date"), h("th", {}, weekly ? "Type" : "Shift"), weekly ? null : h("th", {}, "Type"), h("th", { class: "r" }, "Hrs"), h("th", { class: "r" }, "OT"), weekly ? null : h("th", { class: "r" }, "ND"), h("th", { class: "r" }, "₱")),
-    R.rows.filter(r => r.type !== "off").map(r => h("tr", {}, h("td", {}, r.date.slice(5)), h("td", {}, weekly ? t("pt_" + r.type) : (r.shift ? SHIFT_LABEL(r.shift) : "—")), weekly ? null : h("td", {}, t("type_" + r.type)), h("td", { class: "r" }, r.hours || ""), h("td", { class: "r" }, r.ot || ""), weekly ? null : h("td", { class: "r" }, r.nd || ""), h("td", { class: "r" }, money(r.amount))))));
-  const rate = weekly ? `₱${money(R.weeklyRate)}/wk` : P.pay_type === "monthly" ? `₱${money(P.monthly_rate)}/mo` : `₱${money(P.daily_rate)}/day`;
+  const days = h("div", { class: "tbl" }, h("table", {}, h("tr", {}, h("th", {}, "Date"), h("th", {}, "Shift"), h("th", {}, "Type"), h("th", { class: "r" }, "Hrs"), h("th", { class: "r" }, "OT"), h("th", { class: "r" }, "ND"), h("th", { class: "r" }, "₱")),
+    R.rows.filter(r => r.type !== "off").map(r => h("tr", {}, h("td", {}, r.date.slice(5)), h("td", {}, r.shift ? SHIFT_LABEL(r.shift) : "—"), h("td", {}, t("type_" + r.type)), h("td", { class: "r" }, r.hours || ""), h("td", { class: "r" }, r.ot || ""), h("td", { class: "r" }, r.nd || ""), h("td", { class: "r" }, money(r.amount))))));
+  const rate = P.pay_type === "monthly" ? `₱${money(P.monthly_rate)}/mo` : `₱${money(P.daily_rate)}/day`;
   const close = sheet(h("div", { class: "slip" },
-    h("div", { class: "head" }, h("div", {}, h("b", {}, weekly ? "MINYEONG LEE" : "PALTONG RESTAURANT"), h("div", { class: "muted" }, weekly ? "The Lerato Tower 3, Bel-Air, Makati" : "603 Remedios St. Malate Manila")), h("div", {}, h("b", {}, t("slip")), h("div", { class: "muted" }, `${P.start} ~ ${P.end}`))),
-    h("div", { class: "grid2" }, h("div", {}, h("b", {}, emp?.name), h("div", { class: "muted" }, t("pos_" + (emp?.position || "other")))), h("div", {}, rate, h("div", { class: "muted" }, weekly ? tf("summaryW", { d: R.daysWorked, h: R.hoursWorked, o: R.otHours, e: R.extraHours, a: R.absentDays }) : tf("summary", { d: R.daysWorked, h: R.hoursWorked, o: R.otHours, n: R.ndHours, s: R.silDays })))),
+    h("div", { class: "head" }, h("div", {}, h("b", {}, "PALTONG RESTAURANT"), h("div", { class: "muted" }, "603 Remedios St. Malate Manila")), h("div", {}, h("b", {}, t("slip")), h("div", { class: "muted" }, `${P.start} ~ ${P.end}`))),
+    h("div", { class: "grid2" }, h("div", {}, h("b", {}, emp?.name), h("div", { class: "muted" }, t("pos_" + (emp?.position || "other")))), h("div", {}, rate, h("div", { class: "muted" }, tf("summary", { d: R.daysWorked, h: R.hoursWorked, o: R.otHours, n: R.ndHours, s: R.silDays })))),
     h("table", {}, resultRows(R, P)), h("br"), days,
-    weekly && h("p", { class: "muted" }, `${t("advBalance")}: ₱${money(Math.max(0, P.advBalance - R.advances))}`),
     P.status === "paid" && h("p", { class: "muted" }, `${t("paid")}: ${P.paid_on} · ${P.paid_via}`),
-    h("div", { class: "sig" }, h("div", {}, weekly ? "Employer / Minyeong Lee" : "Employer / Paltong Restaurant"), h("div", {}, "Employee / " + (emp?.name || ""))),
+    h("div", { class: "sig" }, h("div", {}, "Employer / Paltong Restaurant"), h("div", {}, "Employee / " + (emp?.name || ""))),
     h("div", { class: "row noprint", style: "margin-top:14px" }, h("span", { class: "sp" }), h("button", { class: "btn", onclick: () => close() }, t("close")), h("button", { class: "btn primary", onclick: () => window.print() }, t("print")))));
 }
 
@@ -483,37 +441,33 @@ function payslip(P, emp, R) {
 function renderEmp() {
   const main = document.getElementById("main"); const owner = S.user?.role === "owner";
   const list = h("div", { class: "list" });
-  const rateOf = e => e.pay_type === "monthly" ? `₱${money(e.monthly_rate)}/mo` : e.pay_type === "weekly" ? `₱${money(((e.weekly || {}).basic ?? 1500) + ((e.weekly || {}).transport ?? 400) + ((e.weekly || {}).meal ?? 100))}/wk` : `₱${money(e.daily_rate)}/day`;
+  const rateOf = e => e.pay_type === "monthly" ? `₱${money(e.monthly_rate)}/mo` : `₱${money(e.daily_rate)}/day`;
   for (const e of S.employees) list.append(h("div", { class: "item", onclick: () => owner && empForm(e) },
     h("div", { class: "t" }, e.name, " ", h("span", { class: "pill " + (e.position === "waiter" ? "waiter" : "") }, t("pos_" + e.position)), !e.active && h("span", { class: "pill", style: "margin-left:6px" }, "✕")),
     h("div", { class: "s" }, `${e.emp_no ? t("empNoLbl") + " " + e.emp_no + " · " : ""}${t("st_" + e.status)} · ${t("pt_" + (e.pay_type || "daily")).split(" (")[0]}${e.position === "rider" && +e.allowance_per_day ? ` · +₱${e.allowance_per_day}/day` : ""}${e.hired_on ? " · " + e.hired_on : ""} · ${e.pin_hash ? t("pinSet") : t("pinNotSet")}`), h("div", { class: "m money" }, rateOf(e))));
-  main.append(h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_emp")), h("span", { class: "sp" }), owner && h("button", { class: "btn primary sm", onclick: () => empForm({ name: "", position: "waiter", daily_rate: S.settings.min_wage, monthly_rate: S.settings.kitchen_monthly, allowance_per_day: 0, weekly: { ...PT_DEFAULTS }, pay_type: "daily", status: "probationary", active: true }) }, "+ " + t("emp_add"))), list));
+  main.append(h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_emp")), h("span", { class: "sp" }), owner && h("button", { class: "btn primary sm", onclick: () => empForm({ name: "", position: "waiter", daily_rate: S.settings.min_wage, monthly_rate: S.settings.kitchen_monthly, allowance_per_day: 0, pay_type: "daily", status: "probationary", active: true }) }, "+ " + t("emp_add"))), list));
 }
 function empForm(e) {
-  const E = { ...e }; delete E.created_at; delete E.pin_hash; delete E.pin_fails; delete E.pin_locked_until; E.weekly = { ...PT_DEFAULTS, ...(E.weekly || {}) };
+  const E = { ...e }; delete E.created_at; delete E.pin_hash; delete E.pin_fails; delete E.pin_locked_until;
   const name = h("input", { type: "text", id: "eName", value: E.name, required: true });
   const eno = h("input", { type: "text", id: "eNo", inputmode: "numeric", value: E.emp_no || "", placeholder: "00013" });
-  const pt = sel([["daily", t("pt_daily")], ["monthly", t("pt_monthly")], ["weekly", t("pt_weekly")]], E.pay_type || "daily", { id: "ePt", onchange: sync });
-  const pos = sel([["waiter", t("pos_waiter")], ["kitchen", t("pos_kitchen")], ["rider", t("pos_rider")], ["helper", t("pos_helper")], ["other", t("pos_other")]], E.position, { id: "ePos", onchange: () => {
-    if (pos.value === "rider" && !+allow.value) allow.value = S.settings.rider_allowance ?? 100;
-    if (pos.value === "helper") pt.value = "weekly"; sync(); } });
+  const pt = sel([["daily", t("pt_daily")], ["monthly", t("pt_monthly")]], E.pay_type || "daily", { id: "ePt", onchange: sync });
+  const pos = sel([["waiter", t("pos_waiter")], ["kitchen", t("pos_kitchen")], ["rider", t("pos_rider")], ["other", t("pos_other")]], E.position, { id: "ePos", onchange: () => {
+    if (pos.value === "rider" && !+allow.value) allow.value = S.settings.rider_allowance ?? 100; sync(); } });
   const rate = h("input", { type: "number", id: "eRate", value: E.daily_rate, step: 1, min: 0 });
   const mrate = h("input", { type: "number", id: "eMRate", value: E.monthly_rate || S.settings.kitchen_monthly, step: 100, min: 0 });
   const allow = h("input", { type: "number", id: "eAllow", value: E.allowance_per_day || 0, step: 10, min: 0 });
-  const wIn = {}; const wFields = [["basic", "w_basic"], ["transport", "w_transport"], ["meal", "w_meal"], ["daysPerWeek", "w_days"], ["hoursPerDay", "w_hours"], ["otRate", "w_ot"], ["extraRate", "w_extra"], ["advanceWeekly", "w_adv"]].map(([k, l]) => { wIn[k] = h("input", { type: "number", id: "ew_" + k, value: E.weekly[k], step: 1, min: 0 }); return field(t(l), wIn[k]); });
   const st = sel([["regular", t("st_regular")], ["probationary", t("st_probationary")], ["fixed", t("st_fixed")], ["other", t("st_other")]], E.status, { id: "eSt" });
   const hired = h("input", { type: "date", id: "eHired", value: E.hired_on || "" }); const bday = h("input", { type: "date", id: "eBday", value: E.birthday || "" });
   const active = h("input", { type: "checkbox", id: "eActive", checked: E.active }); const note = h("input", { type: "text", id: "eNote", value: E.note || "" });
-  const fDaily = field(t("daily"), rate), fMonthly = field(t("monthlyRate"), mrate), fAllow = field(t("allowDay"), allow), fWeekly = h("div", { class: "grid2" }, wFields);
-  function sync() { fDaily.hidden = pt.value !== "daily"; fMonthly.hidden = pt.value !== "monthly"; fWeekly.hidden = pt.value !== "weekly"; fAllow.hidden = pos.value !== "rider"; }
+  const fDaily = field(t("daily"), rate), fMonthly = field(t("monthlyRate"), mrate), fAllow = field(t("allowDay"), allow);
+  function sync() { fDaily.hidden = pt.value !== "daily"; fMonthly.hidden = pt.value !== "monthly"; fAllow.hidden = pos.value !== "rider"; }
   sync();
   const close = sheet(h("form", { onsubmit: async ev => { ev.preventDefault(); try {
-      const weekly = Object.fromEntries(Object.entries(wIn).map(([k, i]) => [k, +i.value || 0]));
-      await db.saveEmployee({ ...E, emp_no: eno.value.trim() || null, name: name.value.trim(), position: pos.value, pay_type: pt.value, daily_rate: +rate.value, monthly_rate: +mrate.value, allowance_per_day: pos.value === "rider" ? +allow.value : 0, weekly, status: st.value, hired_on: hired.value || null, birthday: bday.value || null, active: active.checked, note: note.value || null });
+      await db.saveEmployee({ ...E, emp_no: eno.value.trim() || null, name: name.value.trim(), position: pos.value, pay_type: pt.value, daily_rate: +rate.value, monthly_rate: +mrate.value, allowance_per_day: pos.value === "rider" ? +allow.value : 0, status: st.value, hired_on: hired.value || null, birthday: bday.value || null, active: active.checked, note: note.value || null });
       S.employees = await db.listEmployees(true); if (S.pay) S.pay.loaded = false; toast(t("saved")); close(); render(); } catch (er) { toast(errMsg(er)); } } },
     h("h3", {}, E.id ? E.name : t("emp_add")),
     h("div", { class: "grid2" }, field(t("empNo"), eno), field(t("emp_name"), name), field(t("emp_pos"), pos), field(t("emp_payType"), pt), fDaily, fMonthly, fAllow, field(t("emp_status"), st), field(t("emp_hired"), hired), field(t("emp_bday"), bday), field(t("emp_note"), note)),
-    fWeekly,
     h("label", { class: "check" }, active, t("emp_active")),
     E.id && h("div", { class: "row" }, h("span", { class: "muted" }, e.pin_hash ? t("pinSet") : t("pinNotSet")), h("span", { class: "sp" }),
       h("button", { class: "btn sm", type: "button", id: "e-reset-pin", onclick: async () => { try { await db.resetEmpPin(E.id); S.employees = await db.listEmployees(true); toast(t("pinReset")); close(); render(); } catch (er) { toast(errMsg(er)); } } }, t("resetPin"))),
@@ -531,11 +485,10 @@ async function renderLedger() {
   const kindSel = sel([["", t("led_filter_all")], ...KINDS.map(k => [k, t("k_" + k)])], LF.kind, { onchange: e => { LF.kind = e.target.value; render(); } });
   const list = h("div", { class: "list" });
   for (const l of rows) {
-    const emp = S.employees.find(e => e.id === l.employee_id); const wk = payTypeOf(emp) === "weekly";
-    const p = wk ? weekOf(l.biz_date) : periodForDate(l.biz_date);
+    const p = periodForDate(l.biz_date);
     list.append(h("div", { class: "item", onclick: () => owner && ledgerForm(l, () => render()) },
       h("div", { class: "t" }, l.employees?.name, " · ", t("k_" + l.kind), " ", h("span", { class: "pill " + (l.payroll_id ? "paid" : "draft") }, l.payroll_id ? t("led_deducted") : t("led_pending"))),
-      h("div", { class: "s" }, l.biz_date, " ", wk && l.kind === "advance" ? `· ₱${(emp.weekly || PT_DEFAULTS).advanceWeekly}/wk` : tf("led_applies", { p: periodLabel(p.start, p.end) }), l.note ? ` · ${l.note}` : "", l.kind === "shortage" && !(l.verified && l.authorized) ? " · ⚠ " + t("notDeducted") : ""),
+      h("div", { class: "s" }, l.biz_date, " ", tf("led_applies", { p: periodLabel(p.start, p.end) }), l.note ? ` · ${l.note}` : "", l.kind === "shortage" && !(l.verified && l.authorized) ? " · ⚠ " + t("notDeducted") : ""),
       h("div", { class: "m money " + (l.kind === "bonus" ? "pos" : "neg") }, (l.kind === "bonus" ? "+" : "−") + money(l.amount))));
   }
   if (owner) main.append(await cashIssuesCard());
@@ -580,8 +533,8 @@ function ledgerForm(l, after) {
   const note = h("input", { type: "text", id: "lNote", value: L.note || "" });
   const ver = h("input", { type: "checkbox", id: "lVer", checked: L.verified !== false }); const auth = h("input", { type: "checkbox", id: "lAuth", checked: !!L.authorized });
   const shortBox = h("div", { style: "display:grid;gap:6px", hidden: L.kind !== "shortage" }, h("label", { class: "check" }, ver, t("led_verified")), h("label", { class: "check" }, auth, t("led_auth")));
-  const hint = h("small", { class: "muted" }); const upd = () => { const emp = S.employees.find(e => e.id === empSel.value); const p = payTypeOf(emp) === "weekly" ? weekOf(date.value || today()) : periodForDate(date.value || today()); hint.textContent = tf("led_applies", { p: periodLabel(p.start, p.end) }); };
-  date.addEventListener("input", upd); empSel.addEventListener("change", upd); upd();
+  const hint = h("small", { class: "muted" }); const upd = () => { const p = periodForDate(date.value || today()); hint.textContent = tf("led_applies", { p: periodLabel(p.start, p.end) }); };
+  date.addEventListener("input", upd); upd();
   const close = sheet(h("form", { onsubmit: async ev => { ev.preventDefault(); try {
       await db.saveLedger({ ...L, employee_id: empSel.value, kind: kind.value, biz_date: date.value, amount: +amt.value, note: note.value || null, verified: kind.value === "shortage" ? ver.checked : true, authorized: auth.checked });
       toast(t("saved")); close(); after(); } catch (er) { toast(errMsg(er)); } } },
@@ -602,7 +555,7 @@ async function renderHist() {
   for (const [k, g] of Object.entries(groups)) {
     const [s, e] = k.split("|"); const tot = g.reduce((a, r) => a + (+r.result?.net || 0), 0);
     out.push(h("div", { class: "card" }, h("div", { class: "row" }, h("h3", {}, periodLabel(s, e)), h("span", { class: "sp" }), h("span", { class: "money" }, `${t("total")} ₱${money(tot)}`)),
-      h("div", { class: "list" }, g.map(r => h("div", { class: "item", onclick: () => { S.pay = { ...defaultPay(), employee_id: r.employee_id, month: s.slice(0, 7), half: +s.slice(8) === 1 ? 1 : 2, weekDate: s, loaded: false }; S.tab = "pay"; render(); } },
+      h("div", { class: "list" }, g.map(r => h("div", { class: "item", onclick: () => { S.pay = { ...defaultPay(), employee_id: r.employee_id, month: s.slice(0, 7), half: +s.slice(8) === 1 ? 1 : 2, loaded: false }; S.tab = "pay"; render(); } },
         h("div", { class: "t" }, r.employees?.name, " ", h("span", { class: "pill " + r.status }, r.status === "paid" ? t("paid") : t("draft"))),
         h("div", { class: "s" }, `${t("pos_" + (r.employees?.position || "other"))} · ${r.result?.daysWorked ?? 0}d · OT ${r.result?.otHours ?? 0}h` + (r.paid_on ? ` · ${r.paid_on} ${r.paid_via || ""}` : "")),
         h("div", { class: "m money" }, "₱" + money(r.result?.net)))))));

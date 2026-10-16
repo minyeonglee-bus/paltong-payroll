@@ -1,6 +1,6 @@
 // Paltong payroll math — pure functions, no DOM. Verified by test/payroll.test.js
 //
-// Three pay schemes, from the four contracts:
+// Two pay schemes, from the contracts (waiter / kitchen / rider):
 //   daily    Waiter / Kitchen / Rider on daily rate (min wage ₱718). 8h/day, hourly = daily/8.
 //            OT 125%, night +10%, rest day 130%, special holiday 130%, regular holiday 200% (100% if not worked).
 //            Rider: + maintenance allowance ₱100 per duty day (not basic, not in 13th month). Delivery fee & fuel are paid same day, outside payroll.
@@ -8,8 +8,6 @@
 //   monthly  Kitchen ₱30,000 all-inclusive: fixed monthly for 6 days × 8h; OT already included (no OT pay).
 //            Night differential, holiday & rest-day premiums still paid per law. Unexcused absence / tardiness deducted pro-rata.
 //            daily equivalent = monthly × 12 ÷ 313, hourly = that ÷ 8. Half-month basic = monthly ÷ 2.
-//   weekly   Part-time household helper: ₱1,500 basic + ₱400 transport + ₱100 meal = ₱2,000 / week (Mon–Sun, paid Saturday).
-//            5 scheduled days × 4h. Absence / late pro-rata. OT ₱80/h (approved), non-scheduled day ₱100/h. Advance repaid ₱500/week.
 
 export const SHIFTS = ["8-18", "18-4", "8-20", "20-4", "22-8", "20-8"];
 export const SHIFT_LABEL = v => { const [a, b] = v.split("-"); return `${a.padStart(2, "0")}:00–${b.padStart(2, "0")}:00`; };
@@ -33,9 +31,6 @@ export const DAY_TYPES_FOR = {
   daily:   ["regular", "rest", "special", "specialRest", "holiday", "holidayRest", "holidayOff", "sil", "off"],
   monthly: ["regular", "rest", "special", "specialRest", "holiday", "holidayRest", "holidayOff", "sil", "absent", "off"],
 };
-// part-time (weekly) day kinds: work (scheduled day), extra (non-scheduled day worked), absent (scheduled, not worked), off (not scheduled)
-export const PT_TYPES = ["work", "extra", "absent", "off"];
-export const PT_DEFAULTS = { basic: 1500, transport: 400, meal: 100, daysPerWeek: 5, hoursPerDay: 4, otRate: 80, extraRate: 100, advanceWeekly: 500, maxAdvance: 5000 };
 
 const r2 = n => Math.round((+n || 0) * 100) / 100;
 
@@ -64,14 +59,13 @@ export function pagibigEmployee(monthly) {
 
 /**
  * computePayroll(days, opts)
- *  opts.payType: 'daily' | 'monthly' | 'weekly'
- *  daily/monthly days: [{ date, shift, type }]   weekly days: [{ date, type:'work'|'extra'|'absent'|'off', hours, ot }]
- *  opts: { daily, monthly, weekly:{...PT_DEFAULTS}, breakHrs, allowancePerDay, lateMinutes, incentive, bonus,
+ *  opts.payType: 'daily' | 'monthly'
+ *  days: [{ date, shift, type }]
+ *  opts: { daily, monthly, breakHrs, allowancePerDay, lateMinutes, incentive, bonus,
  *          advances, shortage, otherDeduction, gov:{sss,philhealth,pagibig}, govShare: 1|0.5 }
  */
 export function computePayroll(days, opts) {
   const payType = opts.payType || "daily";
-  if (payType === "weekly") return computeWeekly(days, opts);
   const isMonthly = payType === "monthly";
   const monthlyRate = +opts.monthly || 0;
   const daily = isMonthly ? monthlyRate / MONTHLY_FACTOR : (+opts.daily || 0);
@@ -128,43 +122,6 @@ export function computePayroll(days, opts) {
   };
 }
 
-/** Part-time weekly (household helper contract). days: [{date, type, hours, ot}] for one Mon–Sun week. */
-export function computeWeekly(days, opts) {
-  const w = { ...PT_DEFAULTS, ...(opts.weekly || {}) };
-  const perDayBasic = w.basic / w.daysPerWeek, hourly = perDayBasic / w.hoursPerDay;
-  const perDayAllow = (w.transport + w.meal) / w.daysPerWeek;
-  let basic = 0, allowance = 0, otPay = 0, extraPay = 0, absentDed = 0;
-  let daysWorked = 0, hoursWorked = 0, otHours = 0, extraHours = 0, absentDays = 0, scheduled = 0;
-  const rows = [];
-  for (const d of days || []) {
-    const hrs = Math.max(0, +d.hours || 0), ot = Math.max(0, +d.ot || 0);
-    let amt = 0;
-    if (d.type === "work") {
-      scheduled++; const reg = Math.min(w.hoursPerDay, hrs);
-      const b = reg * hourly, a = perDayAllow * (reg / w.hoursPerDay), o = ot * w.otRate;
-      basic += b; allowance += a; otPay += o; amt = b + a + o;
-      if (reg > 0) daysWorked++; hoursWorked += reg; otHours += ot;
-    } else if (d.type === "extra") {
-      const e = (hrs + ot) * w.extraRate; extraPay += e; amt = e; extraHours += hrs + ot; if (hrs + ot > 0) daysWorked++;
-    } else if (d.type === "absent") {
-      scheduled++; absentDays++; absentDed += perDayBasic + perDayAllow; // shown as the unpaid part of the weekly rate
-    }
-    rows.push({ date: d.date, type: d.type || "off", hours: hrs, ot, amount: r2(amt) });
-  }
-  const incentive = +opts.incentive || 0, bonus = +opts.bonus || 0;
-  const gross = basic + allowance + otPay + extraPay + incentive + bonus;
-  const advances = Math.min(+opts.advances || 0, +opts.advanceBalance >= 0 ? +opts.advanceBalance : Infinity);
-  const otherDeduction = +opts.otherDeduction || 0;
-  const deductions = advances + otherDeduction;
-  return {
-    payType: "weekly", hourly: r2(hourly), perDayBasic: r2(perDayBasic), perDayAllow: r2(perDayAllow), weeklyRate: r2(w.basic + w.transport + w.meal),
-    daysWorked, hoursWorked, otHours, extraHours, absentDays, scheduled, ndHours: 0, silDays: 0, rows,
-    basic: r2(basic), allowance: r2(allowance), otPay: r2(otPay), extraPay: r2(extraPay), absentDed: r2(absentDed), premium: 0, ndPay: 0, silPay: 0, holidayOffPay: 0, late: 0,
-    incentive: r2(incentive), bonus: r2(bonus), gross: r2(gross), sss: 0, philhealth: 0, pagibig: 0, shortage: 0,
-    advances: r2(advances), otherDeduction: r2(otherDeduction), deductions: r2(deductions), net: r2(gross - deductions), basicFor13th: r2(basic),
-  };
-}
-
 /** Contract 2.6: advance requested 1–15 → 15th payroll; 16–end → 30th payroll. */
 export function periodForDate(dateStr) {
   const d = new Date(dateStr + "T00:00:00");
@@ -177,12 +134,6 @@ export function periodOf(y, m, half) {
   return half === 1
     ? { start: `${y}-${pad(m)}-01`, end: `${y}-${pad(m)}-15`, half: 1 }
     : { start: `${y}-${pad(m)}-16`, end: `${y}-${pad(m)}-${pad(last)}`, half: 2 };
-}
-/** Mon–Sun week containing dateStr (part-time contract: payroll week Monday to Sunday) */
-export function weekOf(dateStr) {
-  const d = new Date(dateStr + "T00:00:00"); const dow = (d.getDay() + 6) % 7; // Mon=0
-  d.setDate(d.getDate() - dow); const start = fmtDate(d); d.setDate(d.getDate() + 6);
-  return { start, end: fmtDate(d) };
 }
 export function fmtDate(d) { const pad = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
 export function datesBetween(start, end) {

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { computePayroll, shiftHours, periodForDate, periodOf, weekOf, datesBetween, MONTHLY_FACTOR } from "../payroll-calc.js";
+import { computePayroll, shiftHours, periodForDate, periodOf, datesBetween, MONTHLY_FACTOR } from "../payroll-calc.js";
 
 const near = (a, b, msg) => assert.ok(Math.abs(a - b) < 0.011, `${msg}: ${a} vs ${b}`);
 
@@ -15,9 +15,6 @@ assert.deepEqual(shiftHours("20-8", 1), { span: 12, worked: 11, hours: 8, ot: 3,
 assert.deepEqual(periodForDate("2026-10-01"), { start: "2026-10-01", end: "2026-10-15", half: 1 });
 assert.deepEqual(periodForDate("2026-10-16"), { start: "2026-10-16", end: "2026-10-31", half: 2 });
 assert.equal(periodOf(2026, 2, 2).end, "2026-02-28");
-assert.deepEqual(weekOf("2026-10-16"), { start: "2026-10-12", end: "2026-10-18" }); // Fri → Mon..Sun
-assert.deepEqual(weekOf("2026-10-12"), { start: "2026-10-12", end: "2026-10-18" });
-assert.deepEqual(weekOf("2026-10-18"), { start: "2026-10-12", end: "2026-10-18" });
 
 /* ---------- WAITER / daily ₱718 ---------- */
 const days = datesBetween("2026-10-01", "2026-10-15").map(d => ({ date: d, shift: "8-18", type: "regular" }));
@@ -54,29 +51,5 @@ r = computePayroll([{ date: "2026-10-01", shift: "18-4", type: "holiday" }], { p
 assert.equal(r.basic, 15000); near(r.premium, 8 * hEq, "holiday +100%"); near(r.ndPay, 6 * hEq * 2 * 0.1, "monthly ND"); assert.equal(r.otPay, 0);
 r = computePayroll(days, { payType: "monthly", monthly: 30000, lateMinutes: 60 }); near(r.late, 60 * dEq / 480, "monthly late");
 r = computePayroll(days, { payType: "monthly", monthly: 30000, gov: { sss: true }, govShare: 0.5 }); near(r.sss, 30000 * 0.05 / 2, "sss on 30k");
-
-/* ---------- PART-TIME helper / weekly ₱2,000 ---------- */
-const wk = [
-  { date: "2026-10-12", type: "work", hours: 4, ot: 0 },   // Mon
-  { date: "2026-10-13", type: "work", hours: 4, ot: 1 },   // Tue +1h OT
-  { date: "2026-10-14", type: "work", hours: 4, ot: 0 },   // Wed
-  { date: "2026-10-15", type: "off" },                     // Thu (designated off)
-  { date: "2026-10-16", type: "work", hours: 4, ot: 0 },   // Fri
-  { date: "2026-10-17", type: "work", hours: 4, ot: 0 },   // Sat
-  { date: "2026-10-18", type: "off" },                     // Sun (designated off)
-];
-r = computePayroll(wk, { payType: "weekly" });
-assert.equal(r.basic, 1500); assert.equal(r.allowance, 500); assert.equal(r.otPay, 80); assert.equal(r.gross, 2080); assert.equal(r.net, 2080);
-// one absence + one extra (non-scheduled) day 3h
-const wk2 = wk.map(d => ({ ...d })); wk2[2] = { date: "2026-10-14", type: "absent" }; wk2[6] = { date: "2026-10-18", type: "extra", hours: 3, ot: 0 };
-r = computePayroll(wk2, { payType: "weekly" });
-assert.equal(r.basic, 1200); assert.equal(r.allowance, 400); assert.equal(r.extraPay, 300); assert.equal(r.absentDays, 1); assert.equal(r.absentDed, 400);
-assert.equal(r.gross, 1200 + 400 + 80 + 300);
-// half day (2h) → half basic & half allowance
-r = computePayroll([{ date: "2026-10-12", type: "work", hours: 2, ot: 0 }], { payType: "weekly" });
-assert.equal(r.basic, 150); assert.equal(r.allowance, 50);
-// advance repayment ₱500/wk capped by balance
-r = computePayroll(wk, { payType: "weekly", advances: 500, advanceBalance: 1200 }); assert.equal(r.advances, 500); assert.equal(r.net, 1580);
-r = computePayroll(wk, { payType: "weekly", advances: 500, advanceBalance: 300 }); assert.equal(r.advances, 300);
 
 console.log("payroll tests OK");

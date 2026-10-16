@@ -21,11 +21,10 @@ create table if not exists public.pr_employees (
 );
 alter table public.pr_employees add column if not exists monthly_rate      numeric(10,2) not null default 30000;  -- kitchen monthly (OT-inclusive)
 alter table public.pr_employees add column if not exists allowance_per_day numeric(10,2) not null default 0;      -- rider motorcycle maintenance ₱100/duty day
-alter table public.pr_employees add column if not exists weekly            jsonb not null default '{"basic":1500,"transport":400,"meal":100,"daysPerWeek":5,"hoursPerDay":4,"otRate":80,"extraRate":100,"advanceWeekly":500,"maxAdvance":5000}'::jsonb;
 alter table public.pr_employees drop constraint if exists pr_employees_position_check;
-alter table public.pr_employees add constraint pr_employees_position_check check (position in ('waiter','kitchen','rider','helper','other'));
+alter table public.pr_employees add constraint pr_employees_position_check check (position in ('waiter','kitchen','rider','other'));
 alter table public.pr_employees drop constraint if exists pr_employees_pay_type_check;
-alter table public.pr_employees add constraint pr_employees_pay_type_check check (pay_type in ('daily','monthly','weekly'));
+alter table public.pr_employees add constraint pr_employees_pay_type_check check (pay_type in ('daily','monthly'));
 alter table public.pr_employees drop constraint if exists pr_employees_status_check;
 alter table public.pr_employees add constraint pr_employees_status_check check (status in ('regular','probationary','fixed','other'));
 
@@ -55,7 +54,7 @@ create table if not exists public.pr_payrolls (
   period_end    date not null,
   daily_rate    numeric(10,2) not null,
   break_hours   numeric(4,2) not null default 1,
-  days          jsonb not null default '[]'::jsonb,   -- daily/monthly: [{date, shift, type}]  weekly: [{date, type, hours, ot}]
+  days          jsonb not null default '[]'::jsonb,   -- [{date, shift, type}]
   late_minutes  integer not null default 0,
   incentive     numeric(12,2) not null default 0,
   other_deduction numeric(12,2) not null default 0,
@@ -73,7 +72,6 @@ create table if not exists public.pr_payrolls (
 alter table public.pr_payrolls add column if not exists pay_type     text not null default 'daily';
 alter table public.pr_payrolls add column if not exists monthly_rate numeric(10,2) not null default 0;
 alter table public.pr_payrolls add column if not exists allowance_per_day numeric(10,2) not null default 0;
-alter table public.pr_payrolls add column if not exists weekly       jsonb not null default '{}'::jsonb;
 alter table public.pr_ledger drop constraint if exists pr_ledger_payroll_fk;
 alter table public.pr_ledger add constraint pr_ledger_payroll_fk foreign key (payroll_id) references public.pr_payrolls(id) on delete set null;
 
