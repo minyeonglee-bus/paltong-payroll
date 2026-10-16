@@ -7,7 +7,7 @@ const I18N = {
     app: "Paltong 급여", login: "로그인", id: "아이디", pw: "비밀번호", logout: "로그아웃", changePw: "비밀번호 변경", newPw: "새 비밀번호 (6자 이상)",
     tab_pay: "급여 계산", tab_emp: "직원", tab_ledger: "가불·부족분·보너스", tab_hist: "급여 내역", tab_13: "13월급", tab_set: "설정",
     y13: "연도", y13help: "13월급 = 그 해 받은 기본급 합계 ÷ 12 (1년 미만은 받은 만큼만 = 자동 비례) · 12월 24일까지 지급. 기본급엔 초과·야간·휴일 할증·정비비·보너스가 안 들어가요. 앱에 저장된 급여(지급됨 + 작성중)를 더하고, 앱 쓰기 전 기본급은 직원 탭에서 손으로 넣어요.",
-    c13_basicApp: "앱 기본급", c13_basicBefore: "앱 이전", c13_total: "기본급 합계", c13_periods: "기간 수", c13_amount: "13월급", c13_proj: "연말 예상", c13_status: "지급", c13_pay: "지급 기록", c13_paid: "지급됨", c13_unpaid: "미지급", c13_unpay: "지급 취소",
+    c13_basicApp: "앱 기본급", c13_basicBefore: "앱 이전", c13_total: "기본급 합계", c13_periods: "기간 수", c13_amount: "13월급 (÷12)", c13_avg: "월평균 (1년↑)", c13_proj: "연말 예상", c13_status: "지급", c13_pay: "지급 기록", c13_paid: "지급됨", c13_unpaid: "미지급", c13_unpay: "지급 취소",
     c13_projHelp: "연말 예상 = 지금까지 평균 반월 기본급 × 남은 반월 수를 더한 값 ÷ 12 (참고용)", c13_total_row: "합계", c13_draftNote: "작성중 급여 포함",
     emp_before: "앱 이전 올해 기본급 (13월급용)", emp_beforeHelp: "앱 쓰기 전 올해 1월~9월에 받은 기본급 합계 (초과·수당 제외). 모르면 0",
     my13: "내 13월급",
@@ -55,7 +55,7 @@ const I18N = {
     app: "Paltong Payroll", login: "Sign in", id: "ID", pw: "Password", logout: "Sign out", changePw: "Change password", newPw: "New password (6+ chars)",
     tab_pay: "Payroll", tab_emp: "Staff", tab_ledger: "Advances · shortages · bonuses", tab_hist: "History", tab_13: "13th month", tab_set: "Settings",
     y13: "Year", y13help: "13th-month pay = total basic salary earned in the year ÷ 12 (under a year: whatever was earned = automatic pro-rata) · due by Dec 24. Basic excludes OT, night diff, holiday/rest-day premiums, maintenance allowance and bonuses. Adds payrolls saved in the app (paid + draft); basic earned before the app is entered manually in the Staff tab.",
-    c13_basicApp: "Basic (app)", c13_basicBefore: "Before app", c13_total: "Total basic", c13_periods: "Periods", c13_amount: "13th month", c13_proj: "Year-end est.", c13_status: "Paid", c13_pay: "Record payment", c13_paid: "Paid", c13_unpaid: "Unpaid", c13_unpay: "Undo",
+    c13_basicApp: "Basic (app)", c13_basicBefore: "Before app", c13_total: "Total basic", c13_periods: "Periods", c13_amount: "13th (÷12)", c13_avg: "Monthly avg (1yr+)", c13_proj: "Year-end est.", c13_status: "Paid", c13_pay: "Record payment", c13_paid: "Paid", c13_unpaid: "Unpaid", c13_unpay: "Undo",
     c13_projHelp: "Year-end estimate = current average basic per half-month × remaining half-months, added, ÷ 12 (reference only)", c13_total_row: "Total", c13_draftNote: "includes draft payrolls",
     emp_before: "Basic earned this year before the app (for 13th month)", emp_beforeHelp: "Basic salary received Jan–Sep this year before the app (no OT / allowances). 0 if unknown",
     my13: "My 13th-month pay",
@@ -651,33 +651,36 @@ async function render13() {
   const paidBy = Object.fromEntries(paid.map(x => [x.employee_id, x]));
   const now = new Date(); const elapsedHalves = year < now.getFullYear() ? 24 : (now.getMonth()) * 2 + (now.getDate() > 15 ? 2 : 1);
   const yIn = h("input", { type: "number", id: "y13", value: year, step: 1, min: 2025, max: 2100, style: "width:110px", onchange: e => { M13.year = +e.target.value || year; render(); } });
-  const tbl = h("table"); let tot = 0, totBasic = 0;
-  tbl.append(h("tr", {}, h("th", {}, t("employee")), h("th", { class: "r" }, t("c13_periods")), h("th", { class: "r" }, t("c13_basicApp")), h("th", { class: "r" }, t("c13_basicBefore")), h("th", { class: "r" }, t("c13_total")), h("th", { class: "r" }, t("c13_amount")), h("th", { class: "r" }, t("c13_proj")), h("th", {}, t("c13_status"))));
+  const tbl = h("table"); let tot = 0, totBasic = 0, totAvg = 0;
+  tbl.append(h("tr", {}, h("th", {}, t("employee")), h("th", { class: "r" }, t("c13_periods")), h("th", { class: "r" }, t("c13_basicApp")), h("th", { class: "r" }, t("c13_basicBefore")), h("th", { class: "r" }, t("c13_total")), h("th", { class: "r" }, t("c13_amount")), h("th", { class: "r" }, t("c13_avg")), h("th", { class: "r" }, t("c13_proj")), h("th", {}, t("c13_status"))));
   for (const e of S.employees.filter(e => e.active || rows.some(r => r.employee_id === e.id))) {
     const mine = rows.filter(r => r.employee_id === e.id);
     const basicApp = mine.reduce((a, r) => a + (+r.result?.basicFor13th || 0), 0);
     const before = e.basic_before_year === year ? +e.basic_before_app || 0 : 0;
     const total = basicApp + before, amount = Math.round(total / 12 * 100) / 100;
     const avg = mine.length ? basicApp / mine.length : 0;
+    const months = new Set(mine.map(r => String(r.period_start).slice(0, 7))).size;
+    const monthAvg = months ? Math.round(basicApp / months * 100) / 100 : 0; // 1년 이상 근속자: 한 달치(월평균 기본급)
     const proj = Math.round((total + avg * Math.max(0, 24 - elapsedHalves - (before ? 0 : 0))) / 12 * 100) / 100;
-    const p = paidBy[e.id]; tot += amount; totBasic += total;
+    const p = paidBy[e.id]; tot += amount; totBasic += total; totAvg += monthAvg;
     const drafts = mine.filter(r => r.status !== "paid").length;
     tbl.append(h("tr", {},
       h("td", {}, e.name, drafts ? h("small", { class: "muted" }, ` · ${drafts} ${t("draft")}`) : null),
       h("td", { class: "r" }, mine.length), h("td", { class: "r" }, money(basicApp)), h("td", { class: "r" }, money(before)), h("td", { class: "r" }, money(total)),
-      h("td", { class: "r" }, h("b", {}, money(amount))), h("td", { class: "r muted" }, money(proj)),
+      h("td", { class: "r" }, h("b", {}, money(amount))), h("td", { class: "r" }, h("b", {}, money(monthAvg))), h("td", { class: "r muted" }, money(proj)),
       h("td", {}, p ? h("span", { class: "row", style: "gap:6px" }, h("span", { class: "pill paid" }, `${t("c13_paid")} ₱${money(p.amount)}`), h("small", { class: "muted" }, p.paid_on || ""), owner && h("button", { class: "btn sm ghost", type: "button", onclick: () => confirmSheet(t("confirmDel"), async () => { await db.deleteThirteenth(p.id); render(); }) }, t("c13_unpay")))
-                    : owner ? h("button", { class: "btn sm", type: "button", onclick: () => pay13(e, year, total, amount) }, t("c13_pay")) : h("span", { class: "pill draft" }, t("c13_unpaid")))));
+                    : owner ? h("button", { class: "btn sm", type: "button", onclick: () => pay13(e, year, total, amount, monthAvg) }, t("c13_pay")) : h("span", { class: "pill draft" }, t("c13_unpaid")))));
   }
-  tbl.append(h("tr", { class: "sum" }, h("td", {}, t("c13_total_row")), h("td", {}), h("td", {}), h("td", {}), h("td", { class: "r" }, money(totBasic)), h("td", { class: "r" }, money(tot)), h("td", {}), h("td", {})));
+  tbl.append(h("tr", { class: "sum" }, h("td", {}, t("c13_total_row")), h("td", {}), h("td", {}), h("td", {}), h("td", { class: "r" }, money(totBasic)), h("td", { class: "r" }, money(tot)), h("td", { class: "r" }, money(totAvg)), h("td", {}), h("td", {})));
   main.append(h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_13")), h("span", { class: "sp" }), h("span", { class: "muted" }, t("y13")), yIn),
     h("small", { class: "muted" }, t("y13help")), h("div", { class: "tbl" }, tbl), h("small", { class: "muted" }, t("c13_projHelp"))));
 }
-function pay13(e, year, total, amount) {
+function pay13(e, year, total, amount, monthAvg = 0) {
   const dIn = h("input", { type: "date", id: "p13On", value: today() });
   const vIn = sel([["CASH", "Cash"], ["GCASH", "GCash"], ["MAYA", "Maya"], ["METROBANK", "Metrobank"], ["SAVINGBOX", "Saving box"]], "CASH", { id: "p13Via" });
   const aIn = h("input", { type: "number", id: "p13Amt", value: amount, step: 1, min: 0 });
-  const close = sheet([h("h3", {}, `${e.name} · ${year} ${t("tab_13")}`), h("p", { class: "muted" }, `${t("c13_total")} ₱${money(total)} ÷ 12 = ₱${money(amount)}`),
+  const close = sheet([h("h3", {}, `${e.name} · ${year} ${t("tab_13")}`), h("p", { class: "muted" }, `${t("c13_total")} ₱${money(total)} ÷ 12 = ₱${money(amount)} · ${t("c13_avg")} ₱${money(monthAvg)}`),
+    monthAvg ? h("div", { class: "row", style: "gap:6px" }, h("button", { class: "btn sm ghost", type: "button", onclick: () => { aIn.value = amount; } }, "÷12"), h("button", { class: "btn sm ghost", type: "button", onclick: () => { aIn.value = monthAvg; } }, t("c13_avg"))) : null,
     h("div", { class: "grid2" }, field(t("c13_amount"), aIn), field(t("paidOn"), dIn), field(t("paidVia"), vIn)),
     h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", onclick: () => close() }, t("cancel")), h("button", { class: "btn primary", onclick: async () => { try {
       await db.saveThirteenth({ employee_id: e.id, year, basic_total: total, amount: +aIn.value, paid_on: dIn.value, paid_via: vIn.value }); toast(t("saved")); close(); render(); } catch (er) { toast(errMsg(er)); } } }, t("c13_pay")))]);
