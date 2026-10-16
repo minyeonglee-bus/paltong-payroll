@@ -347,12 +347,12 @@ async function loadPay(P) {
     const row = await db.getPayroll(P.employee_id, P.start, P.end);
     if (row) {
       Object.assign(P, { id: row.id, status: row.status, daily_rate: +row.daily_rate, monthly_rate: +row.monthly_rate || +emp.monthly_rate, allowance_per_day: +row.allowance_per_day,
-        break_hours: +row.break_hours, late_minutes: row.late_minutes, incentive: +row.incentive, other_deduction: +row.other_deduction, gov: row.gov, paid_on: row.paid_on, paid_via: row.paid_via });
+        break_hours: +row.break_hours, late_minutes: row.late_minutes, incentive: +row.incentive, other_deduction: +row.other_deduction, gov: row.gov, paid_on: row.paid_on, paid_via: row.paid_via, note: row.note || "" });
       const byDate = Object.fromEntries((row.days || []).map(d => [d.date, d]));
       P.days = dates.map(d => byDate[d] || emptyDay(d));
     } else {
       Object.assign(P, { id: null, status: "draft", daily_rate: +emp.daily_rate, monthly_rate: +emp.monthly_rate || +S.settings.kitchen_monthly, allowance_per_day: +emp.allowance_per_day || 0,
-        late_minutes: 0, incentive: 0, other_deduction: 0, paid_on: null, paid_via: null });
+        late_minutes: 0, incentive: 0, other_deduction: 0, paid_on: null, paid_via: null, note: "" });
       P.days = dates.map(d => emptyDay(d));
     }
     const led = await db.listLedger({ employeeId: P.employee_id });
@@ -395,7 +395,7 @@ async function renderPay() {
   const head = h("div", { class: "card" },
     h("div", { class: "row" }, h("h2", {}, t("tab_pay")), h("span", { class: "sp" }), P.id && h("span", { class: "pill " + P.status }, locked ? t("paid") : t("draft")),
       emp && h("span", { class: "pill " + (emp.position === "waiter" ? "waiter" : "") }, t("pos_" + emp.position), " · ", t("pt_" + P.pay_type).split(" (")[0])),
-    h("div", { class: "grid2" }, headFields), note && h("small", { class: "muted" }, note));
+    h("div", { class: "grid2" }, headFields), note && h("small", { class: "muted" }, note), P.note && h("div", { class: "muted", style: "padding:8px 10px;border-left:3px solid var(--gold);background:var(--bg);border-radius:6px" }, "📝 " + P.note));
 
   // --- roster ---
   const rosterEl = h("div", { class: "roster", id: "roster" });
@@ -499,7 +499,7 @@ function payslip(P, emp, R) {
     h("div", { class: "head" }, h("div", {}, h("b", {}, "PALTONG RESTAURANT"), h("div", { class: "muted" }, "603 Remedios St. Malate Manila")), h("div", {}, h("b", {}, t("slip")), h("div", { class: "muted" }, `${P.start} ~ ${P.end}`))),
     h("div", { class: "grid2" }, h("div", {}, h("b", {}, emp?.name), h("div", { class: "muted" }, t("pos_" + (emp?.position || "other")))), h("div", {}, rate, h("div", { class: "muted" }, tf("summary", { d: R.daysWorked, h: R.hoursWorked, o: R.otHours, n: R.ndHours, s: R.silDays })))),
     h("table", {}, resultRows(R, P)), h("br"), days,
-    P.status === "paid" && h("p", { class: "muted" }, `${t("paid")}: ${P.paid_on} · ${P.paid_via}`),
+    P.status === "paid" && h("p", { class: "muted" }, `${t("paid")}: ${P.paid_on} · ${P.paid_via}`), P.note && h("p", { class: "muted" }, P.note),
     h("div", { class: "sig" }, h("div", {}, "Employer / Paltong Restaurant"), h("div", {}, "Employee / " + (emp?.name || ""))),
     h("div", { class: "row noprint", style: "margin-top:14px" }, h("span", { class: "sp" }), h("button", { class: "btn", onclick: () => close() }, t("close")), h("button", { class: "btn primary", onclick: () => window.print() }, t("print")))));
 }
