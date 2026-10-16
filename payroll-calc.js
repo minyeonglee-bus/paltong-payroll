@@ -129,7 +129,7 @@ export function computePayroll(days, opts) {
     allowance: r2(allowance), absentDed: r2(absentDed), late: r2(late), incentive: r2(incentive), bonus: r2(bonus), gross: r2(gross),
     sss, philhealth, pagibig, advances: r2(advances), shortage: r2(shortage), otherDeduction: r2(otherDeduction),
     deductions: r2(deductions), net: r2(gross - deductions),
-    basicFor13th: r2(basic + silPay + holidayOffPay - late - absentDed), // 13th month = basic only (no allowance, OT, premiums, bonus)
+    basicFor13th: r2(basic + silPay - late - absentDed), // 13th month = basic salary only: no allowance, OT, premiums, night diff, holiday pay, bonus (DOLE)
   };
 }
 

@@ -142,3 +142,49 @@ alter table public.pr_employees add column if not exists pin_locked_until timest
 alter table public.pr_settings add column if not exists ot_multiplier numeric(4,2) not null default 1.25;  -- 1.25 = 계약·DOLE, 1.0 = 시급 그대로
 -- pr_emp_view 는 'settings' {ot_multiplier, break_hours} 도 돌려줘요
 alter table public.pr_settings add column if not exists nd_on boolean not null default true;  -- 야간근무 가산 지급 여부
+
+-- ---------- 13월급 (2026-10-16) · 아직 적용 안 됐으면 이 블록을 SQL Editor에서 실행 ----------
+-- 13월급 = 그 해에 받은 기본급 합계 ÷ 12 (1년 미만 비례) · 12월 24일 이전 지급
+-- 기본급에서 제외: 초과·야간·휴일 할증·정비비·보너스 (DOLE)
+alter table public.pr_employees add column if not exists basic_before_app numeric(12,2) not null default 0;  -- 앱 쓰기 전 올해 받은 기본급 (손으로 입력)
+alter table public.pr_employees add column if not exists basic_before_year int;
+create table if not exists public.pr_thirteenth (
+  id          uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references public.pr_employees(id) on delete cascade,
+  year        int not null,
+  basic_total numeric(12,2) not null,
+  amount      numeric(12,2) not null,
+  paid_on     date,
+  paid_via    text,
+  note        text,
+  created_by  uuid default auth.uid(),
+  created_at  timestamptz not null default now(),
+  unique (employee_id, year)
+);
+alter table public.pr_thirteenth enable row level security;
+drop policy if exists pr_thirteenth_read  on public.pr_thirteenth; create policy pr_thirteenth_read  on public.pr_thirteenth for select using (public.is_owner());
+drop policy if exists pr_thirteenth_write on public.pr_thirteenth; create policy pr_thirteenth_write on public.pr_thirteenth for all using (public.is_owner()) with check (public.is_owner());
+-- pr_emp_view 에 'thirteenth' 배열 추가 (직원 본인 보기)
+CREATE OR REPLACE FUNCTION public.pr_emp_view(p_no text, p_pin text)
+ RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public', 'extensions'
+AS $function$
+declare c record; e public.pr_employees;
+begin
+  select * into c from public.pr_emp_check(p_no, p_pin);
+  if c.err is not null then return jsonb_build_object('ok', false, 'err', c.err); end if;
+  select * into e from public.pr_employees where id = c.emp_id;
+  if c.must_change then return jsonb_build_object('ok', true, 'must_change', true, 'name', e.name); end if;
+  return jsonb_build_object('ok', true, 'must_change', false,
+    'employee', jsonb_build_object('name', e.name, 'position', e.position, 'emp_no', e.emp_no, 'daily_rate', e.daily_rate,
+                                   'pay_type', e.pay_type, 'monthly_rate', e.monthly_rate, 'allowance_per_day', e.allowance_per_day),
+    'settings', (select jsonb_build_object('ot_multiplier', ot_multiplier, 'break_hours', break_hours, 'nd_on', nd_on) from public.pr_settings where id = 1),
+    'payrolls', coalesce((select jsonb_agg(jsonb_build_object('period_start', p.period_start, 'period_end', p.period_end, 'status', p.status,
+        'paid_on', p.paid_on, 'paid_via', p.paid_via, 'daily_rate', p.daily_rate, 'pay_type', p.pay_type, 'monthly_rate', p.monthly_rate, 'days', p.days,
+        'result', case when p.status = 'paid' then p.result end) order by p.period_start desc)
+      from public.pr_payrolls p where p.employee_id = e.id), '[]'::jsonb),
+    'ledger', coalesce((select jsonb_agg(jsonb_build_object('kind', l.kind, 'biz_date', l.biz_date, 'amount', l.amount, 'note', l.note,
+        'verified', l.verified, 'deducted', l.payroll_id is not null) order by l.biz_date desc)
+      from public.pr_ledger l where l.employee_id = e.id), '[]'::jsonb),
+    'thirteenth', coalesce((select jsonb_agg(jsonb_build_object('year', x.year, 'basic_total', x.basic_total, 'amount', x.amount, 'paid_on', x.paid_on, 'paid_via', x.paid_via) order by x.year desc)
+      from public.pr_thirteenth x where x.employee_id = e.id), '[]'::jsonb));
+end $function$;

@@ -87,3 +87,13 @@ export async function dismissCashIssue(id, note) { return must(await sb.from("pr
 
 // ---------- 캐시북 근무 스케줄 (shifts) 불러오기 ----------
 export async function cashbookShifts(from, to) { return must(await sb.from("shifts").select("day, staff_name, shift").gte("day", from).lte("day", to)); }
+
+// ---------- 13th-month pay ----------
+export async function listThirteenth(year) { return must(await sb.from("pr_thirteenth").select("*").eq("year", year)); }
+export async function saveThirteenth(row) {
+  return must(await sb.from("pr_thirteenth").upsert(row, { onConflict: "employee_id,year" }).select().single());
+}
+export async function deleteThirteenth(id) { must(await sb.from("pr_thirteenth").delete().eq("id", id)); }
+export async function listPayrollsYear(year) {
+  return must(await sb.from("pr_payrolls").select("employee_id, period_start, period_end, status, result").gte("period_start", `${year}-01-01`).lte("period_start", `${year}-12-31`).limit(2000));
+}
