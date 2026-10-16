@@ -59,6 +59,8 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
 .pill.paid{background:var(--good-soft);color:var(--good)}
 .pill.draft{background:var(--warn-soft);color:var(--warn)}
 .pill.waiter{background:var(--accent-soft);color:var(--accent)}
+.pill.kitchen{background:#fff3d6;color:#8a5a00}
+.pill.rider{background:#dbeafe;color:#1d4ed8}
 .money{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
 .neg{color:var(--bad)}
 .pos{color:var(--good)}
