@@ -639,7 +639,7 @@ async function renderHist() {
         h("div", { class: "s" }, `${t("pos_" + (r.employees?.position || "other"))} · ${r.result?.daysWorked ?? 0}d · OT ${r.result?.otHours ?? 0}h` + (r.paid_on ? ` · ${r.paid_on} ${r.paid_via || ""}` : "")),
         h("div", { class: "m money" }, "₱" + money(r.result?.net)))))));
   }
-  main.append(h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_hist")), h("span", { class: "sp" }), mIn)), out.length ? out : h("p", { class: "muted" }, t("hist_empty")));
+  main.append(h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_hist")), h("span", { class: "sp" }), mIn)), ...(out.length ? out : [h("p", { class: "muted" }, t("hist_empty"))]));
 }
 
 /* ================= 13TH MONTH ================= */
