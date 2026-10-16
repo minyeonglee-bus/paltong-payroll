@@ -42,6 +42,7 @@ const I18N = {
     cbLaw: "근무 중이었다는 이유만으로 나눠서 빼면 안 돼요. 본인에게 설명할 기회를 주고, 책임이 확인된 한 사람에게만 지정하세요. 지정 후 가불·부족분에서 '본인 책임 확인'과 '서면 동의 받음'을 체크해야 공제돼요.", cbWho: "책임 웨이터", cbAssign: "이 웨이터의 부족분으로 넣기 (미확인)", cbAssigned: "부족분에 넣었어요 — 확인·동의 체크 후 공제돼요", cbDismissLbl: "찾았거나 장부 실수였다면 (메모)", cbFoundPh: "예: 다음날 서랍에서 찾음 / 매출 입력 실수", cbDismiss: "해결됨 — 공제 안 함", notDeducted: "공제 전 (확인·동의 필요)",
     asStaff: "직원", asAdmin: "관리자", empNo: "직원 번호", pin: "PIN (숫자)", pinFirst: "처음이면 PIN 0000", pinWrong: "번호 또는 PIN이 틀려요", pinLocked: "5번 틀려서 10분 동안 잠겼어요",
     newPinTitle: "내 PIN 등록", newPinHelp: "처음 로그인이에요. 나만 아는 숫자 4~6자리로 PIN을 새로 정해주세요 (0000 안 됨).", newPin: "새 PIN", newPin2: "새 PIN 다시", pinMismatch: "두 PIN이 달라요", pinBad: "숫자 4~6자리로 정해주세요 (0000 안 됨)", pinSaved: "PIN을 등록했어요",
+    myCalc: "내 급여 계산기 (예상)", myCalcHelp: "시프트만 넣으면 예상 급여가 나와요. 가불·보너스·부족분은 빠져 있고, 실제 금액은 지급된 급여명세서 기준이에요.", est: "예상 실수령액",
     myPay: "내 급여명세서", myLedger: "내 가불·부족분", myShifts: "내 근무 기록", notPaidYet: "아직 지급 전", noData: "아직 기록이 없어요", empNoLbl: "번호", resetPin: "PIN 초기화 (0000)", pinReset: "PIN을 0000으로 초기화했어요. 다음 로그인 때 본인이 다시 등록해요.", pinSet: "PIN 등록됨", pinNotSet: "PIN 미등록 (0000)",
   },
   en: {
@@ -83,6 +84,7 @@ const I18N = {
     cbLaw: "Don’t split a shortage among everyone on duty. Give the waiter a chance to explain and assign it only to the one person found responsible. It is deducted only after you tick 'responsibility established' and 'written authorization on file'.", cbWho: "Responsible waiter", cbAssign: "Add as this waiter’s shortage (unverified)", cbAssigned: "Added — deducted after verification & authorization", cbDismissLbl: "Found it / book mistake (note)", cbFoundPh: "e.g. found in drawer next day / sale entered wrong", cbDismiss: "Resolved — no deduction", notDeducted: "not deducted (needs verification & consent)",
     asStaff: "Staff", asAdmin: "Admin", empNo: "Employee no.", pin: "PIN (numbers)", pinFirst: "First time? PIN is 0000", pinWrong: "Wrong number or PIN", pinLocked: "Locked for 10 minutes after 5 wrong tries",
     newPinTitle: "Set your PIN", newPinHelp: "First sign-in. Choose your own 4–6 digit PIN (not 0000).", newPin: "New PIN", newPin2: "New PIN again", pinMismatch: "The PINs don’t match", pinBad: "Use 4–6 digits (not 0000)", pinSaved: "PIN saved",
+    myCalc: "My pay calculator (estimate)", myCalcHelp: "Enter your shifts to see an estimate. Advances, bonuses and shortages are not included; the paid payslip is the official amount.", est: "Estimated net pay",
     myPay: "My payslips", myLedger: "My advances & shortages", myShifts: "My shifts", notPaidYet: "not paid yet", noData: "Nothing yet", empNoLbl: "No.", resetPin: "Reset PIN (0000)", pinReset: "PIN reset to 0000. They set a new one at next sign-in.", pinSet: "PIN set", pinNotSet: "PIN not set (0000)",
   },
 };
@@ -205,9 +207,54 @@ function renderStaffHome() {
       h("button", { onclick: () => { setLangOnly(lang === "ko" ? "en" : "ko"); renderStaffHome(); } }, lang === "ko" ? "EN" : "한"),
       h("button", { id: "e-logout", onclick: () => { EMP.pin = ""; EMP.data = null; renderStaffLogin(); } }, t("logout"))),
     h("main", { id: "main" },
+      staffCalcCard(emp),
       h("div", { class: "card" }, h("h2", {}, t("myPay")), payList),
       h("div", { class: "card" }, h("h2", {}, t("myLedger")), ledList),
       h("div", { class: "card" }, h("h2", {}, t("myShifts")), shifts)));
+}
+/* ---- staff self-calculator: shifts + statutory deductions only, nothing saved ---- */
+const SC = { month: null, half: null, days: [], gov: { sss: false, philhealth: false, pagibig: false, share: 0.5 }, fillShift: "8-18" };
+function staffCalcCard(emp) {
+  const monthly = (emp.pay_type || "daily") === "monthly";
+  if (!SC.month) { const d = new Date(); SC.half = d.getDate() <= 15 ? 1 : 2; SC.month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; }
+  const setPeriod = () => { const [y, m] = SC.month.split("-").map(Number); const p = periodOf(y, m, SC.half); SC.start = p.start; SC.end = p.end;
+    const by = Object.fromEntries(SC.days.map(d => [d.date, d])); SC.days = datesBetween(p.start, p.end).map(d => by[d] || { date: d, shift: "", type: "off" }); };
+  setPeriod();
+  const opts = () => ({ payType: emp.pay_type || "daily", daily: +emp.daily_rate, monthly: +emp.monthly_rate || 0, breakHrs: 1, allowancePerDay: +emp.allowance_per_day || 0, gov: SC.gov, govShare: +SC.gov.share === 1 ? 1 : 0.5 });
+  let R = computePayroll(SC.days, opts());
+  const monthIn = h("input", { type: "month", id: "scMonth", value: SC.month, onchange: e => { SC.month = e.target.value; setPeriod(); draw(); } });
+  const halfSel = sel([[1, t("first")], [2, t("second")]], SC.half, { id: "scHalf", onchange: e => { SC.half = +e.target.value; setPeriod(); draw(); } });
+  const fillSel = sel(SHIFTS.map(v => [v, SHIFT_LABEL(v)]), SC.fillShift, { onchange: e => SC.fillShift = e.target.value });
+  const fillBtn = h("button", { class: "btn sm", type: "button", onclick: () => { for (const d of SC.days) { d.shift = SC.fillShift; d.type = "regular"; } draw(); } }, t("fillAll"));
+  const rosterEl = h("div", { class: "roster" }), sumEl = h("p", { class: "muted" }), tbl = h("table"), netEl = h("div", { class: "net", style: "font:700 24px var(--mono);color:var(--good)" });
+  const govBox = (k, label) => h("label", { class: "check" }, h("input", { type: "checkbox", id: "sc_" + k, checked: !!SC.gov[k], onchange: e => { SC.gov[k] = e.target.checked; draw(); } }), label);
+  const shareSel = sel([[0.5, t("govShare")], [1, t("govFull")]], SC.gov.share, { onchange: e => { SC.gov.share = +e.target.value; draw(); } });
+  function draw() {
+    R = computePayroll(SC.days, opts());
+    rosterEl.innerHTML = "";
+    for (const d of SC.days) {
+      const dow = new Date(d.date + "T00:00:00").getDay(); const wk = dow === 5 || dow === 6;
+      const sh = DAY_TYPES[d.type]?.worked ? shiftHours(d.shift, 1) : null;
+      const toggle = () => { if (d.type === "off") { d.shift = d.shift || SC.fillShift; d.type = "regular"; } else { d.shift = ""; d.type = "off"; } draw(); };
+      rosterEl.append(h("div", { class: "day" + (d.type === "off" ? " off" : "") + (d.type === "sil" ? " sil" : "") + (/holiday|special|absent/.test(d.type) ? " hol" : "") + (wk ? " wknd" : "") },
+        h("div", { class: "d", role: "button", style: "cursor:pointer", onclick: toggle }, t("dow")[dow], h("b", {}, +d.date.slice(8))),
+        sel([["", t("off")], ...SHIFTS.map(v => [v, SHIFT_LABEL(v)])], d.shift, { "aria-label": "shift", onchange: e => { d.shift = e.target.value; if (!d.shift && DAY_TYPES[d.type].worked) d.type = "off"; if (d.shift && !DAY_TYPES[d.type].worked) d.type = "regular"; draw(); } }),
+        sel(DAY_TYPES_FOR[monthly ? "monthly" : "daily"].map(k => [k, t("type_" + k)]), d.type, { "aria-label": "day type", onchange: e => { d.type = e.target.value; if (!DAY_TYPES[d.type].worked) d.shift = ""; else if (!d.shift) d.shift = SC.fillShift; draw(); } }),
+        sh && sh.worked > 0 && h("div", { class: "hrs" }, `${sh.hours}h` + (sh.ot ? ` · OT ${sh.ot}h${monthly ? " (incl.)" : ""}` : "") + (sh.nd ? ` · ND ${sh.nd}h` : ""))));
+    }
+    sumEl.textContent = tf("summary", { d: R.daysWorked, h: R.hoursWorked, o: R.otHours, n: R.ndHours, s: R.silDays });
+    tbl.innerHTML = ""; tbl.append(...resultRows(R, { pay_type: emp.pay_type || "daily", allowance_per_day: +emp.allowance_per_day || 0 }));
+    netEl.textContent = "₱" + money(R.net);
+  }
+  draw();
+  const rate = monthly ? `₱${money(emp.monthly_rate)}/mo` : `₱${money(emp.daily_rate)}/day`;
+  return h("div", { class: "card", id: "my-calc" }, h("h2", {}, t("myCalc")), h("small", { class: "muted" }, t("myCalcHelp")),
+    h("div", { class: "grid2" }, field(t("month"), monthIn), field(t("period"), halfSel), field(monthly ? t("monthlyRate") : t("daily"), h("div", { class: "money", style: "padding:9px 0" }, rate))),
+    h("div", { class: "row" }, fillSel, fillBtn, h("span", { class: "muted" }, t("weekendHelp"))), h("small", { class: "muted" }, t("tapOff")),
+    rosterEl, sumEl,
+    h("div", { class: "row" }, h("b", {}, t("gov")), shareSel), h("div", { class: "row" }, govBox("sss", "SSS"), govBox("philhealth", "PhilHealth"), govBox("pagibig", "Pag-IBIG")), h("small", { class: "muted" }, t("govHelp")),
+    h("div", { class: "tbl" }, tbl),
+    h("div", { class: "row" }, h("span", { class: "muted" }, t("est")), h("span", { class: "sp" }), netEl));
 }
 function setLangOnly(l) { lang = l; try { localStorage.setItem("pp-lang", l); } catch {} document.documentElement.lang = l; }
 function langSwitch() {

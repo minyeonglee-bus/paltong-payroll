@@ -134,3 +134,6 @@ alter table public.pr_employees add column if not exists pin_locked_until timest
 -- 관리자가 pr_cash_issue_assign 으로 책임 웨이터 지정 → pr_ledger 부족분(verified=false, authorized=false)
 -- 급여 계산은 verified AND authorized 인 부족분만 공제
 -- (migration: pr_cash_issues_from_cashbook)
+
+-- ---------- 직원 본인 보기 RPC: 급여 형태·월급·정비비 포함 (2026-10-16, migration pr_emp_view_pay_fields 적용됨) ----------
+-- pr_emp_view 가 employee 에 pay_type, monthly_rate, allowance_per_day 를 돌려줘서 직원 화면의 예상 계산기가 같은 식으로 계산해요.
