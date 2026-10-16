@@ -137,3 +137,8 @@ alter table public.pr_employees add column if not exists pin_locked_until timest
 
 -- ---------- 직원 본인 보기 RPC: 급여 형태·월급·정비비 포함 (2026-10-16, migration pr_emp_view_pay_fields 적용됨) ----------
 -- pr_emp_view 가 employee 에 pay_type, monthly_rate, allowance_per_day 를 돌려줘서 직원 화면의 예상 계산기가 같은 식으로 계산해요.
+
+-- ---------- 초과근무 배율 설정 + 타임카드 시간 입력 (2026-10-16, migration pr_ot_multiplier_and_rates 적용됨) ----------
+alter table public.pr_settings add column if not exists ot_multiplier numeric(4,2) not null default 1.25;  -- 1.25 = 계약·DOLE, 1.0 = 시급 그대로
+-- pr_emp_view 는 'settings' {ot_multiplier, break_hours} 도 돌려줘요
+alter table public.pr_settings add column if not exists nd_on boolean not null default true;  -- 야간근무 가산 지급 여부

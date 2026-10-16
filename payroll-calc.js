@@ -9,8 +9,12 @@
 //            Night differential, holiday & rest-day premiums still paid per law. Unexcused absence / tardiness deducted pro-rata.
 //            daily equivalent = monthly × 12 ÷ 313, hourly = that ÷ 8. Half-month basic = monthly ÷ 2.
 
-export const SHIFTS = ["8-18", "18-4", "8-20", "20-4", "22-8", "20-8"];
-export const SHIFT_LABEL = v => { const [a, b] = v.split("-"); return `${a.padStart(2, "0")}:00–${b.padStart(2, "0")}:00`; };
+// preset shifts; any "HH:MM-HH:MM" (time-card in/out) is also accepted
+export const SHIFTS = ["8-18", "18-4", "8-20", "20-4", "22-8", "20-8", "20-6", "22-6", "22-4", "10-20", "12-22"];
+const toMin = x => { if (x == null || x === "") return NaN; const [h, m = "0"] = String(x).split(":"); return (+h) * 60 + (+m); };
+export const parseShift = v => { if (!v) return null; const [a, b] = String(v).split("-"); const s = toMin(a), e = toMin(b); return isNaN(s) || isNaN(e) ? null : { start: s, end: e }; };
+export const SHIFT_LABEL = v => { const p = parseShift(v); if (!p) return v; const f = m => `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; return `${f(p.start)}–${f(p.end)}`; };
+export const isPreset = v => SHIFTS.includes(v);
 export const MONTHLY_FACTOR = 313 / 12; // 6-day week → 313 paid days a year
 export const ND_RATE = 0.10;
 
@@ -35,12 +39,17 @@ export const DAY_TYPES_FOR = {
 const r2 = n => Math.round((+n || 0) * 100) / 100;
 
 /** shift "8-18" → hours in the shift, split into regular (≤8), overtime and night hours */
+/** shift "8-18" or time-card "21:58-08:20" → span, regular hours (≤8), overtime (½-hour steps, rounded down) and night hours (22:00–06:00) */
 export function shiftHours(shift, breakHrs = 1) {
-  if (!shift || !SHIFTS.includes(shift)) return { span: 0, worked: 0, hours: 0, ot: 0, nd: 0 };
-  let [a, b] = shift.split("-").map(Number); if (b <= a) b += 24;
-  let nd = 0; for (let h = a; h < b; h++) { const hh = h % 24; if (hh >= 22 || hh < 6) nd++; }
-  const worked = Math.max(0, b - a - (+breakHrs || 0));
-  return { span: b - a, worked, hours: Math.min(8, worked), ot: Math.max(0, worked - 8), nd };
+  const p = parseShift(shift);
+  if (!p) return { span: 0, worked: 0, hours: 0, ot: 0, nd: 0 };
+  let a = p.start, b = p.end; if (b <= a) b += 1440;
+  let ndMin = 0; for (let m = a; m < b; m += 5) { const hh = (m % 1440) / 60; if (hh >= 22 || hh < 6) ndMin += 5; }
+  const span = (b - a) / 60;
+  const worked = Math.max(0, span - (+breakHrs || 0));
+  const hours = Math.min(8, Math.round(worked * 4) / 4);
+  const ot = Math.max(0, Math.floor((worked - 8) * 2) / 2);
+  return { span: Math.round(span * 100) / 100, worked: Math.round(worked * 100) / 100, hours, ot, nd: Math.round(ndMin / 60 * 2) / 2 };
 }
 
 // Government contributions (employee share) from monthly basic — reference values, check official tables yearly
@@ -72,6 +81,8 @@ export function computePayroll(days, opts) {
   const hourly = daily / 8, perMin = daily / 480;
   const breakHrs = opts.breakHrs == null ? 1 : +opts.breakHrs;
   const allowancePerDay = +opts.allowancePerDay || 0;
+  const otMult = +opts.otMultiplier > 0 ? +opts.otMultiplier : 1.25;
+  const ndRate = opts.nightDiff === false ? 0 : ND_RATE; // night differential +10% (22:00–06:00); can be switched off in settings // contract: 125%; set 1.0 to pay OT at the plain hourly rate
 
   let basic = 0, premium = 0, otPay = 0, ndPay = 0, silPay = 0, holidayOffPay = 0, absentDed = 0;
   let daysWorked = 0, hoursWorked = 0, otHours = 0, ndHours = 0, silDays = 0, holidayOffDays = 0, absentDays = 0;
@@ -88,8 +99,8 @@ export function computePayroll(days, opts) {
     } else if (t.worked && sh.hours > 0) {
       if (!isMonthly) base = sh.hours * hourly;
       extra = sh.hours * hourly * (t.pay - 1);            // rest-day / holiday premium (both schemes)
-      otp = isMonthly ? 0 : sh.ot * hourly * t.ot;        // monthly ₱30,000 is OT-inclusive (contract 2.2)
-      ndp = sh.nd * hourly * t.pay * ND_RATE;
+      otp = isMonthly ? 0 : sh.ot * hourly * (t.ot / 1.25) * otMult;        // monthly ₱30,000 is OT-inclusive (contract 2.2)
+      ndp = sh.nd * hourly * t.pay * ndRate;
       basic += base; premium += extra; otPay += otp; ndPay += ndp;
       daysWorked++; hoursWorked += sh.hours; otHours += sh.ot; ndHours += sh.nd;
     }
