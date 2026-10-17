@@ -23,7 +23,7 @@ let r = computePayroll(days, { payType: "daily", daily: 718, breakHrs: 1 });
 assert.equal(r.daysWorked, 13);
 assert.equal(r.basic, 718 * 13);
 near(r.otPay, 13 * (718 / 8) * 1.25, "OT");
-assert.equal(r.net, r.gross);
+assert.equal(r.net, Math.ceil(r.gross));
 r = computePayroll(days, { daily: 718, lateMinutes: 30 }); near(r.late, 30 * 718 / 480, "late");
 r = computePayroll([{ date: "2026-10-01", shift: "", type: "sil" }, { date: "2026-10-02", shift: "", type: "holidayOff" }], { daily: 718 });
 assert.equal(r.silPay, 718); assert.equal(r.holidayOffPay, 718); assert.equal(r.gross, 1436);
@@ -32,7 +32,7 @@ r = computePayroll([{ date: "2026-10-01", shift: "18-4", type: "holiday" }], { d
 assert.equal(r.basic, 718); assert.equal(r.premium, 718); near(r.otPay, hr * 2.6, "hol OT"); near(r.ndPay, 6 * hr * 2 * 0.1, "hol ND");
 r = computePayroll(days, { daily: 718, advances: 1000, shortage: 250, gov: { sss: true, philhealth: true, pagibig: true }, govShare: 0.5 });
 near(r.monthly, 718 * MONTHLY_FACTOR, "monthly equiv"); near(r.sss, 18500 * 0.05 / 2, "sss"); assert.equal(r.pagibig, 100);
-near(r.net, r.gross - 1000 - 250 - r.sss - r.philhealth - 100, "net w/ deductions");
+assert.equal(r.net, Math.ceil(r.gross - 1000 - 250 - r.sss - r.philhealth - 100), "net w/ deductions");
 
 /* ---------- RIDER / daily + ₱100 maintenance ---------- */
 r = computePayroll(days, { payType: "daily", daily: 718, allowancePerDay: 100 });
