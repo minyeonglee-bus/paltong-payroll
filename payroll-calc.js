@@ -128,7 +128,7 @@ export function computePayroll(days, opts) {
     basic: r2(basic), premium: r2(premium), otPay: r2(otPay), ndPay: r2(ndPay), silPay: r2(silPay), holidayOffPay: r2(holidayOffPay),
     allowance: r2(allowance), absentDed: r2(absentDed), late: r2(late), incentive: r2(incentive), bonus: r2(bonus), gross: r2(gross),
     sss, philhealth, pagibig, advances: r2(advances), shortage: r2(shortage), otherDeduction: r2(otherDeduction),
-    deductions: r2(deductions), net: r2(gross - deductions),
+    deductions: r2(deductions), net: Math.ceil(r2(gross - deductions)), // net paid in whole pesos, rounded up
     basicFor13th: r2(basic + silPay - late - absentDed), // 13th month = basic salary only: no allowance, OT, premiums, night diff, holiday pay, bonus (DOLE)
   };
 }
