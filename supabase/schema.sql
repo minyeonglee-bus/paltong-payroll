@@ -145,6 +145,11 @@ alter table public.pr_settings add column if not exists nd_on boolean not null d
 -- ---------- 타임카드 손계산 방식으로 복귀 (2026-10-17, migration pr_paper_method) ----------
 alter table public.pr_settings add column if not exists hours_per_day numeric(4,1) not null default 10;  -- OT 시급 = 일급 ÷ 10
 alter table public.pr_settings add column if not exists late_penalty boolean not null default true;      -- 지각 벌금 = 지각액
+-- 직원별 계산 방식 (migration pr_employee_scheme): contract = 718 계약서 (8h·OT125%·야간10%), paper = 기존 종이 방식 (일급×근무일·OT 일급÷10·지각+벌금)
+alter table public.pr_employees add column if not exists scheme text not null default 'contract';
+alter table public.pr_employees drop constraint if exists pr_employees_scheme_check;
+alter table public.pr_employees add constraint pr_employees_scheme_check check (scheme in ('contract','paper'));
+-- 적용: 라이더(Felipe·June·Wilbert·Jhon Vik)·Jonel·Genifer·Albert = contract 718 / Archie 790·Jonathan 850·Erika 750·Lilian 790·Lorence 658 = paper
 
 -- ---------- 13월급 (2026-10-16) · 아직 적용 안 됐으면 이 블록을 SQL Editor에서 실행 ----------
 -- 13월급 = 그 해에 받은 기본급 합계 ÷ 12 (1년 미만 비례) · 12월 24일 이전 지급
@@ -178,7 +183,7 @@ begin
   select * into e from public.pr_employees where id = c.emp_id;
   if c.must_change then return jsonb_build_object('ok', true, 'must_change', true, 'name', e.name); end if;
   return jsonb_build_object('ok', true, 'must_change', false,
-    'employee', jsonb_build_object('name', e.name, 'position', e.position, 'emp_no', e.emp_no, 'daily_rate', e.daily_rate,
+    'employee', jsonb_build_object('name', e.name, 'position', e.position, 'emp_no', e.emp_no, 'daily_rate', e.daily_rate, 'scheme', e.scheme,
                                    'pay_type', e.pay_type, 'monthly_rate', e.monthly_rate, 'allowance_per_day', e.allowance_per_day),
     'settings', (select jsonb_build_object('hours_per_day', hours_per_day, 'late_penalty', late_penalty, 'break_hours', break_hours) from public.pr_settings where id = 1),
     'payrolls', coalesce((select jsonb_agg(jsonb_build_object('period_start', p.period_start, 'period_end', p.period_end, 'status', p.status,

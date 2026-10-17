@@ -1,6 +1,12 @@
 // Paltong payroll math — pure functions, no DOM. Verified by test/payroll.test.js
 //
-// Follows the way payroll has always been done on the time cards (2026 Jan–Sep), not a contract formula:
+// Two schemes, chosen per employee (pr_employees.scheme):
+//
+// scheme 'contract' — the ₱718 employment contract (riders, Jonel, Genifer, Albert …): 8h/day, hourly = daily/8.
+//   OT 125% in ½-hour steps from the shift, night +10% (22–06), rest day 130%, special holiday 130%, regular holiday 200% (100% off).
+//   Late = actual minutes × daily/480, no penalty. Monthly ₱30,000 (Jonel): half = 15,000, OT included, premiums/ND paid, absence pro-rata.
+//
+// scheme 'paper' — the way payroll was done on the time cards Jan–Sep 2026 (Archie, Jonathan, Erika, Lilian, Lorence …), old daily rates:
 //   daily    Worked day = 1 × daily rate, whatever the shift length. Half day = ½ daily.
 //            Overtime = hours written on the card (+1, +2 …) × (daily ÷ 10). No 125%, no night differential.
 //            Late/undertime = minutes × daily ÷ 10 ÷ 60 (e.g. 690/day → 1.15/min, 30 min = 34.5),
@@ -20,32 +26,42 @@ export const isPreset = v => SHIFTS.includes(v);
 export const MONTHLY_FACTOR = 313 / 12; // 6-day week → 313 paid days a year
 export const HOURS_PER_DAY = 10;        // paper: OT hourly = daily ÷ 10
 
+export const ND_RATE = 0.10;
+export const SCHEMES = ["contract", "paper"];
 export const DAY_TYPES = {
-  regular:     { pay: 1.00, worked: true },
-  half:        { pay: 0.50, worked: true },                 // half day → ½ daily
-  special:     { pay: 1.30, worked: true },                 // special holiday worked → +30%
-  holiday:     { pay: 2.00, worked: true },                 // regular holiday worked → +1 daily
-  holidayOff:  { pay: 1.00, worked: false, paidDay: true }, // regular holiday not worked → 1 daily (e.g. 1/1)
-  sil:         { pay: 1.00, worked: false, paidDay: true }, // SIL / paid leave → 1 daily
-  absent:      { pay: 0,    worked: false, absent: true },  // unexcused absence (monthly: deducted)
-  off:         { pay: 0,    worked: false },
+  regular:     { pay: 1.00, ot: 1.25, worked: true },
+  half:        { pay: 0.50, ot: 1.25, worked: true },                 // paper: half day → ½ daily
+  rest:        { pay: 1.30, ot: 1.69, worked: true },                 // contract: rest day worked
+  special:     { pay: 1.30, ot: 1.69, worked: true },                 // special holiday worked → +30%
+  specialRest: { pay: 1.50, ot: 1.95, worked: true },
+  holiday:     { pay: 2.00, ot: 2.60, worked: true },                 // regular holiday worked → +100%
+  holidayRest: { pay: 2.60, ot: 3.38, worked: true },
+  holidayOff:  { pay: 1.00, ot: 0,    worked: false, paidDay: true }, // regular holiday not worked → 1 daily (e.g. 1/1)
+  sil:         { pay: 1.00, ot: 0,    worked: false, paidDay: true }, // SIL / paid leave → 1 daily
+  absent:      { pay: 0,    ot: 0,    worked: false, absent: true },  // unexcused absence (monthly: deducted)
+  off:         { pay: 0,    ot: 0,    worked: false },
 };
 // which day types each scheme offers in the roster
 export const DAY_TYPES_FOR = {
-  daily:   ["regular", "half", "special", "holiday", "holidayOff", "sil", "off"],
-  monthly: ["regular", "half", "special", "holiday", "holidayOff", "sil", "absent", "off"],
+  contract: { daily:   ["regular", "rest", "special", "specialRest", "holiday", "holidayRest", "holidayOff", "sil", "off"],
+              monthly: ["regular", "rest", "special", "specialRest", "holiday", "holidayRest", "holidayOff", "sil", "absent", "off"] },
+  paper:    { daily:   ["regular", "half", "special", "holiday", "holidayOff", "sil", "off"],
+              monthly: ["regular", "half", "special", "holiday", "holidayOff", "sil", "absent", "off"] },
 };
+export const dayTypesFor = (scheme, payType) => (DAY_TYPES_FOR[scheme] || DAY_TYPES_FOR.contract)[payType === "monthly" ? "monthly" : "daily"];
 
 const r2 = n => Math.round((+n || 0) * 100) / 100;
 
-/** shift "8-18" or time-card "21:58-08:20" → span and hours after the meal break (record only; does not change pay) */
+/** shift "8-18" or time-card "21:58-08:20" → span, worked hours after the meal break, and (contract) regular ≤8h / OT in ½h steps / night hours 22–06 */
 export function shiftHours(shift, breakHrs = 1) {
   const p = parseShift(shift);
-  if (!p) return { span: 0, worked: 0, hours: 0 };
+  if (!p) return { span: 0, worked: 0, hours: 0, reg: 0, ot: 0, nd: 0 };
   let a = p.start, b = p.end; if (b <= a) b += 1440;
+  let ndMin = 0; for (let m = a; m < b; m += 5) { const hh = (m % 1440) / 60; if (hh >= 22 || hh < 6) ndMin += 5; }
   const span = (b - a) / 60;
   const worked = Math.max(0, span - (+breakHrs || 0));
-  return { span: Math.round(span * 100) / 100, worked: Math.round(worked * 100) / 100, hours: Math.round(worked * 4) / 4 };
+  const hours = Math.round(worked * 4) / 4;
+  return { span: Math.round(span * 100) / 100, worked: Math.round(worked * 100) / 100, hours, reg: Math.min(8, hours), ot: Math.max(0, Math.floor((worked - 8) * 2) / 2), nd: Math.round(ndMin / 60 * 2) / 2 };
 }
 
 // Government contributions (employee share) from monthly basic — reference values, check official tables yearly
@@ -64,44 +80,55 @@ export function pagibigEmployee(monthly) {
 
 /**
  * computePayroll(days, opts)
- *  days: [{ date, shift, type, ot }]   ot = overtime hours written on the time card for that day
- *  opts: { payType:'daily'|'monthly', daily, monthly, breakHrs, hoursPerDay (10), latePenalty (true),
+ *  days: [{ date, shift, type, ot }]   ot = (paper) overtime hours written on the time card for that day
+ *  opts: { scheme:'contract'|'paper', payType:'daily'|'monthly', daily, monthly, breakHrs, hoursPerDay (paper, 10), latePenalty (paper, true),
  *          allowancePerDay, lateMinutes, incentive, bonus, advances, shortage, otherDeduction,
  *          gov:{sss,philhealth,pagibig}, govShare: 1|0.5 }
  */
 export function computePayroll(days, opts) {
+  const scheme = opts.scheme === "paper" ? "paper" : "contract";
+  const paper = scheme === "paper";
   const payType = opts.payType || "daily";
   const isMonthly = payType === "monthly";
   const monthlyRate = +opts.monthly || 0;
   const daily = isMonthly ? monthlyRate / MONTHLY_FACTOR : (+opts.daily || 0);
-  const hpd = +opts.hoursPerDay > 0 ? +opts.hoursPerDay : HOURS_PER_DAY;
+  const hpd = paper ? (+opts.hoursPerDay > 0 ? +opts.hoursPerDay : HOURS_PER_DAY) : 8;
   const hourly = daily / hpd, perMin = hourly / 60;
   const breakHrs = opts.breakHrs == null ? 1 : +opts.breakHrs;
   const allowancePerDay = +opts.allowancePerDay || 0;
-  const latePenalty = opts.latePenalty !== false;
+  const latePenalty = paper && opts.latePenalty !== false;
+  const ndRate = paper ? 0 : ND_RATE;
 
-  let basic = 0, premium = 0, otPay = 0, silPay = 0, holidayOffPay = 0, absentDed = 0;
-  let daysWorked = 0, halfDays = 0, hoursWorked = 0, otHours = 0, silDays = 0, holidayOffDays = 0, absentDays = 0;
+  let basic = 0, premium = 0, otPay = 0, ndPay = 0, silPay = 0, holidayOffPay = 0, absentDed = 0;
+  let daysWorked = 0, halfDays = 0, hoursWorked = 0, otHours = 0, ndHours = 0, silDays = 0, holidayOffDays = 0, absentDays = 0;
   const rows = [];
   for (const d of days || []) {
     const t = DAY_TYPES[d.type] || DAY_TYPES.regular;
-    const sh = t.worked ? shiftHours(d.shift, breakHrs) : { hours: 0, worked: 0 };
-    const ot = t.worked ? Math.max(0, +d.ot || 0) : 0;
-    let base = 0, extra = 0, otp = 0;
+    const sh = t.worked ? shiftHours(d.shift, breakHrs) : { hours: 0, worked: 0, reg: 0, ot: 0, nd: 0 };
+    const ot = !t.worked ? 0 : paper ? Math.max(0, +d.ot || 0) : sh.ot;   // paper: typed from the card · contract: from the shift
+    const nd = paper ? 0 : sh.nd;
+    let base = 0, extra = 0, otp = 0, ndp = 0;
     if (t.paidDay) {
       if (!isMonthly) base = daily;                       // monthly: already inside the fixed salary
       if (d.type === "sil") { silPay += base; silDays++; } else { holidayOffPay += base; holidayOffDays++; }
     } else if (t.absent) {
       absentDays++; if (isMonthly) absentDed += daily;    // monthly: pro-rata deduction
-    } else if (t.worked) {
-      if (!isMonthly) base = daily * Math.min(1, t.pay);  // full day (or ½ for half day)
-      extra = daily * Math.max(0, t.pay - 1);             // special +30% / regular holiday +100%
-      otp = isMonthly ? 0 : ot * hourly;                  // card OT hours × (daily ÷ 10); monthly is OT-inclusive
-      basic += base; premium += extra; otPay += otp;
+    } else if (t.worked && (paper || sh.reg > 0)) {
+      if (paper) {
+        if (!isMonthly) base = daily * Math.min(1, t.pay);  // full day (or ½ for half day), whatever the shift length
+        extra = daily * Math.max(0, t.pay - 1);             // special +30% / regular holiday +100%
+        otp = isMonthly ? 0 : ot * hourly;                  // card OT hours × (daily ÷ 10); monthly is OT-inclusive
+      } else {
+        if (!isMonthly) base = sh.reg * hourly;             // hours × hourly (daily ÷ 8)
+        extra = sh.reg * hourly * (t.pay - 1);              // rest-day / holiday premium
+        otp = isMonthly ? 0 : ot * hourly * t.ot;           // OT 125% (169% / 260% on premium days); monthly is OT-inclusive
+        ndp = nd * hourly * t.pay * ndRate;                 // night differential +10%
+      }
+      basic += base; premium += extra; otPay += otp; ndPay += ndp;
       if (d.type === "half") halfDays++; else daysWorked++;
-      hoursWorked += sh.hours; otHours += ot;
+      hoursWorked += paper ? sh.hours : sh.reg; otHours += ot; ndHours += nd;
     }
-    rows.push({ date: d.date, shift: d.shift || "", type: d.type || "regular", hours: sh.hours, ot, amount: r2(base + extra + otp - (t.absent && isMonthly ? daily : 0)) });
+    rows.push({ date: d.date, shift: d.shift || "", type: d.type || "regular", hours: paper ? sh.hours : sh.reg, ot, nd, amount: r2(base + extra + otp + ndp - (t.absent && isMonthly ? daily : 0)) });
   }
   if (isMonthly) basic = monthlyRate / 2;                 // half-month fixed basic
   const dutyDays = daysWorked + halfDays;
@@ -110,7 +137,7 @@ export function computePayroll(days, opts) {
   const late = lateMinutes * perMin;
   const penalty = latePenalty ? late : 0;                 // paper: 벌금 = same amount as the late deduction
   const incentive = +opts.incentive || 0, bonus = +opts.bonus || 0;
-  const gross = basic + premium + otPay + silPay + holidayOffPay + allowance + incentive + bonus - late - absentDed;
+  const gross = basic + premium + otPay + ndPay + silPay + holidayOffPay + allowance + incentive + bonus - late - absentDed;
 
   const monthly = isMonthly ? monthlyRate : daily * MONTHLY_FACTOR;
   const share = opts.govShare === 0.5 ? 0.5 : 1;
@@ -122,13 +149,13 @@ export function computePayroll(days, opts) {
   const deductions = sss + philhealth + pagibig + advances + shortage + otherDeduction + penalty;
 
   return {
-    payType, hourly: r2(hourly), dailyEquiv: r2(daily), perMinute: r2(perMin), monthly: r2(monthly), hoursPerDay: hpd,
-    daysWorked, halfDays, hoursWorked, otHours, ndHours: 0, silDays, holidayOffDays, absentDays, lateMinutes, rows,
-    basic: r2(basic), premium: r2(premium), otPay: r2(otPay), ndPay: 0, silPay: r2(silPay), holidayOffPay: r2(holidayOffPay),
+    scheme, payType, hourly: r2(hourly), dailyEquiv: r2(daily), perMinute: r2(perMin), monthly: r2(monthly), hoursPerDay: hpd,
+    daysWorked, halfDays, hoursWorked, otHours, ndHours, silDays, holidayOffDays, absentDays, lateMinutes, rows,
+    basic: r2(basic), premium: r2(premium), otPay: r2(otPay), ndPay: r2(ndPay), silPay: r2(silPay), holidayOffPay: r2(holidayOffPay),
     allowance: r2(allowance), absentDed: r2(absentDed), late: r2(late), penalty: r2(penalty), incentive: r2(incentive), bonus: r2(bonus), gross: r2(gross),
     sss, philhealth, pagibig, advances: r2(advances), shortage: r2(shortage), otherDeduction: r2(otherDeduction),
     deductions: r2(deductions), net: Math.ceil(r2(gross - deductions)), // net paid in whole pesos, rounded up
-    basicFor13th: r2(basic + silPay - late - absentDed), // 13th month = basic only: no allowance, OT, holiday extra, bonus
+    basicFor13th: r2(basic + silPay - late - absentDed), // 13th month = basic only: no allowance, OT, night diff, holiday extra, bonus
   };
 }
 
