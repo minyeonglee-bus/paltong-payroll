@@ -118,10 +118,23 @@ tr.net td{font-size:18px;font-weight:700;border:0;padding-top:12px}
 .slip .sig{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:28px;font-size:12px;color:var(--muted)}
 .slip .sig div{border-top:1px solid var(--line2);padding-top:6px}
 @media print{
-  .top,.tabs,.bar,.btn,.noprint{display:none!important}
+  .top,.tabs,.bar,.btn,.noprint,.toast{display:none!important}
   body{background:#fff;color:#000}
+  body:has(#sheetRoot .slip) main{display:none}
   main{padding:0;max-width:none}
   .card{border:0;padding:0;box-shadow:none}
   .sheet-bg{position:static;background:none;display:block}
-  .sheet{max-height:none;max-width:none;border-radius:0;padding:0}
+  .sheet{max-height:none;max-width:none;border-radius:0;padding:0;box-shadow:none}
+  .slip table{width:100%}
+  /* 간단 인쇄: 80mm 영수증 프린터 — 요약만, 일별 표 제외 */
+  body.print-simple{font-size:12px}
+  body.print-simple .slip{font-size:12px;width:72mm;max-width:72mm}
+  body.print-simple .slip .tbl,body.print-simple .slip br{display:none}
+  body.print-simple .slip .head{display:block;text-align:center;border-bottom:1px dashed #000}
+  body.print-simple .slip .head b{font-size:14px}
+  body.print-simple .slip .grid2{display:block}
+  body.print-simple .slip td,body.print-simple .slip th{padding:2px 0;font-size:12px}
+  body.print-simple .slip .sig{margin-top:16px;gap:10px;font-size:10px}
+  body.print-simple .sheet{padding:0}
 }
+@page{margin:8mm}
