@@ -141,7 +141,10 @@ alter table public.pr_employees add column if not exists pin_locked_until timest
 -- ---------- 초과근무 배율 설정 + 타임카드 시간 입력 (2026-10-16, migration pr_ot_multiplier_and_rates 적용됨) ----------
 alter table public.pr_settings add column if not exists ot_multiplier numeric(4,2) not null default 1.25;  -- 1.25 = 계약·DOLE, 1.0 = 시급 그대로
 -- pr_emp_view 는 'settings' {ot_multiplier, break_hours} 도 돌려줘요
-alter table public.pr_settings add column if not exists nd_on boolean not null default true;  -- 야간근무 가산 지급 여부
+alter table public.pr_settings add column if not exists nd_on boolean not null default true;  -- (구) 야간근무 가산 — 더 이상 안 씀
+-- ---------- 타임카드 손계산 방식으로 복귀 (2026-10-17, migration pr_paper_method) ----------
+alter table public.pr_settings add column if not exists hours_per_day numeric(4,1) not null default 10;  -- OT 시급 = 일급 ÷ 10
+alter table public.pr_settings add column if not exists late_penalty boolean not null default true;      -- 지각 벌금 = 지각액
 
 -- ---------- 13월급 (2026-10-16) · 아직 적용 안 됐으면 이 블록을 SQL Editor에서 실행 ----------
 -- 13월급 = 그 해에 받은 기본급 합계 ÷ 12 (1년 미만 비례) · 12월 24일 이전 지급
@@ -177,7 +180,7 @@ begin
   return jsonb_build_object('ok', true, 'must_change', false,
     'employee', jsonb_build_object('name', e.name, 'position', e.position, 'emp_no', e.emp_no, 'daily_rate', e.daily_rate,
                                    'pay_type', e.pay_type, 'monthly_rate', e.monthly_rate, 'allowance_per_day', e.allowance_per_day),
-    'settings', (select jsonb_build_object('ot_multiplier', ot_multiplier, 'break_hours', break_hours, 'nd_on', nd_on) from public.pr_settings where id = 1),
+    'settings', (select jsonb_build_object('hours_per_day', hours_per_day, 'late_penalty', late_penalty, 'break_hours', break_hours) from public.pr_settings where id = 1),
     'payrolls', coalesce((select jsonb_agg(jsonb_build_object('period_start', p.period_start, 'period_end', p.period_end, 'status', p.status,
         'paid_on', p.paid_on, 'paid_via', p.paid_via, 'daily_rate', p.daily_rate, 'pay_type', p.pay_type, 'monthly_rate', p.monthly_rate, 'days', p.days,
         'result', case when p.status = 'paid' then p.result end) order by p.period_start desc)
