@@ -8,7 +8,8 @@
 //
 // scheme 'paper' — the way payroll was done on the time cards Jan–Sep 2026 (Archie, Jonathan, Erika, Lilian, Lorence …), old daily rates:
 //   daily    Worked day = 1 × daily rate, whatever the shift length. Half day = ½ daily.
-//            Overtime = hours written on the card (+1, +2 …) × (daily ÷ 10). No 125%, no night differential.
+//            A day is a 10-hour shift (e.g. 08–18, meal break inside). Shift time past 10h = overtime in ½-hour steps (08–19 → +1h),
+//            or the hours written on the card can be typed instead. OT hour = daily ÷ 10. No 125%, no night differential.
 //            Late/undertime = minutes × daily ÷ 10 ÷ 60 (e.g. 690/day → 1.15/min, 30 min = 34.5),
 //            plus a penalty of the same amount (벌금 = 지각액) when latePenalty is on.
 //            Special holiday worked +30% of daily. Regular holiday: +1 daily (worked → 2×, not worked → 1×).
@@ -24,7 +25,9 @@ export const parseShift = v => { if (!v) return null; const [a, b] = String(v).s
 export const SHIFT_LABEL = v => { const p = parseShift(v); if (!p) return v; const f = m => `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; return `${f(p.start)}–${f(p.end)}`; };
 export const isPreset = v => SHIFTS.includes(v);
 export const MONTHLY_FACTOR = 313 / 12; // 6-day week → 313 paid days a year
-export const HOURS_PER_DAY = 10;        // paper: OT hourly = daily ÷ 10
+export const HOURS_PER_DAY = 10;        // paper: a day = 10h shift; OT hourly = daily ÷ 10
+/** paper scheme: overtime from the shift = span past hoursPerDay, ½-hour steps */
+export const paperOt = (sh, hpd = HOURS_PER_DAY) => sh && sh.span > 0 ? Math.max(0, Math.floor((sh.span - hpd) * 2) / 2) : 0;
 
 export const ND_RATE = 0.10;
 export const SCHEMES = ["contract", "paper"];
@@ -105,7 +108,7 @@ export function computePayroll(days, opts) {
   for (const d of days || []) {
     const t = DAY_TYPES[d.type] || DAY_TYPES.regular;
     const sh = t.worked ? shiftHours(d.shift, breakHrs) : { hours: 0, worked: 0, reg: 0, ot: 0, nd: 0 };
-    const ot = !t.worked ? 0 : paper ? Math.max(0, +d.ot || 0) : sh.ot;   // paper: typed from the card · contract: from the shift
+    const ot = !t.worked ? 0 : paper ? (d.ot != null && d.ot !== "" ? Math.max(0, +d.ot || 0) : paperOt(sh, hpd)) : sh.ot;   // paper: shift past 10h, or typed from the card · contract: from the shift
     const nd = paper ? 0 : sh.nd;
     let base = 0, extra = 0, otp = 0, ndp = 0;
     if (t.paidDay) {
@@ -126,9 +129,9 @@ export function computePayroll(days, opts) {
       }
       basic += base; premium += extra; otPay += otp; ndPay += ndp;
       if (d.type === "half") halfDays++; else daysWorked++;
-      hoursWorked += paper ? sh.hours : sh.reg; otHours += ot; ndHours += nd;
+      hoursWorked += paper ? sh.span : sh.reg; otHours += ot; ndHours += nd;
     }
-    rows.push({ date: d.date, shift: d.shift || "", type: d.type || "regular", hours: paper ? sh.hours : sh.reg, ot, nd, amount: r2(base + extra + otp + ndp - (t.absent && isMonthly ? daily : 0)) });
+    rows.push({ date: d.date, shift: d.shift || "", type: d.type || "regular", hours: paper ? sh.span : sh.reg, ot, nd, amount: r2(base + extra + otp + ndp - (t.absent && isMonthly ? daily : 0)) });
   }
   if (isMonthly) basic = monthlyRate / 2;                 // half-month fixed basic
   const dutyDays = daysWorked + halfDays;
