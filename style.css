@@ -142,3 +142,7 @@ tr.net td{font-size:18px;font-weight:700;border:0;padding-top:12px}
 @media print{ .print-simple .slip .muted{font-size:10px} }
 .day .otin{grid-column:1/-1;display:flex;align-items:center;gap:6px;font:600 12px var(--mono);color:var(--muted)}
 .day .otin input{width:64px;padding:4px 6px;font-size:13px}
+#clock .clockStatus{margin:10px 0;padding:10px 12px;border-radius:8px;background:var(--bg);font:600 15px var(--mono)}
+#clock .clockStatus.in{background:#e6f4ea;color:#1e6b34}
+#clock .clockBtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px}
+.btn.big{font-size:20px;padding:18px 10px}

@@ -182,3 +182,38 @@ export function datesBetween(start, end) {
   return out;
 }
 export function addDays(dateStr, n) { const d = new Date(dateStr + "T00:00:00"); d.setDate(d.getDate() + n); return fmtDate(d); }
+
+/**
+ * pairPunches(punches) — app clock-in/out records → one shift per date.
+ *  punches: [{ kind:'in'|'out', at: Date|string }]  (any order)
+ *  returns { [date]: { shift:"HH:MM-HH:MM"|"", in:Date|null, out:Date|null, incomplete:boolean } }
+ *  A session belongs to the date of its IN; an OUT before 06:00 with no open IN belongs to the previous date.
+ *  Several sessions on one date → first IN to last OUT. Missing IN or OUT → incomplete (shift left empty).
+ */
+export function pairPunches(punches) {
+  const list = (punches || []).map(p => ({ kind: p.kind, at: p.at instanceof Date ? p.at : new Date(p.at) })).filter(p => !isNaN(p.at)).sort((a, b) => a.at - b.at);
+  const hhmm = d => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  const days = {};
+  const day = (date) => days[date] || (days[date] = { in: null, out: null, incomplete: false, sessions: 0 });
+  let open = null;
+  for (const p of list) {
+    if (p.kind === "in") {
+      if (open) { day(open.date).incomplete = true; }                 // IN after IN: previous session never closed
+      open = { date: fmtDate(p.at), at: p.at };
+      const d = day(open.date); d.sessions++; if (!d.in || p.at < d.in) d.in = p.at;
+    } else {
+      if (open) {
+        const d = day(open.date); if (!d.out || p.at > d.out) d.out = p.at; open = null;
+      } else {                                                         // OUT without IN
+        const dt = p.at.getHours() < 6 ? addDays(fmtDate(p.at), -1) : fmtDate(p.at);
+        const d = day(dt); d.incomplete = true; if (!d.out || p.at > d.out) d.out = p.at;
+      }
+    }
+  }
+  if (open) day(open.date).incomplete = true;
+  for (const [, d] of Object.entries(days)) {
+    if (!d.in || !d.out) d.incomplete = true;
+    d.shift = d.in && d.out ? `${hhmm(d.in)}-${hhmm(d.out)}` : "";
+  }
+  return days;
+}

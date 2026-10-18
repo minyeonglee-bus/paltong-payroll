@@ -97,3 +97,13 @@ export async function deleteThirteenth(id) { must(await sb.from("pr_thirteenth")
 export async function listPayrollsYear(year) {
   return must(await sb.from("pr_payrolls").select("employee_id, period_start, period_end, status, result").gte("period_start", `${year}-01-01`).lte("period_start", `${year}-12-31`).limit(2000));
 }
+
+// ---------- 출퇴근 (직원이 앱에서 버튼 · 앱 기록이 근태 기준) ----------
+export async function punch(no, pin, kind) { return must(await sb.rpc("pr_punch", { p_no: String(no).trim(), p_pin: String(pin), p_kind: kind })); }
+/** owner: punches for a period (+ next-morning punches so an overnight shift's OUT is included) */
+export async function listPunches(employeeId, from, to) {
+  const a = new Date(from + "T00:00:00"), b = new Date(to + "T00:00:00"); b.setHours(b.getHours() + 36);
+  return must(await sb.from("pr_punches").select("*").eq("employee_id", employeeId).gte("punched_at", a.toISOString()).lt("punched_at", b.toISOString()).order("punched_at"));
+}
+export async function addPunch(row) { return must(await sb.from("pr_punches").insert({ ...row, source: "admin" }).select().single()); }
+export async function deletePunch(id) { must(await sb.from("pr_punches").delete().eq("id", id)); }

@@ -151,6 +151,8 @@ alter table public.pr_employees drop constraint if exists pr_employees_scheme_ch
 alter table public.pr_employees add constraint pr_employees_scheme_check check (scheme in ('contract','paper'));
 -- 적용: 라이더(Felipe·June·Wilbert·Jhon Vik)·Jonel·Genifer·Albert = contract 718 / Archie 790·Jonathan 850·Erika 750·Lilian 790 = paper (Lorence는 10/19부터 contract 718)
 
+-- ---------- 직원 출퇴근 (2026-10-19): supabase/pr_punches.sql 참고 (pr_punches · pr_punch · pr_emp_view punches) ----------
+
 -- ---------- 13월급 (2026-10-16) · 아직 적용 안 됐으면 이 블록을 SQL Editor에서 실행 ----------
 -- 13월급 = 그 해에 받은 기본급 합계 ÷ 12 (1년 미만 비례) · 12월 24일 이전 지급
 -- 기본급에서 제외: 초과·야간·휴일 할증·정비비·보너스 (DOLE)

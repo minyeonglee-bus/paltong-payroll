@@ -80,3 +80,18 @@ near(r.premium, 8 * (30000 / MONTHLY_FACTOR / 8), "monthly holiday +100%"); near
 assert.equal(compute(cdays, { daily: 718 }).scheme, "contract");
 
 console.log("payroll tests OK");
+
+/* ---------- app clock in/out → shifts ---------- */
+import { pairPunches } from "../payroll-calc.js";
+let pp = pairPunches([
+  { kind: "in", at: "2026-10-20T08:02:00" }, { kind: "out", at: "2026-10-20T18:10:00" },
+  { kind: "in", at: "2026-10-21T17:55:00" }, { kind: "out", at: "2026-10-22T04:05:00" },   // overnight → belongs to 10/21
+  { kind: "out", at: "2026-10-23T03:30:00" },                                              // OUT only, before 06:00 → 10/22, incomplete
+  { kind: "in", at: "2026-10-24T08:00:00" }, { kind: "out", at: "2026-10-24T12:00:00" }, { kind: "in", at: "2026-10-24T13:00:00" }, { kind: "out", at: "2026-10-24T19:00:00" }, // split day
+  { kind: "in", at: "2026-10-25T08:00:00" },                                               // never clocked out
+]);
+assert.equal(pp["2026-10-20"].shift, "08:02-18:10"); assert.equal(pp["2026-10-20"].incomplete, false);
+assert.equal(pp["2026-10-21"].shift, "17:55-04:05"); assert.equal(pp["2026-10-22"]?.shift, ""); assert.equal(pp["2026-10-22"].incomplete, true);
+assert.equal(pp["2026-10-24"].shift, "08:00-19:00"); assert.equal(pp["2026-10-25"].incomplete, true);
+assert.equal(shiftHours("17:55-04:05", 1).span, 10.17);
+console.log("punch tests OK");

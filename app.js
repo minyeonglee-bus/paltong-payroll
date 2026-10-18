@@ -1,5 +1,5 @@
 import * as db from "./data.js";
-import { computePayroll, shiftHours, paperOt, SHIFTS, SHIFT_LABEL, isPreset, parseShift, DAY_TYPES, dayTypesFor, periodOf, periodForDate, datesBetween } from "./payroll-calc.js";
+import { computePayroll, shiftHours, paperOt, pairPunches, SHIFTS, SHIFT_LABEL, isPreset, parseShift, DAY_TYPES, dayTypesFor, periodOf, periodForDate, datesBetween } from "./payroll-calc.js";
 
 /* ---------- i18n ---------- */
 const I18N = {
@@ -15,7 +15,7 @@ const I18N = {
     daily: "일급", monthlyRate: "월급 (초과근무 포함)", breakH: "식사 휴게 (시간/일)", allowDay: "정비비 (₱/근무일)",
     roster: "보름치 시프트 표", off: "휴무", wkend: "주말",
     type_regular: "근무", type_half: "반일 (½)", type_rest: "휴무일 근무 (130%)", type_special: "특별공휴일 근무 (+30%)", type_specialRest: "특별공휴일+휴무일 (150%)", type_holiday: "정규공휴일 근무 (+1일)", type_holidayRest: "정규공휴일+휴무일 (260%)", type_holidayOff: "정규공휴일 쉼 (1일)", type_sil: "유급휴가 (1일)", type_absent: "결근 (공제)", type_off: "휴무",
-    fill: "채우기", fillHelp: "휴무는 고정이 아니에요: 시프트로 전체 채운 뒤, 쉬는 날은 날짜를 눌러 휴무로 바꾸세요 (다시 누르면 근무). 캐시북 근무 스케줄을 그대로 불러올 수도 있어요.",
+    fill: "채우기", fillHelp: "\"앱 출퇴근 불러오기\"를 누르면 직원이 앱에서 누른 출근·퇴근 시각이 날짜별 타임카드로 들어와요 (기준). 없는 날은 시프트로 채우거나 캐시북 스케줄을 불러오고, 쉬는 날은 날짜를 눌러 휴무로.",
     restDay: "주 휴무 요일", dow: ["일", "월", "화", "수", "목", "금", "토"],
     custom: "타임카드 (직접 입력)", inT: "출근", outT: "퇴근", otDay: "OT", otAuto: "비우면 시프트에서 자동 (10시간 넘는 만큼) · 카드 숫자를 넣으면 그 값",
     late: "지각·조퇴 합계 (분)", lateHelp: "일급 ÷ 10 ÷ 60 · 분당 ₱", lateHelpC: "실제 미근무 분만 (일급 ÷ 8 ÷ 60) · 분당 ₱", incentive: "수동 인센티브·수당 (+)", other: "기타 공제 · 벌금 (−)",
@@ -44,7 +44,8 @@ const I18N = {
     ],
     noPerm: "권한이 없어요 (관리자만 가능)", paidLocked: "지급 완료된 급여는 관리자만 바꿀 수 있어요", loginFail: "아이디 또는 비밀번호가 틀려요",
     pickEmp: "직원을 먼저 고르세요", deleted: "삭제됨", weekendHelp: "금·토 = 주말",
-    fromSched: "캐시북 스케줄 불러오기", schedLoaded: "캐시북 스케줄에서 {n}일 불러왔어요", schedNone: "이 기간 캐시북 스케줄에 이 직원이 없어요", fillAll: "전체 채우기", tapOff: "쉬는 날은 날짜를 눌러 휴무로 (다시 누르면 근무)",
+    fromSched: "캐시북 스케줄 불러오기", fromPunch: "앱 출퇴근 불러오기", punchLoaded: "앱 출퇴근에서 {n}일 채웠어요{x}", punchIncomplete: " · {n}일은 출근/퇴근 한쪽이 없어서 비워뒀어요", punchNone: "이 기간 앱 출퇴근 기록이 없어요", punchList: "앱 출퇴근 기록 (이 기간)", punchAdd: "기록 추가", punchIn: "출근", punchOut: "퇴근", punchAt: "시각", punchAdmin: "관리자 입력",
+    clock: "출퇴근", clockHelp: "출근할 때 · 퇴근할 때 눌러주세요. 이 기록이 급여 근무시간 기준이에요.", clockedIn: "출근 중 · {t}부터", clockedOut: "퇴근함 · {t}", notIn: "아직 출근 전", clockDone: "{k} 기록됨 {t}", clockDup: "방금 이미 눌렀어요", clockRecent: "최근 기록", clockToday: "오늘", schedLoaded: "캐시북 스케줄에서 {n}일 불러왔어요", schedNone: "이 기간 캐시북 스케줄에 이 직원이 없어요", fillAll: "전체 채우기", tapOff: "쉬는 날은 날짜를 눌러 휴무로 (다시 누르면 근무)",
     cbTitle: "캐시북 현금 부족 (확인 필요)", cbHelp: "중간마감·마감에서 센 현금이 장부보다 모자라면 여기 들어와요. 자동으로 빠지지 않아요 — 조사 후 책임 웨이터를 지정하고, 가불·부족분에서 '본인 책임 확인'과 '서면 동의'를 둘 다 체크해야 급여에서 공제돼요.", cbNone: "확인할 부족분이 없어요", cbDone: "처리한 것", cbMid: "중간마감", cbFinal: "마감", cbCounted: "센 현금", cbBook: "장부", cbBy: "센 사람", cbReason: "사유", cbDuty: "근무", is_open: "확인 필요", is_assigned: "웨이터 지정됨", is_dismissed: "해결됨 (공제 안 함)",
     cbLaw: "근무 중이었다는 이유만으로 나눠서 빼면 안 돼요. 본인에게 설명할 기회를 주고, 책임이 확인된 한 사람에게만 지정하세요. 지정 후 가불·부족분에서 '본인 책임 확인'과 '서면 동의 받음'을 체크해야 공제돼요.", cbWho: "책임 웨이터", cbAssign: "이 웨이터의 부족분으로 넣기 (미확인)", cbAssigned: "부족분에 넣었어요 — 확인·동의 체크 후 공제돼요", cbDismissLbl: "찾았거나 장부 실수였다면 (메모)", cbFoundPh: "예: 다음날 서랍에서 찾음 / 매출 입력 실수", cbDismiss: "해결됨 — 공제 안 함", notDeducted: "공제 전 (확인·동의 필요)",
     asStaff: "직원", asAdmin: "관리자", empNo: "직원 번호", pin: "PIN (숫자)", pinFirst: "처음이면 PIN 0000", pinWrong: "번호 또는 PIN이 틀려요", pinLocked: "5번 틀려서 10분 동안 잠겼어요",
@@ -64,7 +65,7 @@ const I18N = {
     daily: "Daily rate", monthlyRate: "Monthly salary (OT-inclusive)", breakH: "Meal break (hrs/day)", allowDay: "Maintenance (₱/duty day)",
     roster: "Half-month shift roster", off: "Off", wkend: "Weekend",
     type_regular: "Worked", type_half: "Half day (½)", type_rest: "Rest day worked (130%)", type_special: "Special holiday worked (+30%)", type_specialRest: "Special holiday + rest day (150%)", type_holiday: "Regular holiday worked (+1 day)", type_holidayRest: "Regular holiday + rest day (260%)", type_holidayOff: "Regular holiday off (1 day)", type_sil: "Paid leave (1 day)", type_absent: "Absent (deducted)", type_off: "Off",
-    fill: "Fill", fillHelp: "Days off aren’t fixed: fill every date with a shift, then tap a date to make it a day off (tap again to work). Or load the Cash Book work schedule.",
+    fill: "Fill", fillHelp: "\"Load app clock-ins\" fills each date with the in/out times the employee tapped in the app (the attendance record). Fill the rest with a shift or the Cash Book schedule; tap a date to make it a day off.",
     restDay: "Weekly rest day", dow: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
     custom: "Time card (enter times)", inT: "In", outT: "Out", otDay: "OT", otAuto: "Empty = from the shift (time past 10h) · type the card figure to override",
     late: "Tardiness / undertime (minutes)", lateHelp: "daily ÷ 10 ÷ 60 · per minute ₱", lateHelpC: "actual unworked minutes only (daily ÷ 8 ÷ 60) · per minute ₱", incentive: "Manual incentive / allowance (+)", other: "Other deduction · penalty (−)",
@@ -93,7 +94,8 @@ const I18N = {
     ],
     noPerm: "No permission (owner only)", paidLocked: "A paid payroll can only be changed by the owner", loginFail: "Wrong ID or password",
     pickEmp: "Pick an employee first", deleted: "Deleted", weekendHelp: "Fri · Sat = weekend",
-    fromSched: "Load Cash Book schedule", schedLoaded: "Loaded {n} days from the Cash Book schedule", schedNone: "This employee isn’t on the Cash Book schedule for this period", fillAll: "Fill all", tapOff: "Tap a date to make it a day off (tap again to work)",
+    fromSched: "Load Cash Book schedule", fromPunch: "Load app clock-ins", punchLoaded: "Filled {n} days from app clock-ins{x}", punchIncomplete: " · {n} days left empty (missing in or out)", punchNone: "No app clock-ins for this period", punchList: "App clock-ins (this period)", punchAdd: "Add record", punchIn: "In", punchOut: "Out", punchAt: "Time", punchAdmin: "entered by admin",
+    clock: "Clock in / out", clockHelp: "Tap when you arrive and when you leave. These records are the basis of your paid hours.", clockedIn: "Clocked in · since {t}", clockedOut: "Clocked out · {t}", notIn: "Not clocked in yet", clockDone: "{k} recorded {t}", clockDup: "Already tapped a moment ago", clockRecent: "Recent", clockToday: "Today", schedLoaded: "Loaded {n} days from the Cash Book schedule", schedNone: "This employee isn’t on the Cash Book schedule for this period", fillAll: "Fill all", tapOff: "Tap a date to make it a day off (tap again to work)",
     cbTitle: "Cash Book shortages (to check)", cbHelp: "When counted cash at a mid-close or close is less than the book, it lands here. Nothing is deducted automatically — investigate, assign the responsible waiter, then tick both 'responsibility established' and 'written authorization' in Advances & shortages before it comes off pay.", cbNone: "No shortages to check", cbDone: "Handled", cbMid: "Mid-close", cbFinal: "Close", cbCounted: "Counted", cbBook: "Book", cbBy: "Counted by", cbReason: "Reason", cbDuty: "On duty", is_open: "To check", is_assigned: "Waiter assigned", is_dismissed: "Resolved (no deduction)",
     cbLaw: "Don’t split a shortage among everyone on duty. Give the waiter a chance to explain and assign it only to the one person found responsible. It is deducted only after you tick 'responsibility established' and 'written authorization on file'.", cbWho: "Responsible waiter", cbAssign: "Add as this waiter’s shortage (unverified)", cbAssigned: "Added — deducted after verification & authorization", cbDismissLbl: "Found it / book mistake (note)", cbFoundPh: "e.g. found in drawer next day / sale entered wrong", cbDismiss: "Resolved — no deduction", notDeducted: "not deducted (needs verification & consent)",
     asStaff: "Staff", asAdmin: "Admin", empNo: "Employee no.", pin: "PIN (numbers)", pinFirst: "First time? PIN is 0000", pinWrong: "Wrong number or PIN", pinLocked: "Locked for 10 minutes after 5 wrong tries",
@@ -221,11 +223,39 @@ function renderStaffHome() {
       h("button", { onclick: () => { setLangOnly(lang === "ko" ? "en" : "ko"); renderStaffHome(); } }, lang === "ko" ? "EN" : "한"),
       h("button", { id: "e-logout", onclick: () => { EMP.pin = ""; EMP.data = null; renderStaffLogin(); } }, t("logout"))),
     h("main", { id: "main" },
+      clockCard(),
       staffCalcCard(emp),
       h("div", { class: "card" }, h("h2", {}, t("myPay")), payList),
       h("div", { class: "card" }, h("h2", {}, t("myLedger")), ledList),
       h("div", { class: "card" }, h("h2", {}, t("myShifts")), shifts),
       h("div", { class: "card" }, h("h2", {}, t("my13")), (v.thirteenth || []).length ? h("div", { class: "list" }, v.thirteenth.map(x => h("div", { class: "item" }, h("div", { class: "t" }, `${x.year} · ${t("tab_13")}`), h("div", { class: "s" }, `${t("c13_total")} ₱${money(x.basic_total)} ÷ 12 · ${x.paid_on || ""} ${x.paid_via || ""}`), h("div", { class: "m money" }, "₱" + money(x.amount))))) : h("span", { class: "muted" }, t("noData")))));
+}
+/* ---- staff clock in / out: the app record is the attendance basis ---- */
+const fmtT = d => { d = new Date(d); return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
+const fmtDT = d => { d = new Date(d); return `${d.getMonth() + 1}/${d.getDate()} ${t("dow")[d.getDay()]} ${fmtT(d)}`; };
+function clockCard() {
+  const punches = (EMP.data?.punches || []).slice().sort((a, b) => new Date(b.at) - new Date(a.at));
+  const last = punches[0];
+  const inNow = last && last.kind === "in";
+  const status = !last ? t("notIn") : inNow ? tf("clockedIn", { t: fmtDT(last.at) }) : tf("clockedOut", { t: fmtDT(last.at) });
+  const press = async kind => {
+    const btns = document.querySelectorAll("#clock button"); btns.forEach(b => b.disabled = true);
+    try {
+      const r = await db.punch(EMP.no, EMP.pin, kind);
+      if (!r.ok) { toast(r.err === "locked" ? t("pinLocked") : t("pinWrong")); return; }
+      if (r.dup) { toast(t("clockDup")); return; }
+      toast(tf("clockDone", { k: t(kind === "in" ? "punchIn" : "punchOut"), t: fmtT(r.at) }));
+      EMP.data = await db.empView(EMP.no, EMP.pin); renderStaffHome();
+    } catch (e) { toast(errMsg(e)); btns.forEach(b => b.disabled = false); }
+  };
+  const recent = punches.slice(0, 10);
+  return h("div", { class: "card", id: "clock" }, h("h2", {}, t("clock")), h("p", { class: "muted", style: "margin:0" }, t("clockHelp")),
+    h("div", { class: "clockStatus" + (inNow ? " in" : "") }, status),
+    h("div", { class: "clockBtns" },
+      h("button", { class: "btn primary big", type: "button", id: "clock-in", disabled: !!inNow, onclick: () => press("in") }, "▶ " + t("punchIn")),
+      h("button", { class: "btn big", type: "button", id: "clock-out", disabled: !last || !inNow, onclick: () => press("out") }, "■ " + t("punchOut"))),
+    recent.length ? h("details", {}, h("summary", { class: "muted" }, t("clockRecent")), h("div", { class: "list" }, recent.map(p => h("div", { class: "item" },
+      h("div", { class: "t" }, t(p.kind === "in" ? "punchIn" : "punchOut"), p.source === "admin" ? h("span", { class: "pill draft", style: "margin-left:6px" }, t("punchAdmin")) : null), h("div", { class: "s" }, fmtDT(p.at)))))) : null);
 }
 /* ---- staff self-calculator: shifts + statutory deductions only, nothing saved ---- */
 const SC = { month: null, half: null, days: [], gov: { sss: false, philhealth: false, pagibig: false, share: 0.5 }, fillShift: "8-18" };
@@ -464,9 +494,37 @@ async function renderPay() {
           if (sh === "off") { d.shift = ""; d.type = "off"; } else if (SHIFTS.includes(sh)) { d.shift = sh; if (!DAY_TYPES[d.type]?.worked) d.type = "regular"; } }
         drawRoster(); refresh(); toast(tf("schedLoaded", { n }));
       } catch (e) { toast(errMsg(e)); } } }, t("fromSched"));
-    fillRow = h("div", { class: "row" }, fillSel, fillBtn, schedBtn, h("span", { class: "muted" }, t("weekendHelp")));
+    const punchBtn = h("button", { class: "btn sm primary", type: "button", id: "fromPunch", disabled: locked || !emp, onclick: async () => {
+      try {
+        const rows = await db.listPunches(P.employee_id, P.start, P.end);
+        if (!rows.length) return toast(t("punchNone"));
+        const by = pairPunches(rows.map(r => ({ kind: r.kind, at: r.punched_at })));
+        let n = 0, inc = 0;
+        for (const d of P.days) { const x = by[d.date]; if (!x) continue;
+          if (x.shift) { d.shift = x.shift; if (!DAY_TYPES[d.type]?.worked) d.type = "regular"; n++; } else { inc++; } }
+        drawRoster(); refresh(); toast(tf("punchLoaded", { n, x: inc ? tf("punchIncomplete", { n: inc }) : "" }));
+      } catch (e) { toast(errMsg(e)); } } }, t("fromPunch"));
+    fillRow = h("div", { class: "row" }, punchBtn, fillSel, fillBtn, schedBtn, h("span", { class: "muted" }, t("weekendHelp")));
   }
-  const roster = h("div", { class: "card" }, h("h2", {}, t("roster")), fillRow, h("small", { class: "muted" }, t("fillHelp")), rosterEl, sumEl);
+  const punchBox = h("div", { class: "list" });
+  const punchDet = h("details", { ontoggle: async e => { if (e.target.open) await loadPunchList(); } }, h("summary", { class: "muted" }, t("punchList")), punchBox);
+  async function loadPunchList() {
+    if (!emp) return; punchBox.innerHTML = "";
+    try {
+      const rows = await db.listPunches(P.employee_id, P.start, P.end);
+      for (const r of rows) punchBox.append(h("div", { class: "item" },
+        h("div", { class: "t" }, t(r.kind === "in" ? "punchIn" : "punchOut"), r.source === "admin" ? h("span", { class: "pill draft", style: "margin-left:6px" }, t("punchAdmin")) : null),
+        h("div", { class: "s" }, fmtDT(r.punched_at)),
+        owner && h("button", { class: "btn sm danger m", type: "button", onclick: () => confirmSheet(t("confirmDel"), async () => { await db.deletePunch(r.id); await loadPunchList(); }) }, "✕")));
+      if (!rows.length) punchBox.append(h("span", { class: "muted" }, t("punchNone")));
+      if (owner) {
+        const kind = sel([["in", t("punchIn")], ["out", t("punchOut")]], "in", {}), at = h("input", { type: "datetime-local", value: P.start + "T08:00" });
+        punchBox.append(h("div", { class: "row" }, kind, at, h("button", { class: "btn sm", type: "button", onclick: async () => { if (!at.value) return;
+          try { await db.addPunch({ employee_id: P.employee_id, kind: kind.value, punched_at: new Date(at.value).toISOString() }); await loadPunchList(); } catch (e) { toast(errMsg(e)); } } }, "+ " + t("punchAdd"))));
+      }
+    } catch (e) { punchBox.append(h("span", { class: "err" }, errMsg(e))); }
+  }
+  const roster = h("div", { class: "card" }, h("h2", {}, t("roster")), fillRow, h("small", { class: "muted" }, t("fillHelp")), rosterEl, sumEl, punchDet);
 
   // --- adjustments & deductions ---
   const adjFields = [];
