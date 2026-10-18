@@ -10,7 +10,7 @@ const I18N = {
     c13_basicApp: "앱 기본급", c13_basicBefore: "앱 이전", c13_total: "기본급 합계", c13_periods: "기간 수", c13_amount: "13월급 (÷12)", c13_avg: "월평균 (1년↑)", c13_proj: "연말 예상", c13_status: "지급", c13_pay: "지급 기록", c13_paid: "지급됨", c13_unpaid: "미지급", c13_unpay: "지급 취소",
     c13_projHelp: "연말 예상 = 지금까지 평균 반월 기본급 × 남은 반월 수를 더한 값 ÷ 12 (참고용)", c13_total_row: "합계", c13_draftNote: "작성중 급여 포함",
     emp_before: "앱 이전 올해 기본급 (13월급용)", emp_beforeHelp: "앱 쓰기 전 올해 1월~9월에 받은 기본급 합계 (초과·수당 제외). 모르면 0",
-    my13: "내 13월급",
+    my13: "내 13월급", my13help: "올해 지급된 급여의 기본급(초과·야간·가산·정비비·인센티브 제외)으로 계산한 예상치예요. 1년 이상 근무면 한 달 평균, 1년 미만이면 합계 ÷ 12. 12월 24일 전 지급. 확정 금액은 관리자가 지급 기록한 값이에요.", my13_basic: "올해 기본급 합계 ({n}회 지급)", my13_by12: "÷ 12 (1년 미만)", my13_avg: "한 달 평균 (1년 이상)", my13_est: "예상 13월급", my13_1yr: "1년 이상", my13_under: "1년 미만",
     employee: "직원", period: "급여 기간", first: "1 – 15일", second: "16일 – 말일", month: "월",
     daily: "일급", monthlyRate: "월급 (초과근무 포함)", breakH: "식사 휴게 (시간/일)", allowDay: "정비비 (₱/근무일)",
     roster: "보름치 시프트 표", off: "휴무", wkend: "주말",
@@ -60,7 +60,7 @@ const I18N = {
     c13_basicApp: "Basic (app)", c13_basicBefore: "Before app", c13_total: "Total basic", c13_periods: "Periods", c13_amount: "13th (÷12)", c13_avg: "Monthly avg (1yr+)", c13_proj: "Year-end est.", c13_status: "Paid", c13_pay: "Record payment", c13_paid: "Paid", c13_unpaid: "Unpaid", c13_unpay: "Undo",
     c13_projHelp: "Year-end estimate = current average basic per half-month × remaining half-months, added, ÷ 12 (reference only)", c13_total_row: "Total", c13_draftNote: "includes draft payrolls",
     emp_before: "Basic earned this year before the app (for 13th month)", emp_beforeHelp: "Basic salary received Jan–Sep this year before the app (no OT / allowances). 0 if unknown",
-    my13: "My 13th-month pay",
+    my13: "My 13th-month pay", my13help: "Estimate from the basic pay (no OT, night diff, premiums, maintenance or incentives) of payrolls paid this year. 1 year+ of service = one month average; under a year = total ÷ 12. Paid by Dec 24. The final amount is what the admin records.", my13_basic: "Basic pay this year ({n} payrolls)", my13_by12: "÷ 12 (under 1 year)", my13_avg: "One-month average (1 year+)", my13_est: "Estimated 13th month", my13_1yr: "1 year+", my13_under: "under 1 year",
     employee: "Employee", period: "Pay period", first: "1st – 15th", second: "16th – end", month: "Month",
     daily: "Daily rate", monthlyRate: "Monthly salary (OT-inclusive)", breakH: "Meal break (hrs/day)", allowDay: "Maintenance (₱/duty day)",
     roster: "Half-month shift roster", off: "Off", wkend: "Weekend",
@@ -228,7 +228,28 @@ function renderStaffHome() {
       h("div", { class: "card" }, h("h2", {}, t("myPay")), payList),
       h("div", { class: "card" }, h("h2", {}, t("myLedger")), ledList),
       h("div", { class: "card" }, h("h2", {}, t("myShifts")), shifts),
-      h("div", { class: "card" }, h("h2", {}, t("my13")), (v.thirteenth || []).length ? h("div", { class: "list" }, v.thirteenth.map(x => h("div", { class: "item" }, h("div", { class: "t" }, `${x.year} · ${t("tab_13")}`), h("div", { class: "s" }, `${t("c13_total")} ₱${money(x.basic_total)} ÷ 12 · ${x.paid_on || ""} ${x.paid_via || ""}`), h("div", { class: "m money" }, "₱" + money(x.amount))))) : h("span", { class: "muted" }, t("noData")))));
+      my13Card(v, emp)));
+}
+/* ---- staff 13th-month: estimate from paid payrolls this year (same math as the admin tab) ---- */
+function my13Card(v, emp) {
+  const year = new Date().getFullYear();
+  const mine = (v.payrolls || []).filter(p => p.status === "paid" && p.result && p.period_start.startsWith(year + "-"));
+  const basicApp = mine.reduce((a, p) => a + (+p.result.basicFor13th || 0), 0);
+  const before = +emp.basic_before_year === year ? +emp.basic_before_app || 0 : 0;
+  const total = basicApp + before, by12 = Math.round(total / 12 * 100) / 100;
+  const monthAvg = mine.length ? Math.round(basicApp / mine.length * 2 * 100) / 100 : 0;
+  const hired = emp.hired_on ? new Date(emp.hired_on + "T00:00:00") : null;
+  const oneYear = hired ? (new Date(year, 11, 24) - hired) >= 365 * 86400000 : null;   // 1yr+ by Dec 24 → one month average
+  const est = oneYear === false ? by12 : oneYear ? monthAvg : Math.max(by12, monthAvg);
+  const tbl = h("table", {},
+    h("tr", {}, h("td", {}, tf("my13_basic", { n: mine.length })), h("td", { class: "r" }, money(basicApp))),
+    before ? h("tr", {}, h("td", {}, t("c13_basicBefore")), h("td", { class: "r" }, money(before))) : null,
+    h("tr", { class: "sum" }, h("td", {}, t("c13_total")), h("td", { class: "r" }, money(total))),
+    h("tr", {}, h("td", {}, t("my13_by12")), h("td", { class: "r" }, money(by12))),
+    h("tr", {}, h("td", {}, t("my13_avg")), h("td", { class: "r" }, money(monthAvg))),
+    h("tr", { class: "net" }, h("td", {}, t("my13_est") + (oneYear === null ? "" : oneYear ? ` (${t("my13_1yr")})` : ` (${t("my13_under")})`)), h("td", { class: "r" }, money(est))));
+  const paidList = (v.thirteenth || []).map(x => h("div", { class: "item" }, h("div", { class: "t" }, `${x.year} · ${t("tab_13")} · ${t("c13_paid")}`), h("div", { class: "s" }, `${t("c13_total")} ₱${money(x.basic_total)} · ${x.paid_on || ""} ${x.paid_via || ""}`), h("div", { class: "m money" }, "₱" + money(x.amount))));
+  return h("div", { class: "card" }, h("h2", {}, t("my13")), h("small", { class: "muted" }, t("my13help")), h("div", { class: "tbl" }, tbl), paidList.length ? h("div", { class: "list" }, paidList) : null);
 }
 /* ---- staff clock in / out: the app record is the attendance basis ---- */
 const fmtT = d => { d = new Date(d); return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
