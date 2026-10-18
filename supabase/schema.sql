@@ -149,7 +149,7 @@ alter table public.pr_settings add column if not exists late_penalty boolean not
 alter table public.pr_employees add column if not exists scheme text not null default 'contract';
 alter table public.pr_employees drop constraint if exists pr_employees_scheme_check;
 alter table public.pr_employees add constraint pr_employees_scheme_check check (scheme in ('contract','paper'));
--- 적용: 라이더(Felipe·June·Wilbert·Jhon Vik)·Jonel·Genifer·Albert = contract 718 / Archie 790·Jonathan 850·Erika 750·Lilian 790·Lorence 658 = paper
+-- 적용: 라이더(Felipe·June·Wilbert·Jhon Vik)·Jonel·Genifer·Albert = contract 718 / Archie 790·Jonathan 850·Erika 750·Lilian 790 = paper (Lorence는 10/19부터 contract 718)
 
 -- ---------- 13월급 (2026-10-16) · 아직 적용 안 됐으면 이 블록을 SQL Editor에서 실행 ----------
 -- 13월급 = 그 해에 받은 기본급 합계 ÷ 12 (1년 미만 비례) · 12월 24일 이전 지급
