@@ -76,7 +76,18 @@ r = C([{ date: "2026-10-16", shift: "17:48-04:00", type: "regular" }], { daily: 
 assert.equal(r.otHours, 1); near(r.ndPay, (5 * 1 + 1 * 1.25) * hr * 0.1, "ND incl. OT hour");
 r = C([{ date: "2026-10-01", shift: "8-18", type: "rest" }], { daily: 718 }); near(r.premium, 718 * 0.3, "rest day 130%");
 r = C(cdays, { payType: "daily", daily: 718, allowancePerDay: 100 }); assert.equal(r.allowance, 1300);
-r = C(cdays, { payType: "monthly", monthly: 30000 }); assert.equal(r.basic, 15000); assert.equal(r.otPay, 0); assert.equal(r.gross, 15000);
+r = C(cdays, { payType: "monthly", monthly: 30000 }); assert.equal(r.basic, 15000); assert.equal(r.otPay, 0); assert.equal(r.gross, 15000);   // 08–18 = 8h + 1h built-in OT → nothing extra
+/* Jonel monthly contract: 30,000 = basic 25,945 + built-in OT 4,055 (1h/day); daily 994.70, hourly 124.34 */
+const jd = 25945 / MONTHLY_FACTOR, jh = jd / 8; near(jd, 994.70, "daily 994.70"); near(jh, 124.34, "hourly 124.34");
+r = C(cdays, { payType: "monthly", monthly: 30000, monthlyBasic: 25945 });
+assert.equal(r.basic, 15000); assert.equal(r.otPay, 0); assert.equal(r.builtInOt, 2027.5); near(r.basicFor13th, 12972.5, "13th on basic 25,945");
+r = C([{ date: "2026-10-13", shift: "07:59-18:48", type: "regular" }], { payType: "monthly", monthly: 30000, monthlyBasic: 25945 });
+assert.equal(r.otHours, 1.5); near(r.otPay, 0.5 * jh * 1.25, "OT beyond the built-in hour");
+r = C([{ date: "2026-10-18", shift: "8-18", type: "rest" }], { payType: "monthly", monthly: 30000, monthlyBasic: 25945 });
+near(r.premium, 8 * jh * 1.3, "rest day worked: 130% in full"); near(r.otPay, 1 * jh * 1.69, "rest-day OT 169%, no built-in");
+r = C([{ date: "2026-10-01", shift: "8-18", type: "holiday" }], { payType: "monthly", monthly: 30000, monthlyBasic: 25945 }); near(r.premium, 8 * jh, "holiday +100%");
+r = C(cdays, { payType: "monthly", monthly: 30000, monthlyBasic: 25945, lateMinutes: 10 }); near(r.late, 20.72, "3.3: 10 min late = 20.72");
+r = C([...cdays.slice(0, 12), { date: "2026-10-13", shift: "", type: "absent" }, cdays[13], cdays[14]], { payType: "monthly", monthly: 30000, monthlyBasic: 25945 }); near(r.absentDed, jd, "absence at 994.70");
 r = C([{ date: "2026-10-01", shift: "18-4", type: "holiday" }], { payType: "monthly", monthly: 30000 });
 near(r.premium, 8 * (30000 / MONTHLY_FACTOR / 8), "monthly holiday +100%"); near(r.ndPay, (5 * 2 + 1 * 2.6) * (30000 / MONTHLY_FACTOR / 8) * 0.1, "monthly ND");
 // default scheme is contract

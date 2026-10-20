@@ -151,6 +151,11 @@ alter table public.pr_employees drop constraint if exists pr_employees_scheme_ch
 alter table public.pr_employees add constraint pr_employees_scheme_check check (scheme in ('contract','paper'));
 -- 적용: 라이더(Felipe·June·Wilbert·Jhon Vik)·Jonel·Genifer·Albert = contract 718 / Archie 790·Jonathan 850·Erika 750·Lilian 790 = paper (Lorence는 10/19부터 contract 718)
 
+-- ---------- 월급 계약 (2026-10-20, migration pr_monthly_contract): 월급 30,000 = 기본 25,945 + 포함 OT 4,055 ----------
+alter table public.pr_settings add column if not exists monthly_basic numeric(10,2) not null default 25945;
+alter table public.pr_settings add column if not exists monthly_ot_incl numeric(4,1) not null default 1;
+-- pr_emp_view settings 에 monthly_basic, monthly_ot_incl 포함
+
 -- ---------- 직원 출퇴근 (2026-10-19): supabase/pr_punches.sql 참고 (pr_punches · pr_punch · pr_emp_view punches) ----------
 
 -- ---------- 13월급 (2026-10-16) · 아직 적용 안 됐으면 이 블록을 SQL Editor에서 실행 ----------

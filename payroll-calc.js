@@ -4,7 +4,10 @@
 //
 // scheme 'contract' — the ₱718 employment contract (riders, Jonel, Genifer, Albert …): 8h/day, hourly = daily/8.
 //   OT 125% in ½-hour steps from the shift, night +10% (22–06), rest day 130%, special holiday 130%, regular holiday 200% (100% off).
-//   Late = actual minutes × daily/480, no penalty. Monthly ₱30,000 (Jonel): half = 15,000, OT included, premiums/ND paid, absence pro-rata.
+//   Late = actual minutes × daily/480, no penalty.
+//   Monthly ₱30,000 (Jonel, kitchen monthly contract): = basic 25,945 + built-in OT 4,055 (1h OT per working day, 08:00–18:00 incl. 1h break).
+//   Daily rate = basic × 12 ÷ 313 (994.70), hourly = ÷ 8 (124.34). Half-month = 15,000 fixed. OT beyond the built-in hour, rest-day (130% full),
+//   holiday extras and night diff paid on top; absence and tardiness deducted at the daily/hourly rate; 13th month on the basic 25,945.
 //
 // scheme 'paper' — the way payroll was done on the time cards Jan–Sep 2026 (Archie, Jonathan, Erika, Lilian, Lorence …), old daily rates:
 //   daily    Worked day = 1 × daily rate, whatever the shift length. Half day = ½ daily.
@@ -95,7 +98,9 @@ export function computePayroll(days, opts) {
   const payType = opts.payType || "daily";
   const isMonthly = payType === "monthly";
   const monthlyRate = +opts.monthly || 0;
-  const daily = isMonthly ? monthlyRate / MONTHLY_FACTOR : (+opts.daily || 0);
+  const monthlyBasic = isMonthly ? (+opts.monthlyBasic > 0 && +opts.monthlyBasic <= monthlyRate ? +opts.monthlyBasic : monthlyRate) : 0;   // part of the monthly that is basic wage (rest = built-in OT)
+  const otIncl = isMonthly ? Math.max(0, opts.otIncluded == null ? 1 : +opts.otIncluded || 0) : 0;   // built-in OT hours per regular working day (contract 2.1: 1h)
+  const daily = isMonthly ? monthlyBasic / MONTHLY_FACTOR : (+opts.daily || 0);
   const hpd = paper ? (+opts.hoursPerDay > 0 ? +opts.hoursPerDay : HOURS_PER_DAY) : 8;
   const hourly = daily / hpd, perMin = hourly / 60;
   const breakHrs = opts.breakHrs == null ? 1 : +opts.breakHrs;
@@ -124,8 +129,8 @@ export function computePayroll(days, opts) {
         otp = isMonthly ? 0 : ot * hourly;                  // card OT hours × (daily ÷ 10); monthly is OT-inclusive
       } else {
         if (!isMonthly) base = sh.reg * hourly;             // hours × hourly (daily ÷ 8)
-        extra = sh.reg * hourly * (t.pay - 1);              // rest-day / holiday premium
-        otp = isMonthly ? 0 : ot * hourly * t.ot;           // OT 125% (169% / 260% on premium days); monthly is OT-inclusive
+        extra = sh.reg * hourly * (isMonthly && d.type === "rest" ? t.pay : t.pay - 1);   // premium; monthly: a rest day is outside the salary → 130% in full
+        otp = isMonthly ? Math.max(0, ot - (d.type === "regular" ? otIncl : 0)) * hourly * t.ot : ot * hourly * t.ot;   // OT 125% (169% / 260% premium days); monthly: beyond the built-in hour
         ndp = ((nd - ndOt) * t.pay + ndOt * t.ot) * hourly * ndRate;   // night +10% of the rate applicable to the hour (incl. OT hours: 137.5% on ordinary days)
       }
       basic += base; premium += extra; otPay += otp; ndPay += ndp;
@@ -159,7 +164,8 @@ export function computePayroll(days, opts) {
     allowance: r2(allowance), absentDed: r2(absentDed), late: r2(late), penalty: r2(penalty), incentive: r2(incentive), bonus: r2(bonus), gross: r2(gross),
     sss, philhealth, pagibig, advances: r2(advances), shortage: r2(shortage), otherDeduction: r2(otherDeduction),
     deductions: r2(deductions), net: Math.ceil(r2(gross - deductions)), // net paid in whole pesos, rounded up
-    basicFor13th: r2(basic + silPay - late - absentDed), // 13th month = basic only: no allowance, OT, night diff, holiday extra, bonus
+    monthlyBasic: r2(monthlyBasic), builtInOt: r2(isMonthly ? (monthlyRate - monthlyBasic) / 2 : 0),
+    basicFor13th: r2((isMonthly ? monthlyBasic / 2 : basic) + silPay - late - absentDed), // 13th month = basic wage only: no built-in OT, allowance, OT, night diff, holiday extra, bonus
   };
 }
 
