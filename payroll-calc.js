@@ -58,13 +58,14 @@ const r2 = n => Math.round((+n || 0) * 100) / 100;
 /** shift "8-18" or time-card "21:58-08:20" → span, worked hours after the meal break, and (contract) regular ≤8h / OT in ½h steps / night hours 22–06 */
 export function shiftHours(shift, breakHrs = 1) {
   const p = parseShift(shift);
-  if (!p) return { span: 0, worked: 0, hours: 0, reg: 0, ot: 0, nd: 0 };
+  if (!p) return { span: 0, worked: 0, hours: 0, reg: 0, ot: 0, nd: 0, ndOt: 0 };
   let a = p.start, b = p.end; if (b <= a) b += 1440;
-  let ndMin = 0; for (let m = a; m < b; m += 5) { const hh = (m % 1440) / 60; if (hh >= 22 || hh < 6) ndMin += 5; }
+  const otFrom = a + (8 + (+breakHrs || 0)) * 60;      // minutes after the first 8 worked hours (+ meal break) are overtime
+  let ndMin = 0, ndOtMin = 0; for (let m = a; m < b; m += 5) { const hh = (m % 1440) / 60; if (hh >= 22 || hh < 6) { ndMin += 5; if (m >= otFrom) ndOtMin += 5; } }
   const span = (b - a) / 60;
   const worked = Math.max(0, span - (+breakHrs || 0));
   const hours = Math.round(worked * 4) / 4;
-  return { span: Math.round(span * 100) / 100, worked: Math.round(worked * 100) / 100, hours, reg: Math.min(8, hours), ot: Math.max(0, Math.floor((worked - 8) * 2) / 2), nd: Math.round(ndMin / 60 * 2) / 2 };
+  return { span: Math.round(span * 100) / 100, worked: Math.round(worked * 100) / 100, hours, reg: Math.min(8, hours), ot: Math.max(0, Math.floor((worked - 8) * 2) / 2), nd: Math.round(ndMin / 60 * 2) / 2, ndOt: Math.round(ndOtMin / 60 * 2) / 2 };
 }
 
 // Government contributions (employee share) from monthly basic — reference values, check official tables yearly
@@ -109,7 +110,7 @@ export function computePayroll(days, opts) {
     const t = DAY_TYPES[d.type] || DAY_TYPES.regular;
     const sh = t.worked ? shiftHours(d.shift, breakHrs) : { hours: 0, worked: 0, reg: 0, ot: 0, nd: 0 };
     const ot = !t.worked ? 0 : paper ? (d.ot != null && d.ot !== "" ? Math.max(0, +d.ot || 0) : paperOt(sh, hpd)) : sh.ot;   // paper: shift past 10h, or typed from the card · contract: from the shift
-    const nd = paper ? 0 : sh.nd;
+    const nd = paper ? 0 : sh.nd, ndOt = paper ? 0 : Math.min(sh.ndOt || 0, nd, sh.ot);
     let base = 0, extra = 0, otp = 0, ndp = 0;
     if (t.paidDay) {
       if (!isMonthly) base = daily;                       // monthly: already inside the fixed salary
@@ -125,7 +126,7 @@ export function computePayroll(days, opts) {
         if (!isMonthly) base = sh.reg * hourly;             // hours × hourly (daily ÷ 8)
         extra = sh.reg * hourly * (t.pay - 1);              // rest-day / holiday premium
         otp = isMonthly ? 0 : ot * hourly * t.ot;           // OT 125% (169% / 260% on premium days); monthly is OT-inclusive
-        ndp = nd * hourly * t.pay * ndRate;                 // night differential +10%
+        ndp = ((nd - ndOt) * t.pay + ndOt * t.ot) * hourly * ndRate;   // night +10% of the rate applicable to the hour (incl. OT hours: 137.5% on ordinary days)
       }
       basic += base; premium += extra; otPay += otp; ndPay += ndp;
       if (d.type === "half") halfDays++; else daysWorked++;

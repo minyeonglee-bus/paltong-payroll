@@ -5,10 +5,10 @@ const computePayroll = (d, o) => compute(d, { scheme: "paper", ...o });   // pap
 const near = (a, b, msg) => assert.ok(Math.abs(a - b) < 0.011, `${msg}: ${a} vs ${b}`);
 
 // shifts
-assert.deepEqual(shiftHours("8-18", 1), { span: 10, worked: 9, hours: 9, reg: 8, ot: 1, nd: 0 });
-assert.deepEqual(shiftHours("18-4", 1), { span: 10, worked: 9, hours: 9, reg: 8, ot: 1, nd: 6 });
-assert.deepEqual(shiftHours("8-20", 1), { span: 12, worked: 11, hours: 11, reg: 8, ot: 3, nd: 0 });
-assert.deepEqual(shiftHours("", 1), { span: 0, worked: 0, hours: 0, reg: 0, ot: 0, nd: 0 });
+assert.deepEqual(shiftHours("8-18", 1), { span: 10, worked: 9, hours: 9, reg: 8, ot: 1, nd: 0, ndOt: 0 });
+assert.deepEqual(shiftHours("18-4", 1), { span: 10, worked: 9, hours: 9, reg: 8, ot: 1, nd: 6, ndOt: 1 });   // 03–04 is the OT hour, at night
+assert.deepEqual(shiftHours("8-20", 1), { span: 12, worked: 11, hours: 11, reg: 8, ot: 3, nd: 0, ndOt: 0 });
+assert.deepEqual(shiftHours("", 1), { span: 0, worked: 0, hours: 0, reg: 0, ot: 0, nd: 0, ndOt: 0 });
 
 // periods
 assert.deepEqual(periodForDate("2026-10-01"), { start: "2026-10-01", end: "2026-10-15", half: 1 });
@@ -70,12 +70,15 @@ assert.equal(r.otHours, 13); near(r.otPay, 13 * (718 / 8) * 1.25, "OT 125%"); as
 r = C(cdays, { daily: 718, lateMinutes: 30 }); near(r.late, 30 * 718 / 480, "late at daily/480, no penalty"); assert.equal(r.penalty, 0);
 const hr = 718 / 8;
 r = C([{ date: "2026-10-01", shift: "18-4", type: "holiday" }], { daily: 718 });
-assert.equal(r.basic, 718); assert.equal(r.premium, 718); near(r.otPay, hr * 2.6, "hol OT"); near(r.ndPay, 6 * hr * 2 * 0.1, "hol ND");
+assert.equal(r.basic, 718); assert.equal(r.premium, 718); near(r.otPay, hr * 2.6, "hol OT"); near(r.ndPay, (5 * 2 + 1 * 2.6) * hr * 0.1, "hol ND (OT hour at 260%)");
+// contract 2.4.1: night hour inside overtime = 137.5% (125% + 10% of it); rider 17:48–04:00 → 9h after break, 1h OT at 03–04 (night)
+r = C([{ date: "2026-10-16", shift: "17:48-04:00", type: "regular" }], { daily: 718 });
+assert.equal(r.otHours, 1); near(r.ndPay, (5 * 1 + 1 * 1.25) * hr * 0.1, "ND incl. OT hour");
 r = C([{ date: "2026-10-01", shift: "8-18", type: "rest" }], { daily: 718 }); near(r.premium, 718 * 0.3, "rest day 130%");
 r = C(cdays, { payType: "daily", daily: 718, allowancePerDay: 100 }); assert.equal(r.allowance, 1300);
 r = C(cdays, { payType: "monthly", monthly: 30000 }); assert.equal(r.basic, 15000); assert.equal(r.otPay, 0); assert.equal(r.gross, 15000);
 r = C([{ date: "2026-10-01", shift: "18-4", type: "holiday" }], { payType: "monthly", monthly: 30000 });
-near(r.premium, 8 * (30000 / MONTHLY_FACTOR / 8), "monthly holiday +100%"); near(r.ndPay, 6 * (30000 / MONTHLY_FACTOR / 8) * 2 * 0.1, "monthly ND");
+near(r.premium, 8 * (30000 / MONTHLY_FACTOR / 8), "monthly holiday +100%"); near(r.ndPay, (5 * 2 + 1 * 2.6) * (30000 / MONTHLY_FACTOR / 8) * 0.1, "monthly ND");
 // default scheme is contract
 assert.equal(compute(cdays, { daily: 718 }).scheme, "contract");
 
