@@ -1,5 +1,5 @@
 import * as db from "./data.js";
-import { computePayroll, shiftHours, paperOt, pairPunches, SHIFTS, SHIFT_LABEL, isPreset, parseShift, DAY_TYPES, dayTypesFor, periodOf, periodForDate, datesBetween } from "./payroll-calc.js";
+import { computePayroll, shiftHours, paperOt, pairPunches, SHIFTS, SHIFT_LABEL, isPreset, parseShift, DAY_TYPES, dayTypesFor, periodOf, periodForDate, datesBetween, fmtDate } from "./payroll-calc.js";
 
 /* ---------- i18n ---------- */
 const I18N = {
@@ -32,12 +32,13 @@ const I18N = {
     emp_payType: "급여 형태", pt_daily: "일급", pt_monthly: "월급 (OT 포함)",
     led_add: "기록 추가", led_kind: "종류", k_advance: "가불", k_shortage: "현금 부족분", k_bonus: "보너스 (+)", k_other: "기타 공제", led_date: "날짜", led_amount: "금액", led_note: "메모",
     led_verified: "조사 완료 · 본인 책임 확인", led_auth: "서면 동의 받음", led_applies: "→ {p} 급여에 반영", led_deducted: "반영됨", led_pending: "미반영", led_filter_all: "전체",
-    bonusHint: "최고매출일 보너스 = 그날 총매출 × 2% ÷ 근무한 대상자 수 · 주방 신메뉴 인센티브 등",
+    bonusHint: "계약서 6조 최고매출일 보너스 = 보름 중 매출 최고일 총매출 × 2% ÷ 그날 근무한 직원 수 (아래 버튼으로 캐시북+출퇴근에서 자동) · 주방 신메뉴 ₱500 (5조) · 생일 인센티브 ₱500 (3.4조, 직전 3개월 개근) · 개근 → 다음 달 유급휴가 1일 (3.2조)는 날짜 종류 '유급휴가'로",
+    topBonus: "최고매출일 보너스 계산", topTitle: "최고매출일 보너스 (계약서 6조)", topDay: "최고매출일", topSales: "총매출", topPool: "풀 (2%)", topEach: "1인당", topStaff: "그날 근무 (출퇴근 기록 기준) — 체크 해제하면 제외", topSave: "보너스로 저장", topNone: "이 기간 캐시북 매출이 없어요", topDone: "{n}명에게 ₱{a} 보너스 저장했어요 (10/16 이후 급여에 자동 반영)", topExists: "이미 이 기간 최고매출일 보너스가 저장돼 있어요",
     hist_empty: "저장된 급여가 없어요. 급여 계산 탭에서 저장하세요.", total: "합계",
-    set_wage: "기본 일급 (최저임금)", set_break: "기본 식사 휴게 (시간)", set_gov: "법정 공제 기본값", set_lang: "언어", set_rider: "라이더 정비비 (₱/근무일)", set_kitchen: "주방 월급 기본값", set_hpd: "기존 방식 · 하루 기준 시간 (시프트가 이보다 길면 초과근무 · OT 시급 = 일급 ÷ 이 값)", set_penalty: "기존 방식 · 지각 벌금 (지각액과 같은 금액 추가 공제)", emp_scheme: "계산 방식", sch_contract: "718 계약서 (8h · OT 125% · 야간 10%)", sch_paper: "기존 종이 방식 (일급 × 근무일 · OT 일급÷10)", scheme_contract: "계약서", scheme_paper: "기존", penOn: "공제 (종이 방식)", penOff: "공제 안 함",
+    set_wage: "기본 일급 (최저임금)", set_break: "기본 식사 휴게 (시간)", set_gov: "법정 공제 기본값", set_lang: "언어", set_rider: "라이더 정비비 (₱/근무일)", set_kitchen: "주방 월급 기본값", set_hpd: "기존 방식 · 하루 기준 시간 (시프트가 이보다 길면 초과근무 · OT 시급 = 일급 ÷ 이 값)", set_penalty: "기존 방식 · 지각 벌금 (지각액과 같은 금액 추가 공제)", emp_scheme: "계산 방식", sch_contract: "718 계약서 (8h · OT 125% · 야간 10%)", sch_paper: "기존 종이 방식 (9월까지 · 기록용)", scheme_contract: "계약서", scheme_paper: "기존", penOn: "공제 (종이 방식)", penOff: "공제 안 함",
     contract: "계산 방식 (직원마다 직원 탭에서 선택)", contractText: [
-      "【718 계약서】 라이더 · Jonel · Genifer · Albert · Lorence — 일급 ₱718 · 하루 8시간, 시급 = 일급 ÷ 8 · 시프트에서 8h 넘는 시간은 30분 단위 내림으로 초과근무 125% · 야간(22~06시) +10% (초과근무 시간도 포함 → 137.5%) · 휴무일 130% · 특별공휴일 130% · 정규공휴일 200%(쉬어도 100%) · 지각은 실제 미근무 분만 공제(벌금 없음)",
-      "【기존 종이 방식】 Archie · Jonathan · Erika · Lilian — 9월까지 쓰던 일급 그대로 · 기본급 = 근무일 × 일급 (시프트 길이 무관, 반일 ½) · 하루 = 10시간 시프트(08~18) · 10시간 넘는 시간은 자동 초과근무 (08~19 → +1h, 30분 단위) 또는 카드 숫자 직접 입력 · OT 1시간 = 일급 ÷ 10 (790 → 79) · 125%·야간 가산 없음 · 지각 = 분 × 일급 ÷ 10 ÷ 60 + 같은 금액 벌금 · 특별공휴일 +30% · 정규공휴일 +1일 (쉬어도 1일)",
+      "【718 계약서 (2026-10-01 신계약, 전 직원)】 일급 ₱718 · 하루 8시간, 시급 = 일급 ÷ 8 · 시프트에서 8h 넘는 시간은 30분 단위 내림으로 초과근무 125% · 야간(22~06시) +10% (초과근무 시간도 포함 → 137.5%) · 휴무일 130% · 특별공휴일 130% · 정규공휴일 200%(쉬어도 100%) · 지각은 실제 미근무 분만 공제(벌금 없음)",
+      "【기존 종이 방식 (9월까지 기록용 · 현재 적용 직원 없음)】 옛 일급 · 기본급 = 근무일 × 일급 (시프트 길이 무관, 반일 ½) · 하루 = 10시간 시프트(08~18) · 10시간 넘는 시간은 자동 초과근무 (08~19 → +1h, 30분 단위) 또는 카드 숫자 직접 입력 · OT 1시간 = 일급 ÷ 10 (790 → 79) · 125%·야간 가산 없음 · 지각 = 분 × 일급 ÷ 10 ÷ 60 + 같은 금액 벌금 · 특별공휴일 +30% · 정규공휴일 +1일 (쉬어도 1일)",
       "공통 — 지급일 15일·30일 · 유급휴가 1일 = 일급 · 라이더 오토바이 정비비 ₱100/근무일 급여 포함(13월급 제외) · 배달비는 당일 지급 (급여 X) · 가불(CA) 1~15일 → 15일, 16일~ → 30일 급여에서 공제 · 실수령 1페소 올림",
       "주방 월급 ₱30,000 (Jonel) — 반월 15,000 고정 · OT 포함 · 야간·공휴일 가산은 별도 · 결근은 일할(×12÷313) 공제",
       "13월급 = 기본급(초과·야간·가산·정비비·인센티브 제외) 기준 · 1년 이상은 한 달 평균",
@@ -82,12 +83,13 @@ const I18N = {
     emp_payType: "Pay type", pt_daily: "Daily", pt_monthly: "Monthly (OT-inclusive)",
     led_add: "Add record", led_kind: "Kind", k_advance: "Advance", k_shortage: "Cash shortage", k_bonus: "Bonus (+)", k_other: "Other deduction", led_date: "Date", led_amount: "Amount", led_note: "Note",
     led_verified: "Investigated · responsibility established", led_auth: "Written authorization on file", led_applies: "→ applied to {p} payroll", led_deducted: "applied", led_pending: "pending", led_filter_all: "All",
-    bonusHint: "Highest-sales-day bonus = that day's sales × 2% ÷ eligible staff on duty · kitchen new-menu incentive, etc.",
+    bonusHint: "Contract §6 highest-sales-day bonus = the period's top sales day × 2% ÷ staff who worked that day (button below computes it from the cash book + clock-ins) · kitchen new menu ₱500 (§5) · birthday incentive ₱500 (§3.4, 3 perfect months) · perfect month → 1 paid leave day (§3.2) as day type 'Paid leave'",
+    topBonus: "Compute highest-sales-day bonus", topTitle: "Highest-sales-day bonus (contract §6)", topDay: "Highest-sales day", topSales: "Total sales", topPool: "Pool (2%)", topEach: "Each", topStaff: "On duty that day (from clock-ins) — untick to exclude", topSave: "Save as bonuses", topNone: "No cash book sales in this period", topDone: "Saved ₱{a} bonus for {n} staff (applied to the payroll of that period)", topExists: "A highest-sales-day bonus is already saved for this period",
     hist_empty: "No saved payrolls yet. Save one from the Payroll tab.", total: "Total",
-    set_wage: "Default daily rate (minimum wage)", set_break: "Default meal break (hours)", set_gov: "Statutory deduction defaults", set_lang: "Language", set_rider: "Rider maintenance (₱/duty day)", set_kitchen: "Kitchen monthly default", set_hpd: "Paper method · hours per day (OT hourly = daily ÷ this)", set_penalty: "Paper method · late penalty (extra deduction equal to the late amount)", emp_scheme: "Pay scheme", sch_contract: "₱718 contract (8h · OT 125% · night 10%)", sch_paper: "Paper method (daily × days · OT daily÷10)", scheme_contract: "contract", scheme_paper: "paper", penOn: "Deduct (paper method)", penOff: "Do not deduct",
+    set_wage: "Default daily rate (minimum wage)", set_break: "Default meal break (hours)", set_gov: "Statutory deduction defaults", set_lang: "Language", set_rider: "Rider maintenance (₱/duty day)", set_kitchen: "Kitchen monthly default", set_hpd: "Paper method · hours per day (OT hourly = daily ÷ this)", set_penalty: "Paper method · late penalty (extra deduction equal to the late amount)", emp_scheme: "Pay scheme", sch_contract: "₱718 contract (8h · OT 125% · night 10%)", sch_paper: "Paper method (through Sept · legacy)", scheme_contract: "contract", scheme_paper: "paper", penOn: "Deduct (paper method)", penOff: "Do not deduct",
     contract: "How pay is computed (chosen per employee in the Staff tab)", contractText: [
-      "[₱718 contract] riders · Jonel · Genifer · Albert · Lorence — ₱718/day · 8h/day, hourly = daily ÷ 8 · shift hours over 8 (rounded down to ½h) = overtime 125% · night (10pm–6am) +10% · rest day 130% · special holiday 130% · regular holiday 200% (100% if off) · late = actual unworked minutes only (no penalty)",
-      "[Paper method] Archie · Jonathan · Erika · Lilian — the daily rate used through September · basic = days worked × daily (shift length doesn't matter, half day ½) · a day = a 10-hour shift (08–18) · time past 10h = overtime automatically (08–19 → +1h, ½h steps) or type the card figure · OT hour = daily ÷ 10 (790 → 79) · no 125%, no night diff · late = minutes × daily ÷ 10 ÷ 60 + a penalty of the same amount · special holiday +30% · regular holiday +1 day (also when off)",
+      "[₱718 contract (new contracts 2026-10-01, all staff)] ₱718/day · 8h/day, hourly = daily ÷ 8 · shift hours over 8 (rounded down to ½h) = overtime 125% · night (10pm–6am) +10% · rest day 130% · special holiday 130% · regular holiday 200% (100% if off) · late = actual unworked minutes only (no penalty)",
+      "[Paper method (records through September · no one on it now)] the old daily rate · basic = days worked × daily (shift length doesn't matter, half day ½) · a day = a 10-hour shift (08–18) · time past 10h = overtime automatically (08–19 → +1h, ½h steps) or type the card figure · OT hour = daily ÷ 10 (790 → 79) · no 125%, no night diff · late = minutes × daily ÷ 10 ÷ 60 + a penalty of the same amount · special holiday +30% · regular holiday +1 day (also when off)",
       "Common — paydays 15th & 30th · paid leave 1 day = daily · rider motorcycle maintenance ₱100 per duty day in payroll (not in 13th month) · delivery fee paid same day (not payroll) · advance (CA) 1st–15th → 15th payroll, 16th on → 30th · net rounded up to the peso",
       "Kitchen monthly ₱30,000 (Jonel) — fixed 15,000 per half · OT included · night / holiday extras paid separately · absence deducted pro-rata (×12÷313)",
       "13th month on basic only (no OT, night diff, premiums, maintenance, incentives) · 1yr+ = one month average",
@@ -663,6 +665,47 @@ function empForm(e) {
       h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => close() }, t("cancel")), h("button", { class: "btn primary", type: "submit" }, t("save")))));
 }
 
+/* ---- contract §6: semi-monthly highest-sales-day bonus = top day's sales × 2% ÷ staff who worked that day ---- */
+async function topBonusSheet() {
+  const d = new Date(); const p0 = periodOf(d.getFullYear(), d.getMonth() + 1, d.getDate() <= 15 ? 1 : 2);
+  const mIn = h("input", { type: "month", value: p0.start.slice(0, 7) }); const hSel = sel([[1, t("first")], [2, t("second")]], p0.half, {});
+  const body = h("div", {}); let cur = null;
+  async function calc() {
+    body.innerHTML = ""; cur = null;
+    const [y, m] = mIn.value.split("-").map(Number); const p = periodOf(y, m, +hSel.value);
+    try {
+      const sales = await db.cashbookSalesByDay(p.start, p.end);
+      const days = Object.entries(sales).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
+      if (!days.length) { body.append(h("p", { class: "muted" }, t("topNone"))); return; }
+      const [top, total] = days[0]; const pool = Math.round(total * 0.02 * 100) / 100;
+      const punches = await db.listPunchesAll(p.start, p.end);
+      const worked = new Set(); for (const q of punches) { if (q.kind === "in" && fmtDate(new Date(q.punched_at)) === top) worked.add(q.employee_id); }
+      const elig = S.employees.filter(e => e.active && ["kitchen", "waiter", "rider"].includes(e.position) && e.pay_type !== "monthly");
+      const existing = await db.listLedger({ kind: "bonus" });
+      const dup = existing.some(l => l.biz_date === top && /최고매출|highest/i.test(l.note || ""));
+      const boxes = elig.map(e => ({ e, cb: h("input", { type: "checkbox", checked: worked.has(e.id) }) }));
+      const eachEl = h("b", {});
+      const upd = () => { const n = boxes.filter(b => b.cb.checked).length; eachEl.textContent = n ? "₱" + money(Math.round(pool / n * 100) / 100) : "—"; };
+      boxes.forEach(b => b.cb.onchange = upd); upd();
+      cur = { p, top, total, pool, boxes };
+      body.append(h("div", { class: "grid2" }, h("div", {}, h("div", { class: "muted" }, t("topDay")), h("b", {}, top)), h("div", {}, h("div", { class: "muted" }, t("topSales")), h("b", {}, "₱" + money(total))),
+          h("div", {}, h("div", { class: "muted" }, t("topPool")), h("b", {}, "₱" + money(pool))), h("div", {}, h("div", { class: "muted" }, t("topEach")), eachEl)),
+        h("p", { class: "muted" }, t("topStaff")), h("div", { class: "row", style: "flex-wrap:wrap" }, boxes.map(b => h("label", { class: "check" }, b.cb, b.e.name))),
+        dup && h("p", { class: "err" }, t("topExists")));
+    } catch (e) { body.append(h("p", { class: "err" }, errMsg(e))); }
+  }
+  mIn.onchange = calc; hSel.onchange = calc;
+  const close = sheet([h("h3", {}, t("topTitle")), h("div", { class: "row" }, mIn, hSel), body,
+    h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => close() }, t("cancel")),
+      h("button", { class: "btn primary", type: "button", onclick: async () => {
+        if (!cur) return; const on = cur.boxes.filter(b => b.cb.checked); if (!on.length) return;
+        const each = Math.round(cur.pool / on.length * 100) / 100;
+        try {
+          for (const b of on) await db.saveLedger({ employee_id: b.e.id, kind: "bonus", biz_date: cur.top, amount: each, note: `최고매출일 보너스 ${cur.top} 매출 ₱${money(cur.total)} × 2% ÷ ${on.length}명 (계약서 6조)`, verified: true, authorized: true });
+          toast(tf("topDone", { n: on.length, a: money(each) })); close(); render();
+        } catch (e) { toast(errMsg(e)); } } }, t("topSave")))]);
+  await calc();
+}
 /* ================= LEDGER ================= */
 const LF = { employeeId: "", kind: "" };
 const KINDS = ["advance", "shortage", "bonus", "other"];
@@ -681,7 +724,9 @@ async function renderLedger() {
   }
   if (owner) main.append(await cashIssuesCard());
   main.append(h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_ledger")), h("span", { class: "sp" }), owner && h("button", { class: "btn primary sm", onclick: () => ledgerForm({ employee_id: S.employees[0]?.id || "", kind: "advance", biz_date: today(), amount: "" }, () => render()) }, "+ " + t("led_add"))),
-    h("div", { class: "row" }, empSel, kindSel), h("small", { class: "muted" }, t("bonusHint")), rows.length ? list : h("span", { class: "muted" }, t("none"))));
+    h("div", { class: "row" }, empSel, kindSel), h("small", { class: "muted" }, t("bonusHint")),
+    owner && h("div", { class: "row" }, h("button", { class: "btn sm", type: "button", id: "topBonus", onclick: topBonusSheet }, "🏆 " + t("topBonus"))),
+    rows.length ? list : h("span", { class: "muted" }, t("none"))));
 }
 // 캐시북 중간마감·마감 현금 부족 → 조사 후 책임 웨이터 지정 (자동 공제 아님)
 async function cashIssuesCard() {

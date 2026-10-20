@@ -107,3 +107,13 @@ export async function listPunches(employeeId, from, to) {
 }
 export async function addPunch(row) { return must(await sb.from("pr_punches").insert({ ...row, source: "admin" }).select().single()); }
 export async function deletePunch(id) { must(await sb.from("pr_punches").delete().eq("id", id)); }
+/** cash book sales per day (for the contract §6 highest-sales-day bonus) */
+export async function cashbookSalesByDay(from, to) {
+  const rows = must(await sb.from("entries").select("biz_date, amount").eq("kind", "sale").gte("biz_date", from).lte("biz_date", to));
+  const by = {}; for (const r of rows) by[r.biz_date] = (by[r.biz_date] || 0) + (+r.amount || 0); return by;
+}
+/** owner: everyone's punches for a period (+36h for overnight outs) */
+export async function listPunchesAll(from, to) {
+  const a = new Date(from + "T00:00:00"), b = new Date(to + "T00:00:00"); b.setHours(b.getHours() + 36);
+  return must(await sb.from("pr_punches").select("*").gte("punched_at", a.toISOString()).lt("punched_at", b.toISOString()).order("punched_at"));
+}
