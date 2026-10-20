@@ -11,7 +11,8 @@
 //
 // scheme 'paper' — the way payroll was done on the time cards Jan–Sep 2026 (Archie, Jonathan, Erika, Lilian, Lorence …), old daily rates:
 //   daily    Worked day = 1 × daily rate, whatever the shift length. Half day = ½ daily.
-//            A day is a 10-hour shift (e.g. 08–18, meal break inside). Shift time past 10h = overtime in ½-hour steps (08–19 → +1h),
+//            A day is a 10-hour shift (e.g. 08–18, meal break inside). Past 10h the first hour is the meal break (unpaid), the rest is overtime
+//            in ½-hour steps (12h shift = 10h base + 1h break + 1h OT; 08–19 → 0 OT),
 //            or the hours written on the card can be typed instead. OT hour = daily ÷ 10. No 125%, no night differential.
 //            Late/undertime = minutes × daily ÷ 10 ÷ 60 (e.g. 690/day → 1.15/min, 30 min = 34.5),
 //            plus a penalty of the same amount (벌금 = 지각액) when latePenalty is on.
@@ -30,7 +31,8 @@ export const isPreset = v => SHIFTS.includes(v);
 export const MONTHLY_FACTOR = 313 / 12; // 6-day week → 313 paid days a year
 export const HOURS_PER_DAY = 10;        // paper: a day = 10h shift; OT hourly = daily ÷ 10
 /** paper scheme: overtime from the shift = span past hoursPerDay, ½-hour steps */
-export const paperOt = (sh, hpd = HOURS_PER_DAY) => sh && sh.span > 0 ? Math.max(0, Math.floor((sh.span - hpd) * 2) / 2) : 0;
+/** paper scheme: a day is a 10h shift; past that, the first hour is the (unpaid) meal break, the rest is overtime in ½h steps → 12h shift = 10h base + 1h break + 1h OT */
+export const paperOt = (sh, hpd = HOURS_PER_DAY, breakHrs = 1) => sh && sh.span > hpd ? Math.max(0, Math.floor((sh.span - hpd - (+breakHrs || 0)) * 2) / 2) : 0;
 
 export const ND_RATE = 0.10;
 export const SCHEMES = ["contract", "paper"];
@@ -114,7 +116,7 @@ export function computePayroll(days, opts) {
   for (const d of days || []) {
     const t = DAY_TYPES[d.type] || DAY_TYPES.regular;
     const sh = t.worked ? shiftHours(d.shift, breakHrs) : { hours: 0, worked: 0, reg: 0, ot: 0, nd: 0 };
-    const ot = !t.worked ? 0 : paper ? (d.ot != null && d.ot !== "" ? Math.max(0, +d.ot || 0) : paperOt(sh, hpd)) : sh.ot;   // paper: shift past 10h, or typed from the card · contract: from the shift
+    const ot = !t.worked ? 0 : paper ? (d.ot != null && d.ot !== "" ? Math.max(0, +d.ot || 0) : paperOt(sh, hpd, breakHrs)) : sh.ot;   // paper: shift past 10h, or typed from the card · contract: from the shift
     const nd = paper ? 0 : sh.nd, ndOt = paper ? 0 : Math.min(sh.ndOt || 0, nd, sh.ot);
     let base = 0, extra = 0, otp = 0, ndp = 0;
     if (t.paidDay) {

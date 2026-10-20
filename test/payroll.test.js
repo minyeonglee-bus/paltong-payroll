@@ -32,9 +32,10 @@ r = computePayroll([{ date: "2026-04-09", shift: "8-18", type: "holiday" }, { da
 assert.equal(r.basic, 750 + 375); assert.equal(r.premium, 750); assert.equal(r.halfDays, 1); assert.equal(r.daysWorked, 1);
 // SIL paid at daily
 r = computePayroll([{ date: "2026-10-01", shift: "", type: "sil" }], { daily: 718 }); assert.equal(r.silPay, 718); assert.equal(r.gross, 718);
-// paper OT from the shift: a day is 10h, 08–19 → +1h, 08–20 → +2h; typed ot overrides, empty = auto
-r = computePayroll([{ date: "2026-10-01", shift: "8-19", type: "regular" }, { date: "2026-10-02", shift: "8-20", type: "regular", ot: null }, { date: "2026-10-03", shift: "8-21", type: "regular", ot: 1 }, { date: "2026-10-04", shift: "8-18", type: "regular" }], { daily: 790 });
-assert.equal(r.otHours, 4); assert.equal(r.otPay, 4 * 79); assert.equal(r.rows[0].ot, 1); assert.equal(r.rows[1].ot, 2); assert.equal(r.rows[2].ot, 1); assert.equal(r.rows[3].ot, 0);
+// paper OT from the shift: a day is 10h; past that 1h is the unpaid break, the rest is OT → 08–19 → 0, 08–20 (12h) → +1h, 08–21 → +2h; typed ot overrides, empty = auto
+r = computePayroll([{ date: "2026-10-01", shift: "8-19", type: "regular" }, { date: "2026-10-02", shift: "8-20", type: "regular", ot: null }, { date: "2026-10-03", shift: "8-21", type: "regular", ot: 1 }, { date: "2026-10-04", shift: "8-18", type: "regular" }, { date: "2026-10-05", shift: "19:57-08:13", type: "regular" }], { daily: 790 });
+assert.equal(r.rows[0].ot, 0); assert.equal(r.rows[1].ot, 1); assert.equal(r.rows[2].ot, 1); assert.equal(r.rows[3].ot, 0); assert.equal(r.rows[4].ot, 1);   // Lilian 12.27h → 1h OT
+assert.equal(r.otHours, 3); assert.equal(r.otPay, 3 * 79);
 // penalty can be switched off
 r = computePayroll(days, { daily: 690, lateMinutes: 60, latePenalty: false }); assert.equal(r.late, 69); assert.equal(r.penalty, 0);
 // net rounds up to whole peso
