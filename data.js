@@ -86,7 +86,15 @@ export async function assignCashIssue(id, employeeId) { return must(await sb.rpc
 export async function dismissCashIssue(id, note) { return must(await sb.from("pr_cash_issues").update({ status: "dismissed", resolved_note: note || null }).eq("id", id).select().single()); }
 
 // ---------- 캐시북 근무 스케줄 (shifts) 불러오기 ----------
-export async function cashbookShifts(from, to) { return must(await sb.from("shifts").select("day, staff_name, shift").gte("day", from).lte("day", to)); }
+// 주방·라이더 등 캐시북 로그인이 없는 직원은 pr_plan (관리자 입력) — 같은 사람·같은 날이면 pr_plan이 우선
+export async function cashbookShifts(from, to) {
+  const [cb, pl] = await Promise.all([
+    sb.from("shifts").select("day, staff_name, shift").gte("day", from).lte("day", to),
+    sb.from("pr_plan").select("day, shift, pr_employees(name)").gte("day", from).lte("day", to)]);
+  const plan = must(pl).filter(r => r.shift && r.pr_employees).map(r => ({ day: r.day, staff_name: r.pr_employees.name, shift: r.shift }));
+  const key = r => String(r.staff_name || "").trim().toLowerCase() + "|" + r.day, has = new Set(plan.map(key));
+  return plan.concat(must(cb).filter(r => !has.has(key(r))));
+}
 
 // ---------- 13th-month pay ----------
 export async function listThirteenth(year) { return must(await sb.from("pr_thirteenth").select("*").eq("year", year)); }
