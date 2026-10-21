@@ -654,15 +654,18 @@ async function renderSched() {
     const dates = datesBetween(p.start, p.end); const todayS = today();
     const byEmp = {}; for (const q of punches) (byEmp[q.employee_id] = byEmp[q.employee_id] || []).push({ kind: q.kind, at: q.punched_at });
     const planBy = {}; for (const r of plan) planBy[String(r.staff_name).trim().toLowerCase() + "|" + r.day] = r.shift;
-    const emps = S.employees.filter(e => e.active && e.name !== "test");
+    const ORDER = ["waiter", "kitchen", "rider", "other"];
+    const emps = S.employees.filter(e => e.active && e.name !== "test").sort((a, b) => ORDER.indexOf(a.position) - ORDER.indexOf(b.position));
     const tbl = h("table", { class: "sched" },
       h("tr", {}, h("th", {}, t("employee")), ...dates.map(d => { const dt = new Date(d + "T00:00:00"); return h("th", { class: (d === todayS ? "today " : "") + ((dt.getDay() === 5 || dt.getDay() === 6) ? "wk" : "") }, `${+d.slice(8)}`, h("small", {}, t("dow")[dt.getDay()])); })),
-      ...emps.map(e => { const by = pairPunches(byEmp[e.id] || []);
-        return h("tr", {}, h("td", { class: "nm" }, e.name, h("small", { class: "muted" }, t("pos_" + e.position))), ...dates.map(d => {
+      ...emps.flatMap((e, i) => { const by = pairPunches(byEmp[e.id] || []);
+        const grp = i === 0 || emps[i - 1].position !== e.position
+          ? [h("tr", { class: "grp" }, h("th", { colspan: dates.length + 1 }, `${t("pos_" + e.position)} · ${emps.filter(x => x.position === e.position).length}`))] : [];
+        return [...grp, h("tr", {}, h("td", { class: "nm" }, e.name), ...dates.map(d => {
           const a = by[d]; const pl = planBy[e.name.trim().toLowerCase() + "|" + d];
           const act = a ? (a.shift ? a.shift.replace("-", "–") : (a.in ? fmtT(a.in) + "–?" : "?–" + fmtT(a.out))) : "";
           return h("td", { class: (a && a.incomplete ? "inc " : "") + (!a && (!pl || pl === "off") ? "off" : "") }, h("div", { class: "act" }, act || (pl && pl !== "off" ? "" : t("sched_none"))), pl ? h("div", { class: "pl" }, pl === "off" ? t("off") : SHIFT_LABEL(pl)) : null);
-        })); }));
+        }))]; }));
     card.append(h("div", { class: "tbl" }, tbl));
   } catch (e) { card.append(h("p", { class: "err" }, errMsg(e))); }
 }

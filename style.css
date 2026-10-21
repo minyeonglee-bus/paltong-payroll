@@ -157,3 +157,6 @@ table.sched td.off{background:var(--bg);color:var(--muted)}
 table.sched td.inc{background:#fff3cd}
 table.sched .act{font-family:var(--mono);font-weight:600}
 table.sched .pl{color:var(--muted);font-size:10px}
+
+/* 스케줄: 부서별 묶음 */
+table.sched tr.grp th { position: sticky; left: 0; text-align: left; background: var(--line, #e5e5e5); color: inherit; font-size: 13px; padding: 6px 10px; }
