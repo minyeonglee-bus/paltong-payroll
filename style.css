@@ -151,7 +151,7 @@ table.sched th,table.sched td{border:1px solid var(--line);padding:3px 4px;text-
 table.sched th small{display:block;font-weight:400;color:var(--muted)}
 table.sched th.wk{color:var(--accent)}
 table.sched th.today,table.sched tr.today td{background:#fff8e1}
-table.sched td.nm{text-align:left;font-weight:600;position:sticky;left:0;background:var(--card,#fff)}
+table.sched td.nm{text-align:left;font-weight:800;font-size:13px;color:var(--fg);position:sticky;left:0;z-index:1;background:var(--paper)}
 table.sched td.nm small{display:block;font-weight:400}
 table.sched td.off{background:var(--bg);color:var(--muted)}
 table.sched td.inc{background:#fff3cd}
