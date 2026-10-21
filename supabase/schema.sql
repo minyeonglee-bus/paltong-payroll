@@ -203,3 +203,9 @@ begin
     'thirteenth', coalesce((select jsonb_agg(jsonb_build_object('year', x.year, 'basic_total', x.basic_total, 'amount', x.amount, 'paid_on', x.paid_on, 'paid_via', x.paid_via) order by x.year desc)
       from public.pr_thirteenth x where x.employee_id = e.id), '[]'::jsonb));
 end $function$;
+
+-- ---------- 2026-10-22: roster for kitchen/riders + staff self-edit ----------
+-- pr_plan(day, employee_id, shift: 'H-H' | 'off' | 'sil') — admin-entered roster; wins over the Cash Book shifts for the same person/day.
+-- pr_employees.info jsonb — contact / payout / gov numbers; the employee edits it with pr_emp_update_info(no, pin, info, birthday)
+--   (only whitelisted keys; name, position, pay fields stay admin-only).
+-- pr_emp_view returns only the employee's own pay basis (daily staff get no monthly fields, monthly staff get no daily rate).

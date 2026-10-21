@@ -53,7 +53,7 @@ const I18N = {
     newPinTitle: "내 PIN 등록", newPinHelp: "처음 로그인이에요. 나만 아는 숫자 4~6자리로 PIN을 새로 정해주세요 (0000 안 됨).", newPin: "새 PIN", newPin2: "새 PIN 다시", pinMismatch: "두 PIN이 달라요", pinBad: "숫자 4~6자리로 정해주세요 (0000 안 됨)", pinSaved: "PIN을 등록했어요",
     myCalc: "내 급여 계산기 (예상)", myCalcHelp: "스케줄표 기준으로 미리 채워져 있어요 (바꿔서 계산해 볼 수 있어요). 시프트만 넣으면 예상 급여가 나와요. 가불·보너스·부족분은 빠져 있고, 실제 금액은 지급된 급여명세서 기준이에요.", est: "예상 실수령액",
     sched_help: "위 줄 = 앱 출퇴근 실제 (출근–퇴근), 아래 회색 = 계획 (웨이터는 캐시북 스케줄, 주방·라이더는 관리자 입력 근무표). 노란 칸 = 퇴근 전/기록 한쪽 없음.", sched_legend: "실제 / 계획", sched_none: "—", mySched: "내 스케줄 (캐시북)", mySchedHelp: "오늘부터 2주 · 캐시북에 올라온 계획", sched_today: "오늘",
-    myPay: "내 급여명세서", myLedger: "내 가불·부족분", myShifts: "내 근무 기록", notPaidYet: "아직 지급 전", noData: "아직 기록이 없어요", empNoLbl: "번호", resetPin: "PIN 초기화 (0000)", pinReset: "PIN을 0000으로 초기화했어요. 다음 로그인 때 본인이 다시 등록해요.", pinSet: "PIN 등록됨", pinNotSet: "PIN 미등록 (0000)",
+    myInfo: "내 정보", myInfoHelp: "연락처·주소·급여 받을 계좌·정부 번호는 직접 고칠 수 있어요. 이름·직책·급여는 관리자만 바꿀 수 있어요.", infoSaved: "내 정보를 저장했어요", empInfo: "직원 정보 (직원이 직접 수정 가능)", i_phone: "휴대폰", i_address: "주소", i_gcash: "GCash 번호", i_bank_name: "은행", i_bank_acct: "계좌번호", i_sss: "SSS 번호", i_philhealth: "PhilHealth 번호", i_pagibig: "Pag-IBIG 번호", i_tin: "TIN", i_emergency_name: "비상 연락 (이름·관계)", i_emergency_phone: "비상 연락 번호", myPay: "내 급여명세서", myLedger: "내 가불·부족분", myShifts: "내 근무 기록", notPaidYet: "아직 지급 전", noData: "아직 기록이 없어요", empNoLbl: "번호", resetPin: "PIN 초기화 (0000)", pinReset: "PIN을 0000으로 초기화했어요. 다음 로그인 때 본인이 다시 등록해요.", pinSet: "PIN 등록됨", pinNotSet: "PIN 미등록 (0000)",
   },
   en: {
     app: "Paltong Payroll", login: "Sign in", id: "ID", pw: "Password", logout: "Sign out", changePw: "Change password", newPw: "New password (6+ chars)",
@@ -105,7 +105,7 @@ const I18N = {
     newPinTitle: "Set your PIN", newPinHelp: "First sign-in. Choose your own 4–6 digit PIN (not 0000).", newPin: "New PIN", newPin2: "New PIN again", pinMismatch: "The PINs don’t match", pinBad: "Use 4–6 digits (not 0000)", pinSaved: "PIN saved",
     myCalc: "My pay calculator (estimate)", myCalcHelp: "Pre-filled from the schedule (you can change it). Enter your shifts to see an estimate. Advances, bonuses and shortages are not included; the paid payslip is the official amount.", est: "Estimated net pay",
     sched_help: "Top line = actual app clock-in–out, grey line = plan (waiters: Cash Book schedule; kitchen & riders: roster entered by admin). Yellow = not clocked out / one side missing.", sched_legend: "actual / plan", sched_none: "—", mySched: "My schedule (Cash Book)", mySchedHelp: "Next 2 weeks · as planned in the Cash Book", sched_today: "today",
-    myPay: "My payslips", myLedger: "My advances & shortages", myShifts: "My shifts", notPaidYet: "not paid yet", noData: "Nothing yet", empNoLbl: "No.", resetPin: "Reset PIN (0000)", pinReset: "PIN reset to 0000. They set a new one at next sign-in.", pinSet: "PIN set", pinNotSet: "PIN not set (0000)",
+    myInfo: "My info", myInfoHelp: "You can update your contact, address, payout account and government numbers yourself. Name, position and pay are changed by the admin only.", infoSaved: "Your info is saved", empInfo: "Employee info (the employee can edit this)", i_phone: "Mobile", i_address: "Address", i_gcash: "GCash number", i_bank_name: "Bank", i_bank_acct: "Account number", i_sss: "SSS no.", i_philhealth: "PhilHealth no.", i_pagibig: "Pag-IBIG no.", i_tin: "TIN", i_emergency_name: "Emergency contact (name · relation)", i_emergency_phone: "Emergency contact number", myPay: "My payslips", myLedger: "My advances & shortages", myShifts: "My shifts", notPaidYet: "not paid yet", noData: "Nothing yet", empNoLbl: "No.", resetPin: "Reset PIN (0000)", pinReset: "PIN reset to 0000. They set a new one at next sign-in.", pinSet: "PIN set", pinNotSet: "PIN not set (0000)",
   },
 };
 let lang = "ko"; try { lang = localStorage.getItem("pp-lang") || "ko"; } catch {}
@@ -204,6 +204,24 @@ function renderSetPin(name, err) {
       h("button", { class: "btn primary", type: "submit", id: "np-save" }, t("save"))));
   root.innerHTML = ""; root.append(h("div", { class: "login" }, form));
 }
+const INFO_KEYS = ["phone", "address", "gcash", "bank_name", "bank_acct", "sss", "philhealth", "pagibig", "tin", "emergency_name", "emergency_phone"];
+const infoInputs = (info, idp) => Object.fromEntries(INFO_KEYS.map(k => [k, h("input", { type: k === "address" ? "text" : /phone|gcash|acct/.test(k) ? "tel" : "text", id: idp + k, value: (info || {})[k] || "", maxlength: 200 })]));
+/* ---- staff: own info (contact, payout, gov numbers) — pay fields are admin-only ---- */
+function myInfoCard(emp) {
+  const inp = infoInputs(emp.info, "mi-");
+  const bday = h("input", { type: "date", id: "mi-bday", value: emp.birthday || "" });
+  const save = h("button", { class: "btn primary", type: "submit", id: "mi-save" }, t("save"));
+  return h("details", { class: "card", id: "my-info" }, h("summary", {}, h("b", {}, t("myInfo"))),
+    h("small", { class: "muted" }, t("myInfoHelp")),
+    h("form", { onsubmit: async e => { e.preventDefault(); save.disabled = true;
+        try { const info = Object.fromEntries(INFO_KEYS.map(k => [k, inp[k].value.trim()]));
+          const r = await db.empUpdateInfo(EMP.no, EMP.pin, info, bday.value || null);
+          if (!r.ok) throw new Error(r.err === "locked" ? t("pinLocked") : r.err);
+          emp.info = { ...(emp.info || {}), ...info }; if (bday.value) emp.birthday = bday.value; toast(t("infoSaved"));
+        } catch (er) { toast(errMsg(er)); } save.disabled = false; } },
+      h("div", { class: "grid2" }, field(t("emp_name"), h("div", { style: "padding:9px 0" }, emp.name)), field(t("emp_bday"), bday), ...INFO_KEYS.map(k => field(t("i_" + k), inp[k]))),
+      save));
+}
 function renderStaffHome() {
   const v = EMP.data, emp = v.employee;
   root.innerHTML = "";
@@ -233,7 +251,8 @@ function renderStaffHome() {
       h("div", { class: "card" }, h("h2", {}, t("myLedger")), ledList),
       h("div", { class: "card" }, h("h2", {}, t("myShifts")), shifts),
       mySchedCard(v, emp),
-      my13Card(v, emp)));
+      my13Card(v, emp),
+      myInfoCard(emp)));
 }
 const addD = (d, n) => { const x = new Date(d + "T00:00:00"); x.setDate(x.getDate() + n); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
 const planLabel = v => v === "off" ? t("off") : v === "sil" ? "SIL" : SHIFT_LABEL(v);
@@ -703,14 +722,16 @@ function empForm(e) {
   const hired = h("input", { type: "date", id: "eHired", value: E.hired_on || "" }); const bday = h("input", { type: "date", id: "eBday", value: E.birthday || "" });
   const active = h("input", { type: "checkbox", id: "eActive", checked: E.active }); const note = h("input", { type: "text", id: "eNote", value: E.note || "" });
   const before = h("input", { type: "number", id: "eBefore", value: E.basic_before_app || 0, step: 1, min: 0 });
+  const infoIn = infoInputs(E.info, "ei-");
   const fDaily = field(t("daily"), rate), fMonthly = field(t("monthlyRate"), mrate), fAllow = field(t("allowDay"), allow);
   function sync() { fDaily.hidden = pt.value !== "daily"; fMonthly.hidden = pt.value !== "monthly"; fAllow.hidden = pos.value !== "rider"; }
   sync();
   const close = sheet(h("form", { onsubmit: async ev => { ev.preventDefault(); try {
-      await db.saveEmployee({ ...E, emp_no: eno.value.trim() || null, name: name.value.trim(), position: pos.value, pay_type: pt.value, scheme: sch.value, daily_rate: +rate.value, monthly_rate: +mrate.value, allowance_per_day: pos.value === "rider" ? +allow.value : 0, status: st.value, hired_on: hired.value || null, birthday: bday.value || null, active: active.checked, note: note.value || null, basic_before_app: +before.value || 0, basic_before_year: new Date().getFullYear() });
+      await db.saveEmployee({ ...E, info: { ...(E.info || {}), ...Object.fromEntries(INFO_KEYS.map(k => [k, infoIn[k].value.trim()])) }, emp_no: eno.value.trim() || null, name: name.value.trim(), position: pos.value, pay_type: pt.value, scheme: sch.value, daily_rate: +rate.value, monthly_rate: +mrate.value, allowance_per_day: pos.value === "rider" ? +allow.value : 0, status: st.value, hired_on: hired.value || null, birthday: bday.value || null, active: active.checked, note: note.value || null, basic_before_app: +before.value || 0, basic_before_year: new Date().getFullYear() });
       S.employees = await db.listEmployees(true); if (S.pay) S.pay.loaded = false; toast(t("saved")); close(); render(); } catch (er) { toast(errMsg(er)); } } },
     h("h3", {}, E.id ? E.name : t("emp_add")),
     h("div", { class: "grid2" }, field(t("empNo"), eno), field(t("emp_name"), name), field(t("emp_pos"), pos), field(t("emp_payType"), pt), field(t("emp_scheme"), sch), fDaily, fMonthly, fAllow, field(t("emp_status"), st), field(t("emp_hired"), hired), field(t("emp_bday"), bday), field(t("emp_note"), note), field(t("emp_before"), before, t("emp_beforeHelp"))),
+    h("details", { id: "e-info" }, h("summary", {}, t("empInfo")), h("div", { class: "grid2" }, ...INFO_KEYS.map(k => field(t("i_" + k), infoIn[k])))),
     h("label", { class: "check" }, active, t("emp_active")),
     E.id && h("div", { class: "row" }, h("span", { class: "muted" }, e.pin_hash ? t("pinSet") : t("pinNotSet")), h("span", { class: "sp" }),
       h("button", { class: "btn sm", type: "button", id: "e-reset-pin", onclick: async () => { try { await db.resetEmpPin(E.id); S.employees = await db.listEmployees(true); toast(t("pinReset")); close(); render(); } catch (er) { toast(errMsg(er)); } } }, t("resetPin"))),
