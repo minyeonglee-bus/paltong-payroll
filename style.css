@@ -146,3 +146,14 @@ tr.net td{font-size:18px;font-weight:700;border:0;padding-top:12px}
 #clock .clockStatus.in{background:#e6f4ea;color:#1e6b34}
 #clock .clockBtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px}
 .btn.big{font-size:20px;padding:18px 10px}
+table.sched{border-collapse:collapse;font-size:11px;white-space:nowrap}
+table.sched th,table.sched td{border:1px solid var(--line);padding:3px 4px;text-align:center;vertical-align:top}
+table.sched th small{display:block;font-weight:400;color:var(--muted)}
+table.sched th.wk{color:var(--accent)}
+table.sched th.today,table.sched tr.today td{background:#fff8e1}
+table.sched td.nm{text-align:left;font-weight:600;position:sticky;left:0;background:var(--card,#fff)}
+table.sched td.nm small{display:block;font-weight:400}
+table.sched td.off{background:var(--bg);color:var(--muted)}
+table.sched td.inc{background:#fff3cd}
+table.sched .act{font-family:var(--mono);font-weight:600}
+table.sched .pl{color:var(--muted);font-size:10px}

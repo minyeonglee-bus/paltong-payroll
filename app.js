@@ -5,7 +5,7 @@ import { computePayroll, shiftHours, paperOt, pairPunches, SHIFTS, SHIFT_LABEL, 
 const I18N = {
   ko: {
     app: "Paltong 급여", login: "로그인", id: "아이디", pw: "비밀번호", logout: "로그아웃", changePw: "비밀번호 변경", newPw: "새 비밀번호 (6자 이상)",
-    tab_pay: "급여 계산", tab_emp: "직원", tab_ledger: "가불·부족분·보너스", tab_hist: "급여 내역", tab_13: "13월급", tab_set: "설정",
+    tab_pay: "급여 계산", tab_sched: "스케줄", tab_emp: "직원", tab_ledger: "가불·부족분·보너스", tab_hist: "급여 내역", tab_13: "13월급", tab_set: "설정",
     y13: "연도", y13help: "13월급 = 그 해 받은 기본급 합계 ÷ 12 (1년 미만은 받은 만큼만 = 자동 비례) · 12월 24일까지 지급. 기본급엔 초과근무·공휴일 가산·정비비·보너스가 안 들어가요. 앱에 저장된 급여(지급됨 + 작성중)를 더하고, 앱 쓰기 전 기본급은 직원 탭에서 손으로 넣어요.",
     c13_basicApp: "앱 기본급", c13_basicBefore: "앱 이전", c13_total: "기본급 합계", c13_periods: "기간 수", c13_amount: "13월급 (÷12)", c13_avg: "월평균 (1년↑)", c13_proj: "연말 예상", c13_status: "지급", c13_pay: "지급 기록", c13_paid: "지급됨", c13_unpaid: "미지급", c13_unpay: "지급 취소",
     c13_projHelp: "연말 예상 = 지금까지 평균 반월 기본급 × 남은 반월 수를 더한 값 ÷ 12 (참고용)", c13_total_row: "합계", c13_draftNote: "작성중 급여 포함",
@@ -52,11 +52,12 @@ const I18N = {
     asStaff: "직원", asAdmin: "관리자", empNo: "직원 번호", pin: "PIN (숫자)", pinFirst: "처음이면 PIN 0000", pinWrong: "번호 또는 PIN이 틀려요", pinLocked: "5번 틀려서 10분 동안 잠겼어요",
     newPinTitle: "내 PIN 등록", newPinHelp: "처음 로그인이에요. 나만 아는 숫자 4~6자리로 PIN을 새로 정해주세요 (0000 안 됨).", newPin: "새 PIN", newPin2: "새 PIN 다시", pinMismatch: "두 PIN이 달라요", pinBad: "숫자 4~6자리로 정해주세요 (0000 안 됨)", pinSaved: "PIN을 등록했어요",
     myCalc: "내 급여 계산기 (예상)", myCalcHelp: "시프트만 넣으면 예상 급여가 나와요. 가불·보너스·부족분은 빠져 있고, 실제 금액은 지급된 급여명세서 기준이에요.", est: "예상 실수령액",
+    sched_help: "위 줄 = 앱 출퇴근 실제 (출근–퇴근), 아래 회색 = 캐시북 스케줄 (계획). 노란 칸 = 퇴근 전/기록 한쪽 없음. 스케줄 수정은 캐시북에서.", sched_legend: "실제 / 계획", sched_none: "—", mySched: "내 스케줄 (캐시북)", mySchedHelp: "오늘부터 2주 · 캐시북에 올라온 계획", sched_today: "오늘",
     myPay: "내 급여명세서", myLedger: "내 가불·부족분", myShifts: "내 근무 기록", notPaidYet: "아직 지급 전", noData: "아직 기록이 없어요", empNoLbl: "번호", resetPin: "PIN 초기화 (0000)", pinReset: "PIN을 0000으로 초기화했어요. 다음 로그인 때 본인이 다시 등록해요.", pinSet: "PIN 등록됨", pinNotSet: "PIN 미등록 (0000)",
   },
   en: {
     app: "Paltong Payroll", login: "Sign in", id: "ID", pw: "Password", logout: "Sign out", changePw: "Change password", newPw: "New password (6+ chars)",
-    tab_pay: "Payroll", tab_emp: "Staff", tab_ledger: "Advances · shortages · bonuses", tab_hist: "History", tab_13: "13th month", tab_set: "Settings",
+    tab_pay: "Payroll", tab_sched: "Schedule", tab_emp: "Staff", tab_ledger: "Advances · shortages · bonuses", tab_hist: "History", tab_13: "13th month", tab_set: "Settings",
     y13: "Year", y13help: "13th-month pay = total basic salary earned in the year ÷ 12 (under a year: whatever was earned = automatic pro-rata) · due by Dec 24. Basic excludes OT, holiday extras, maintenance allowance and bonuses. Adds payrolls saved in the app (paid + draft); basic earned before the app is entered manually in the Staff tab.",
     c13_basicApp: "Basic (app)", c13_basicBefore: "Before app", c13_total: "Total basic", c13_periods: "Periods", c13_amount: "13th (÷12)", c13_avg: "Monthly avg (1yr+)", c13_proj: "Year-end est.", c13_status: "Paid", c13_pay: "Record payment", c13_paid: "Paid", c13_unpaid: "Unpaid", c13_unpay: "Undo",
     c13_projHelp: "Year-end estimate = current average basic per half-month × remaining half-months, added, ÷ 12 (reference only)", c13_total_row: "Total", c13_draftNote: "includes draft payrolls",
@@ -103,6 +104,7 @@ const I18N = {
     asStaff: "Staff", asAdmin: "Admin", empNo: "Employee no.", pin: "PIN (numbers)", pinFirst: "First time? PIN is 0000", pinWrong: "Wrong number or PIN", pinLocked: "Locked for 10 minutes after 5 wrong tries",
     newPinTitle: "Set your PIN", newPinHelp: "First sign-in. Choose your own 4–6 digit PIN (not 0000).", newPin: "New PIN", newPin2: "New PIN again", pinMismatch: "The PINs don’t match", pinBad: "Use 4–6 digits (not 0000)", pinSaved: "PIN saved",
     myCalc: "My pay calculator (estimate)", myCalcHelp: "Enter your shifts to see an estimate. Advances, bonuses and shortages are not included; the paid payslip is the official amount.", est: "Estimated net pay",
+    sched_help: "Top line = actual app clock-in–out, grey line = Cash Book schedule (plan). Yellow = not clocked out / one side missing. Edit the plan in the Cash Book.", sched_legend: "actual / plan", sched_none: "—", mySched: "My schedule (Cash Book)", mySchedHelp: "Next 2 weeks · as planned in the Cash Book", sched_today: "today",
     myPay: "My payslips", myLedger: "My advances & shortages", myShifts: "My shifts", notPaidYet: "not paid yet", noData: "Nothing yet", empNoLbl: "No.", resetPin: "Reset PIN (0000)", pinReset: "PIN reset to 0000. They set a new one at next sign-in.", pinSet: "PIN set", pinNotSet: "PIN not set (0000)",
   },
 };
@@ -230,7 +232,18 @@ function renderStaffHome() {
       h("div", { class: "card" }, h("h2", {}, t("myPay")), payList),
       h("div", { class: "card" }, h("h2", {}, t("myLedger")), ledList),
       h("div", { class: "card" }, h("h2", {}, t("myShifts")), shifts),
+      mySchedCard(v, emp),
       my13Card(v, emp)));
+}
+/* ---- staff: Cash Book plan for the next two weeks + own clock-ins ---- */
+function mySchedCard(v, emp) {
+  const plan = (v.schedule || []).slice().sort((a, b) => a.day < b.day ? -1 : 1);
+  const by = pairPunches((v.punches || []).map(q => ({ kind: q.kind, at: q.at })));
+  const todayS = today();
+  const rows = plan.map(r => h("tr", { class: r.day === todayS ? "today" : "" }, h("td", {}, r.day.slice(5) + " " + t("dow")[new Date(r.day + "T00:00:00").getDay()] + (r.day === todayS ? " · " + t("sched_today") : "")),
+    h("td", {}, r.shift === "off" ? t("off") : SHIFT_LABEL(r.shift)), h("td", { class: "muted" }, by[r.day]?.shift ? by[r.day].shift.replace("-", "–") : by[r.day]?.in ? fmtT(by[r.day].in) + "–?" : "")));
+  return h("div", { class: "card" }, h("h2", {}, t("mySched")), h("small", { class: "muted" }, t("mySchedHelp")),
+    rows.length ? h("div", { class: "tbl" }, h("table", {}, h("tr", {}, h("th", {}, t("month")), h("th", {}, t("roster")), h("th", {}, t("clock"))), ...rows)) : h("span", { class: "muted" }, t("noData")));
 }
 /* ---- staff 13th-month: estimate from paid payrolls this year (same math as the admin tab) ---- */
 function my13Card(v, emp) {
@@ -339,7 +352,7 @@ function setLang(l) { lang = l; try { localStorage.setItem("pp-lang", l); } catc
 
 function render() {
   root.innerHTML = "";
-  const tabs = [["pay", t("tab_pay")], ["emp", t("tab_emp")], ["ledger", t("tab_ledger")], ["hist", t("tab_hist")], ["m13", t("tab_13")], ["set", t("tab_set")]];
+  const tabs = [["pay", t("tab_pay")], ["sched", t("tab_sched")], ["emp", t("tab_emp")], ["ledger", t("tab_ledger")], ["hist", t("tab_hist")], ["m13", t("tab_13")], ["set", t("tab_set")]];
   root.append(
     h("div", { class: "top" }, h("span", { class: "brand" }, t("app")), h("span", { class: "sp" }),
       h("span", { class: "muted", style: "color:inherit;opacity:.8;font-size:13px" }, S.user?.name || ""),
@@ -347,7 +360,7 @@ function render() {
       h("button", { onclick: menu }, "⋯")),
     h("div", { class: "tabs", role: "tablist" }, tabs.map(([k, l]) => h("button", { role: "tab", "aria-selected": S.tab === k, onclick: () => { S.tab = k; render(); } }, l))),
     h("main", { id: "main" }));
-  ({ pay: renderPay, emp: renderEmp, ledger: renderLedger, hist: renderHist, m13: render13, set: renderSet })[S.tab]();
+  ({ pay: renderPay, sched: renderSched, emp: renderEmp, ledger: renderLedger, hist: renderHist, m13: render13, set: renderSet })[S.tab]();
 }
 function menu() {
   const close = sheet([
@@ -624,6 +637,34 @@ function printSlip(mode) {
   const done = () => { document.body.classList.remove("print-simple"); window.removeEventListener("afterprint", done); };
   window.addEventListener("afterprint", done);
   window.print();
+}
+
+/* ================= SCHEDULE: everyone × every day — actual clock-ins (app) over the Cash Book plan ================= */
+const SCH = { month: null, half: null };
+async function renderSched() {
+  const main = document.getElementById("main");
+  if (!SCH.month) { const d = new Date(); SCH.half = d.getDate() <= 15 ? 1 : 2; SCH.month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; }
+  const [y, m] = SCH.month.split("-").map(Number); const p = periodOf(y, m, SCH.half);
+  const monthIn = h("input", { type: "month", value: SCH.month, onchange: e => { SCH.month = e.target.value; render(); } });
+  const halfSel = sel([[1, t("first")], [2, t("second")]], SCH.half, { onchange: e => { SCH.half = +e.target.value; render(); } });
+  const card = h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_sched")), h("span", { class: "sp" }), monthIn, halfSel), h("small", { class: "muted" }, t("sched_help")));
+  main.append(card);
+  try {
+    const [punches, plan] = await Promise.all([db.listPunchesAll(p.start, p.end), db.cashbookShifts(p.start, p.end)]);
+    const dates = datesBetween(p.start, p.end); const todayS = today();
+    const byEmp = {}; for (const q of punches) (byEmp[q.employee_id] = byEmp[q.employee_id] || []).push({ kind: q.kind, at: q.punched_at });
+    const planBy = {}; for (const r of plan) planBy[String(r.staff_name).trim().toLowerCase() + "|" + r.day] = r.shift;
+    const emps = S.employees.filter(e => e.active && e.name !== "test");
+    const tbl = h("table", { class: "sched" },
+      h("tr", {}, h("th", {}, t("employee")), ...dates.map(d => { const dt = new Date(d + "T00:00:00"); return h("th", { class: (d === todayS ? "today " : "") + ((dt.getDay() === 5 || dt.getDay() === 6) ? "wk" : "") }, `${+d.slice(8)}`, h("small", {}, t("dow")[dt.getDay()])); })),
+      ...emps.map(e => { const by = pairPunches(byEmp[e.id] || []);
+        return h("tr", {}, h("td", { class: "nm" }, e.name, h("small", { class: "muted" }, t("pos_" + e.position))), ...dates.map(d => {
+          const a = by[d]; const pl = planBy[e.name.trim().toLowerCase() + "|" + d];
+          const act = a ? (a.shift ? a.shift.replace("-", "–") : (a.in ? fmtT(a.in) + "–?" : "?–" + fmtT(a.out))) : "";
+          return h("td", { class: (a && a.incomplete ? "inc " : "") + (!a && (!pl || pl === "off") ? "off" : "") }, h("div", { class: "act" }, act || (pl && pl !== "off" ? "" : t("sched_none"))), pl ? h("div", { class: "pl" }, pl === "off" ? t("off") : SHIFT_LABEL(pl)) : null);
+        })); }));
+    card.append(h("div", { class: "tbl" }, tbl));
+  } catch (e) { card.append(h("p", { class: "err" }, errMsg(e))); }
 }
 
 /* ================= EMPLOYEES ================= */
