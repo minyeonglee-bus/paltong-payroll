@@ -235,13 +235,14 @@ function renderStaffHome() {
       mySchedCard(v, emp),
       my13Card(v, emp)));
 }
+const planLabel = v => v === "off" ? t("off") : v === "sil" ? "SIL" : SHIFT_LABEL(v);
 /* ---- staff: Cash Book plan for the next two weeks + own clock-ins ---- */
 function mySchedCard(v, emp) {
   const plan = (v.schedule || []).slice().sort((a, b) => a.day < b.day ? -1 : 1);
   const by = pairPunches((v.punches || []).map(q => ({ kind: q.kind, at: q.at })));
   const todayS = today();
   const rows = plan.map(r => h("tr", { class: r.day === todayS ? "today" : "" }, h("td", {}, r.day.slice(5) + " " + t("dow")[new Date(r.day + "T00:00:00").getDay()] + (r.day === todayS ? " · " + t("sched_today") : "")),
-    h("td", {}, r.shift === "off" ? t("off") : SHIFT_LABEL(r.shift)), h("td", { class: "muted" }, by[r.day]?.shift ? by[r.day].shift.replace("-", "–") : by[r.day]?.in ? fmtT(by[r.day].in) + "–?" : "")));
+    h("td", {}, planLabel(r.shift)), h("td", { class: "muted" }, by[r.day]?.shift ? by[r.day].shift.replace("-", "–") : by[r.day]?.in ? fmtT(by[r.day].in) + "–?" : "")));
   return h("div", { class: "card" }, h("h2", {}, t("mySched")), h("small", { class: "muted" }, t("mySchedHelp")),
     rows.length ? h("div", { class: "tbl" }, h("table", {}, h("tr", {}, h("th", {}, t("month")), h("th", {}, t("roster")), h("th", {}, t("clock"))), ...rows)) : h("span", { class: "muted" }, t("noData")));
 }
@@ -528,7 +529,7 @@ async function renderPay() {
         const by = Object.fromEntries(rows.map(r => [r.day, r.shift]));
         let n = 0;
         for (const d of P.days) { const sh = by[d.date]; if (!sh) continue; n++;
-          if (sh === "off") { d.shift = ""; d.type = "off"; } else if (SHIFTS.includes(sh)) { d.shift = sh; if (!DAY_TYPES[d.type]?.worked) d.type = "regular"; } }
+          if (sh === "off") { d.shift = ""; d.type = "off"; } else if (sh === "sil") { d.shift = ""; d.type = "sil"; } else if (SHIFTS.includes(sh)) { d.shift = sh; if (!DAY_TYPES[d.type]?.worked) d.type = "regular"; } }
         drawRoster(); refresh(); toast(tf("schedLoaded", { n }));
       } catch (e) { toast(errMsg(e)); } } }, t("fromSched"));
     const punchBtn = h("button", { class: "btn sm primary", type: "button", id: "fromPunch", disabled: locked || !emp, onclick: async () => {
@@ -664,7 +665,7 @@ async function renderSched() {
         return [...grp, h("tr", {}, h("td", { class: "nm" }, e.name), ...dates.map(d => {
           const a = by[d]; const pl = planBy[e.name.trim().toLowerCase() + "|" + d];
           const act = a ? (a.shift ? a.shift.replace("-", "–") : (a.in ? fmtT(a.in) + "–?" : "?–" + fmtT(a.out))) : "";
-          return h("td", { class: (a && a.incomplete ? "inc " : "") + (!a && (!pl || pl === "off") ? "off" : "") }, h("div", { class: "act" }, act || (pl && pl !== "off" ? "" : t("sched_none"))), pl ? h("div", { class: "pl" }, pl === "off" ? t("off") : SHIFT_LABEL(pl)) : null);
+          return h("td", { class: (a && a.incomplete ? "inc " : "") + (!a && (!pl || pl === "off" || pl === "sil") ? "off" : "") }, h("div", { class: "act" }, act || (pl && pl !== "off" && pl !== "sil" ? "" : t("sched_none"))), pl ? h("div", { class: "pl" }, planLabel(pl)) : null);
         }))]; }));
     card.append(h("div", { class: "tbl" }, tbl));
   } catch (e) { card.append(h("p", { class: "err" }, errMsg(e))); }
