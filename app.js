@@ -23,7 +23,7 @@ const I18N = {
     gov: "법정 공제 (근로자 부담분)", govShare: "반달치 (½)", govFull: "한 달치", govHelp: "참고값 · SSS 5% · PhilHealth 2.5% · Pag-IBIG 2% (최대 ₱200)",
     result: "계산 내역", basic: "기본급 (근무일 × 일급)", basicC: "기본급 (근무시간 × 시급)", basicM: "기본급 (월급 ÷ 2)", premium: "공휴일 가산 (특별 +30% · 정규 +1일)", premiumC: "휴무일·공휴일 할증", ot: "초과근무 (시간 × 일급÷{h})", otC: "초과근무 125%", nd: "야간근무 가산 (10%)", otIncl: "초과근무 (월급 포함분 1h/일 이내 · 별도 지급 없음)", otExtra: "초과근무 (포함분 1h/일 초과 · 125%)", basicSplit: "　└ 기본급 {b} + 포함 OT {o}", penalty: "지각 벌금 (지각액과 동일)",
     silPay: "유급휴가", holOff: "정규공휴일 유급 (쉼)", allowance: "오토바이 정비비 ({d}일 × ₱{a})", absentDed: "결근 공제 ({d}일)",
-    lateDed: "지각·조퇴 공제", gross: "총 지급액 (Gross)", adv: "가불금", shortage: "현금 부족분", bonus: "보너스 (최고매출일 · 신메뉴 등)", net: "실수령액 (Net)",
+    lateDed: "지각·조퇴 공제", gross: "총 지급액 (Gross)", dedHead: "── 공제 내역 ──", dedTotal: "공제 합계", otherManual: "수동 입력 (급여 계산 화면)", govSSS: "SSS (본인 부담)", govPH: "PhilHealth (본인 부담)", govPI: "Pag-IBIG (본인 부담)", adv: "가불금 (CA)", shortage: "현금 부족분", bonus: "보너스 (최고매출일 · 신메뉴 등)", net: "실수령액 (Net)",
     summary: "근무 {d}일{hd} · 초과 {o}h · 유급휴가 {s}일", summaryC: "근무 {d}일 · {h}h · 초과 {o}h · 야간 {n}h · 유급휴가 {s}일", halfSum: " + 반일 {n}", netLbl: "실수령액",
     for13: "13월급 산정용 기본급", riderNote: "배달비·유류비는 당일 현금 지급 (캐시북 직원 탭) · 급여에 포함 안 됨", monthlyNote: "월급 ₱30,000 = 기본 25,945 + 포함 OT 4,055 (08~18시 중 1h/일) · 일급 994.70 · 시급 124.34 · 그 밖의 초과근무(18시 이후)·휴무일 130%·공휴일·야간은 별도 · 결근·지각은 일급/시급 기준 공제 · 13월급은 기본 25,945 기준",
     save: "저장", saved: "저장됨", markPaid: "지급 완료로 기록", paid: "지급됨", draft: "작성중", unpay: "지급 취소", paidOn: "지급일", paidVia: "지급 계좌", slip: "급여명세서", print: "인쇄", printSimple: "간단 인쇄 (58mm)", printA4: "상세 인쇄 (A4)", printBatch: "일괄 인쇄 (A4 한 장에 6명)", delete: "삭제", confirmDel: "정말 삭제할까요?", yes: "삭제", cancel: "취소", close: "닫기",
@@ -75,7 +75,7 @@ const I18N = {
     gov: "Statutory deductions (employee share)", govShare: "Half-month (½)", govFull: "Full month", govHelp: "Reference · SSS 5% · PhilHealth 2.5% · Pag-IBIG 2% (max ₱200)",
     result: "Computation", basic: "Basic pay (days × daily)", basicC: "Basic pay (hours × hourly)", basicM: "Basic pay (monthly ÷ 2)", premium: "Holiday extra (special +30% · regular +1 day)", premiumC: "Rest-day / holiday premium", ot: "Overtime (hours × daily÷{h})", otC: "Overtime 125%", nd: "Night differential (10%)", otIncl: "Overtime (within the built-in 1h/day · not paid separately)", otExtra: "Overtime (beyond the built-in 1h/day · 125%)", basicSplit: "　└ basic {b} + built-in OT {o}", penalty: "Late penalty (same as late amount)",
     silPay: "Paid leave", holOff: "Regular holiday paid (not worked)", allowance: "Motorcycle maintenance ({d} days × ₱{a})", absentDed: "Absence deduction ({d} days)",
-    lateDed: "Tardiness / undertime", gross: "Gross pay", adv: "Salary advance", shortage: "Cash shortage", bonus: "Bonus (highest-sales day · new menu)", net: "Net pay",
+    lateDed: "Tardiness / undertime", gross: "Gross pay", dedHead: "── Deductions ──", dedTotal: "Total deductions", otherManual: "manual entry (payroll screen)", govSSS: "SSS (employee share)", govPH: "PhilHealth (employee share)", govPI: "Pag-IBIG (employee share)", adv: "Cash advances (CA)", shortage: "Cash shortage", bonus: "Bonus (highest-sales day · new menu)", net: "Net pay",
     summary: "{d} days{hd} · OT {o}h · leave {s} days", summaryC: "{d} days · {h}h · OT {o}h · night {n}h · leave {s} days", halfSum: " + {n} half", netLbl: "Net pay",
     for13: "Basic for 13th-month pay", riderNote: "Delivery fee & fuel are paid same day in cash (cash book Staff tab) · not part of payroll", monthlyNote: "₱30,000 = basic 25,945 + built-in OT 4,055 (1h/day within 08–18) · daily 994.70 · hourly 124.34 · other OT (after 18:00), rest day 130%, holidays and night diff paid on top · absence & tardiness at the daily/hourly rate · 13th month on the basic 25,945",
     save: "Save", saved: "Saved", markPaid: "Record as paid", paid: "Paid", draft: "Draft", unpay: "Undo paid", paidOn: "Paid on", paidVia: "Paid via", slip: "Payslip", print: "Print", printSimple: "Print simple (58mm)", printA4: "Print detail (A4)", printBatch: "Print all (6 per A4)", delete: "Delete", confirmDel: "Delete this?", yes: "Delete", cancel: "Cancel", close: "Close",
@@ -412,15 +412,28 @@ const monthly = P.pay_type === "monthly";
   if (R.ndPay) row(`${t("nd")} (${R.ndHours}h)`, money(R.ndPay));
   if (R.silPay) row(`${t("silPay")} (${R.silDays})`, money(R.silPay)); if (R.holidayOffPay) row(t("holOff"), money(R.holidayOffPay));
   if (R.allowance) row(tf("allowance", { d: R.daysWorked, a: money(P.allowance_per_day ?? (R.daysWorked ? R.allowance / R.daysWorked : 0)) }), money(R.allowance));
-  if (R.bonus) row(t("bonus"), money(R.bonus)); if (R.incentive) row(t("incentive"), money(R.incentive));
+  // ledger items (advances / shortage / other / bonus) itemized by date when we have them (live payroll or saved with the result)
+  const items = (R.ledgerItems || P.ledger || []).filter(l => l.kind !== "shortage" || (l.verified && l.authorized));
+  const itemsOf = k => items.filter(l => l.kind === k);
+  const itemRow = (l, sign, cls) => row(`　· ${l.biz_date ? l.biz_date.slice(5).replace("-", "/") : ""} ${l.note ? l.note : t("k_" + l.kind)}`, sign + money(l.amount), cls + " sub");
+  const bonusItems = itemsOf("bonus");
+  if (R.bonus) { row(t("bonus"), money(R.bonus)); bonusItems.forEach(l => itemRow(l, "+", "")); }
+  if (R.incentive) row(t("incentive"), money(R.incentive));
   if (R.absentDed) row(tf("absentDed", { d: R.absentDays }), "−" + money(R.absentDed), "neg");
   if (R.late) row(`${t("lateDed")} (${R.lateMinutes}m)`, "−" + money(R.late), "neg");
   row(t("gross"), money(R.gross), "sum");
-  if (R.advances) row(t("adv"), "−" + money(R.advances), "neg"); if (R.shortage) row(t("shortage"), "−" + money(R.shortage), "neg");
-  if (R.sss) row("SSS", "−" + money(R.sss), "neg"); if (R.philhealth) row("PhilHealth", "−" + money(R.philhealth), "neg"); if (R.pagibig) row("Pag-IBIG", "−" + money(R.pagibig), "neg");
+  const dedTotal = (+R.advances || 0) + (+R.shortage || 0) + (+R.sss || 0) + (+R.philhealth || 0) + (+R.pagibig || 0) + (+R.penalty || 0) + (+R.otherDeduction || 0);
+  if (dedTotal) row(t("dedHead"), "", "head");
+  const adv = itemsOf("advance");
+  if (R.advances) { row(`${t("adv")} (${adv.length || 1})`, "−" + money(R.advances), "neg"); adv.forEach(l => itemRow(l, "−", "neg")); }
+  const sh = itemsOf("shortage");
+  if (R.shortage) { row(t("shortage"), "−" + money(R.shortage), "neg"); sh.forEach(l => itemRow(l, "−", "neg")); }
+  if (R.sss) row(t("govSSS"), "−" + money(R.sss), "neg"); if (R.philhealth) row(t("govPH"), "−" + money(R.philhealth), "neg"); if (R.pagibig) row(t("govPI"), "−" + money(R.pagibig), "neg");
   if (R.penalty) row(t("penalty"), "−" + money(R.penalty), "neg");
-  if (R.otherDeduction) row(t("other"), "−" + money(R.otherDeduction), "neg");
-  row(t("net"), money(R.net), "net");
+  if (R.otherDeduction) { const oth = itemsOf("other"); const manual = Math.round(((+R.otherDeduction || 0) - oth.reduce((a, l) => a + +l.amount, 0)) * 100) / 100;
+    row(t("other"), "−" + money(R.otherDeduction), "neg"); oth.forEach(l => itemRow(l, "−", "neg")); if (manual > 0.001) row(`　· ${t("otherManual")}`, "−" + money(manual), "neg sub"); }
+  if (dedTotal) row(t("dedTotal"), "−" + money(dedTotal), "sum neg");
+  row(`${t("net")} = ${money(R.gross)} − ${money(dedTotal)}`, money(R.net), "net");
   return rows;
 }
 
@@ -629,6 +642,7 @@ async function renderPay() {
   async function save(paid, extra = {}) {
     if (!P.employee_id) return toast(t("pickEmp"));
     const res = computePayroll(P.days, payOpts(P));
+    res.ledgerItems = P.ledger.map(l => ({ kind: l.kind, biz_date: l.biz_date, amount: +l.amount, note: l.note || "", verified: l.verified, authorized: l.authorized }));
     try {
       const row = await db.savePayroll({ id: P.id || undefined, employee_id: P.employee_id, period_start: P.start, period_end: P.end, pay_type: P.pay_type, daily_rate: P.daily_rate, monthly_rate: P.monthly_rate, allowance_per_day: P.allowance_per_day,
         break_hours: P.break_hours, days: P.days, late_minutes: P.late_minutes, incentive: P.incentive, other_deduction: P.other_deduction, gov: P.gov, result: res, status: paid ? "paid" : P.status, ...extra });
