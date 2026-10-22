@@ -178,3 +178,5 @@ table.sched tr.grp th { position: sticky; left: 0; text-align: left; background:
   #batchPrint .slip.mini .sig div{border-top:1px solid #000;padding-top:2px}
   #batchPrint .slip.mini:nth-child(6n){page-break-after:always;break-after:page}
 }
+table.sched td.edit{cursor:pointer}
+table.sched td.edit:hover{outline:2px solid var(--accent);outline-offset:-2px}

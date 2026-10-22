@@ -1,5 +1,5 @@
 import * as db from "./data.js";
-import { computePayroll, shiftHours, paperOt, pairPunches, SHIFTS, SHIFT_LABEL, isPreset, parseShift, DAY_TYPES, dayTypesFor, periodOf, periodForDate, datesBetween, fmtDate } from "./payroll-calc.js";
+import { computePayroll, shiftHours, paperOt, pairPunches, SHIFTS, SHIFT_LABEL, isPreset, parseShift, DAY_TYPES, dayTypesFor, periodOf, periodForDate, datesBetween, fmtDate, addDays } from "./payroll-calc.js";
 
 /* ---------- i18n ---------- */
 const I18N = {
@@ -52,7 +52,7 @@ const I18N = {
     asStaff: "직원", asAdmin: "관리자", empNo: "직원 번호", pin: "PIN (숫자)", pinFirst: "처음이면 PIN 0000", pinWrong: "번호 또는 PIN이 틀려요", pinLocked: "5번 틀려서 10분 동안 잠겼어요",
     newPinTitle: "내 PIN 등록", newPinHelp: "처음 로그인이에요. 나만 아는 숫자 4~6자리로 PIN을 새로 정해주세요 (0000 안 됨).", newPin: "새 PIN", newPin2: "새 PIN 다시", pinMismatch: "두 PIN이 달라요", pinBad: "숫자 4~6자리로 정해주세요 (0000 안 됨)", pinSaved: "PIN을 등록했어요",
     myCalc: "내 급여 계산기 (예상)", myCalcHelp: "스케줄표 기준으로 미리 채워져 있어요 (바꿔서 계산해 볼 수 있어요). 시프트만 넣으면 예상 급여가 나와요. 가불·보너스·부족분은 빠져 있고, 실제 금액은 지급된 급여명세서 기준이에요.", est: "예상 실수령액",
-    sched_help: "위 줄 = 앱 출퇴근 실제 (출근–퇴근), 아래 회색 = 계획 (웨이터는 캐시북 스케줄, 주방·라이더는 관리자 입력 근무표). 노란 칸 = 퇴근 전/기록 한쪽 없음.", sched_legend: "실제 / 계획", sched_none: "—", mySched: "내 스케줄 (캐시북)", mySchedHelp: "오늘부터 2주 · 캐시북에 올라온 계획", sched_today: "오늘",
+    sched_tap: "눌러서 이 날 출퇴근 수정", sched_editHelp: "출근·퇴근 시각을 고치거나 지우고, 빠진 기록은 아래에서 추가 (밤 근무 퇴근은 다음날 날짜로)", sched_help: "칸을 누르면 그 날 출퇴근을 고칠 수 있어요. 위 줄 = 앱 출퇴근 실제 (출근–퇴근), 아래 회색 = 계획 (웨이터는 캐시북 스케줄, 주방·라이더는 관리자 입력 근무표). 노란 칸 = 퇴근 전/기록 한쪽 없음.", sched_legend: "실제 / 계획", sched_none: "—", mySched: "내 스케줄 (캐시북)", mySchedHelp: "오늘부터 2주 · 캐시북에 올라온 계획", sched_today: "오늘",
     myInfo: "내 정보", myInfoHelp: "연락처·주소·급여 받을 계좌·정부 번호는 직접 고칠 수 있어요. 이름·직책·급여는 관리자만 바꿀 수 있어요.", infoSaved: "내 정보를 저장했어요", empInfo: "직원 정보 (직원이 직접 수정 가능)", i_phone: "휴대폰", i_address: "주소", i_gcash: "GCash 번호", i_bank_name: "은행", i_bank_acct: "계좌번호", i_sss: "SSS 번호", i_philhealth: "PhilHealth 번호", i_pagibig: "Pag-IBIG 번호", i_tin: "TIN", i_emergency_name: "비상 연락 (이름·관계)", i_emergency_phone: "비상 연락 번호", myPay: "내 급여명세서", myLedger: "내 가불·부족분", myShifts: "내 근무 기록", notPaidYet: "아직 지급 전", noData: "아직 기록이 없어요", empNoLbl: "번호", resetPin: "PIN 초기화 (0000)", pinReset: "PIN을 0000으로 초기화했어요. 다음 로그인 때 본인이 다시 등록해요.", pinSet: "PIN 등록됨", pinNotSet: "PIN 미등록 (0000)",
   },
   en: {
@@ -104,7 +104,7 @@ const I18N = {
     asStaff: "Staff", asAdmin: "Admin", empNo: "Employee no.", pin: "PIN (numbers)", pinFirst: "First time? PIN is 0000", pinWrong: "Wrong number or PIN", pinLocked: "Locked for 10 minutes after 5 wrong tries",
     newPinTitle: "Set your PIN", newPinHelp: "First sign-in. Choose your own 4–6 digit PIN (not 0000).", newPin: "New PIN", newPin2: "New PIN again", pinMismatch: "The PINs don’t match", pinBad: "Use 4–6 digits (not 0000)", pinSaved: "PIN saved",
     myCalc: "My pay calculator (estimate)", myCalcHelp: "Pre-filled from the schedule (you can change it). Enter your shifts to see an estimate. Advances, bonuses and shortages are not included; the paid payslip is the official amount.", est: "Estimated net pay",
-    sched_help: "Top line = actual app clock-in–out, grey line = plan (waiters: Cash Book schedule; kitchen & riders: roster entered by admin). Yellow = not clocked out / one side missing.", sched_legend: "actual / plan", sched_none: "—", mySched: "My schedule (Cash Book)", mySchedHelp: "Next 2 weeks · as planned in the Cash Book", sched_today: "today",
+    sched_tap: "Tap to edit this day's clock records", sched_editHelp: "Fix or delete the in/out times, add a missing one below (an overnight clock-out goes on the next date)", sched_help: "Tap a cell to edit that day's clock records. Top line = actual app clock-in–out, grey line = plan (waiters: Cash Book schedule; kitchen & riders: roster entered by admin). Yellow = not clocked out / one side missing.", sched_legend: "actual / plan", sched_none: "—", mySched: "My schedule (Cash Book)", mySchedHelp: "Next 2 weeks · as planned in the Cash Book", sched_today: "today",
     myInfo: "My info", myInfoHelp: "You can update your contact, address, payout account and government numbers yourself. Name, position and pay are changed by the admin only.", infoSaved: "Your info is saved", empInfo: "Employee info (the employee can edit this)", i_phone: "Mobile", i_address: "Address", i_gcash: "GCash number", i_bank_name: "Bank", i_bank_acct: "Account number", i_sss: "SSS no.", i_philhealth: "PhilHealth no.", i_pagibig: "Pag-IBIG no.", i_tin: "TIN", i_emergency_name: "Emergency contact (name · relation)", i_emergency_phone: "Emergency contact number", myPay: "My payslips", myLedger: "My advances & shortages", myShifts: "My shifts", notPaidYet: "not paid yet", noData: "Nothing yet", empNoLbl: "No.", resetPin: "Reset PIN (0000)", pinReset: "PIN reset to 0000. They set a new one at next sign-in.", pinSet: "PIN set", pinNotSet: "PIN not set (0000)",
   },
 };
@@ -679,7 +679,8 @@ async function renderSched() {
   try {
     const [punches, plan] = await Promise.all([db.listPunchesAll(p.start, p.end), db.cashbookShifts(p.start, p.end)]);
     const dates = datesBetween(p.start, p.end); const todayS = today();
-    const byEmp = {}; for (const q of punches) (byEmp[q.employee_id] = byEmp[q.employee_id] || []).push({ kind: q.kind, at: q.punched_at });
+    const byEmp = {}; for (const q of punches) (byEmp[q.employee_id] = byEmp[q.employee_id] || []).push({ id: q.id, kind: q.kind, at: q.punched_at, source: q.source });
+    const owner = S.user?.role === "owner";
     const planBy = {}; for (const r of plan) planBy[String(r.staff_name).trim().toLowerCase() + "|" + r.day] = r.shift;
     const ORDER = ["waiter", "kitchen", "rider", "other"];
     const emps = S.employees.filter(e => e.active && e.name !== "test").sort((a, b) => ORDER.indexOf(a.position) - ORDER.indexOf(b.position));
@@ -691,10 +692,30 @@ async function renderSched() {
         return [...grp, h("tr", {}, h("td", { class: "nm" }, e.name), ...dates.map(d => {
           const a = by[d]; const pl = planBy[e.name.trim().toLowerCase() + "|" + d];
           const act = a ? (a.shift ? a.shift.replace("-", "–") : (a.in ? fmtT(a.in) + "–?" : "?–" + fmtT(a.out))) : "";
-          return h("td", { class: (a && a.incomplete ? "inc " : "") + (!a && (!pl || pl === "off" || pl === "sil") ? "off" : "") }, h("div", { class: "act" }, act || (pl && pl !== "off" && pl !== "sil" ? "" : t("sched_none"))), pl ? h("div", { class: "pl" }, planLabel(pl)) : null);
+          const raw = (byEmp[e.id] || []).filter(q => { const dt = new Date(q.at); const ds = fmtDate(dt); return ds === d || (ds === addDays(d, 1) && dt.getHours() < 12); });
+          return h("td", { class: (a && a.incomplete ? "inc " : "") + (!a && (!pl || pl === "off" || pl === "sil") ? "off" : "") + (owner ? " edit" : ""), title: owner ? t("sched_tap") : "", onclick: owner ? () => punchDaySheet(e, d, raw) : null }, h("div", { class: "act" }, act || (pl && pl !== "off" && pl !== "sil" ? "" : t("sched_none"))), pl ? h("div", { class: "pl" }, planLabel(pl)) : null);
         }))]; }));
     card.append(h("div", { class: "tbl" }, tbl));
   } catch (e) { card.append(h("p", { class: "err" }, errMsg(e))); }
+}
+
+/* ---- schedule cell → edit that day's clock records (owner) ---- */
+function punchDaySheet(emp, date, raw) {
+  const rows = raw.slice().sort((a, b) => new Date(a.at) - new Date(b.at));
+  const toLocal = at => { const d = new Date(at); return `${fmtDate(d)}T${fmtT(d)}`; };
+  const list = h("div", { class: "list" });
+  const line = q => { const kind = sel([["in", t("punchIn")], ["out", t("punchOut")]], q.kind, {}); const at = h("input", { type: "datetime-local", value: toLocal(q.at) });
+    return h("div", { class: "row", style: "flex-wrap:nowrap;gap:6px" }, kind, at, q.source === "card" || q.source === "admin" ? h("span", { class: "pill draft" }, q.source === "card" ? "card" : t("punchAdmin")) : null,
+      h("button", { class: "btn sm", type: "button", onclick: async () => { try { await db.updatePunch(q.id, { kind: kind.value, punched_at: new Date(at.value).toISOString() }); toast(t("saved")); close(); render(); } catch (e) { toast(errMsg(e)); } } }, t("save")),
+      h("button", { class: "btn sm danger", type: "button", onclick: () => confirmSheet(t("confirmDel"), async () => { try { await db.deletePunch(q.id); close(); render(); } catch (e) { toast(errMsg(e)); } }) }, "✕")); };
+  rows.forEach(q => list.append(line(q)));
+  if (!rows.length) list.append(h("span", { class: "muted" }, t("punchNone")));
+  const addKind = sel([["in", t("punchIn")], ["out", t("punchOut")]], rows.length && rows[rows.length - 1].kind === "in" ? "out" : "in", {});
+  const addAt = h("input", { type: "datetime-local", value: rows.length && rows[rows.length - 1].kind === "in" ? `${addDays(date, 1)}T08:00` : `${date}T08:00` });
+  const close = sheet([h("h3", {}, `${emp.name} · ${date}`), h("p", { class: "muted" }, t("sched_editHelp")), list,
+    h("div", { class: "row", style: "flex-wrap:nowrap;gap:6px" }, addKind, addAt, h("button", { class: "btn sm primary", type: "button", onclick: async () => { if (!addAt.value) return;
+      try { await db.addPunch({ employee_id: emp.id, kind: addKind.value, punched_at: new Date(addAt.value).toISOString() }); toast(t("saved")); close(); render(); } catch (e) { toast(errMsg(e)); } } }, "+ " + t("punchAdd"))),
+    h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => close() }, t("close")))]);
 }
 
 /* ================= EMPLOYEES ================= */

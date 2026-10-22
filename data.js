@@ -126,3 +126,4 @@ export async function listPunchesAll(from, to) {
   const a = new Date(from + "T00:00:00"), b = new Date(to + "T00:00:00"); b.setHours(b.getHours() + 36);
   return must(await sb.from("pr_punches").select("*").gte("punched_at", a.toISOString()).lt("punched_at", b.toISOString()).order("punched_at"));
 }
+export async function updatePunch(id, patch) { return must(await sb.from("pr_punches").update({ ...patch, source: "admin" }).eq("id", id).select().single()); }
