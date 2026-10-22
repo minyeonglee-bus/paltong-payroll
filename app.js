@@ -19,7 +19,7 @@ const I18N = {
     restDay: "주 휴무 요일", dow: ["일", "월", "화", "수", "목", "금", "토"],
     custom: "타임카드 (직접 입력)", inT: "출근", outT: "퇴근", otDay: "OT", otAuto: "비우면 시프트에서 자동 (10h 기본 + 1h 휴게 제외, 나머지가 OT · 12h = OT 1h) · 카드 숫자를 넣으면 그 값",
     late: "지각·조퇴 합계 (분)", lateHelp: "일급 ÷ 10 ÷ 60 · 분당 ₱", lateHelpC: "실제 미근무 분만 (일급 ÷ 8 ÷ 60) · 분당 ₱", incentive: "수동 인센티브·수당 (+)", other: "기타 공제 · 벌금 (−)",
-    deductions: "공제 · 보너스", ledgerAuto: "이 기간 자동 반영 (가불 · 현금 부족분 · 보너스)", none: "없음",
+    deductions: "공제 · 보너스", payout: "지급 방법", payoutVia: "지급 수단", payoutSplit: "일부를 GCash/계좌로 (금액)", payoutRest: "나머지 현금", payoutHelp: "명세서에 '지급: GCash 5,000 + Cash 2,075'처럼 찍혀요. 번호는 직원 정보의 GCash/계좌에서 가져와요.", payLine: "지급", ledgerAuto: "이 기간 자동 반영 (가불 · 현금 부족분 · 보너스)", none: "없음",
     gov: "법정 공제 (근로자 부담분)", govShare: "반달치 (½)", govFull: "한 달치", govHelp: "참고값 · SSS 5% · PhilHealth 2.5% · Pag-IBIG 2% (최대 ₱200)",
     result: "계산 내역", basic: "기본급 (근무일 × 일급)", basicC: "기본급 (근무시간 × 시급)", basicM: "기본급 (월급 ÷ 2)", premium: "공휴일 가산 (특별 +30% · 정규 +1일)", premiumC: "휴무일·공휴일 할증", ot: "초과근무 (시간 × 일급÷{h})", otC: "초과근무 125%", nd: "야간근무 가산 (10%)", otIncl: "초과근무 (월급 포함분 1h/일 이내 · 별도 지급 없음)", otExtra: "초과근무 (포함분 1h/일 초과 · 125%)", basicSplit: "　└ 기본급 {b} + 포함 OT {o}", penalty: "지각 벌금 (지각액과 동일)",
     silPay: "유급휴가", holOff: "정규공휴일 유급 (쉼)", allowance: "오토바이 정비비 ({d}일 × ₱{a})", absentDed: "결근 공제 ({d}일)",
@@ -71,7 +71,7 @@ const I18N = {
     restDay: "Weekly rest day", dow: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
     custom: "Time card (enter times)", inT: "In", outT: "Out", otDay: "OT", otAuto: "Empty = from the shift (10h base + 1h break, the rest is OT · 12h = 1h OT) · type the card figure to override",
     late: "Tardiness / undertime (minutes)", lateHelp: "daily ÷ 10 ÷ 60 · per minute ₱", lateHelpC: "actual unworked minutes only (daily ÷ 8 ÷ 60) · per minute ₱", incentive: "Manual incentive / allowance (+)", other: "Other deduction · penalty (−)",
-    deductions: "Deductions · bonuses", ledgerAuto: "Applied automatically this period (advances · shortage · bonuses)", none: "none",
+    deductions: "Deductions · bonuses", payout: "Payout", payoutVia: "Paid via", payoutSplit: "Part by GCash / bank (amount)", payoutRest: "rest in cash", payoutHelp: "Shows on the payslip as 'Paid: GCash 5,000 + Cash 2,075'. The number comes from the employee's info (GCash / bank account).", payLine: "Paid", ledgerAuto: "Applied automatically this period (advances · shortage · bonuses)", none: "none",
     gov: "Statutory deductions (employee share)", govShare: "Half-month (½)", govFull: "Full month", govHelp: "Reference · SSS 5% · PhilHealth 2.5% · Pag-IBIG 2% (max ₱200)",
     result: "Computation", basic: "Basic pay (days × daily)", basicC: "Basic pay (hours × hourly)", basicM: "Basic pay (monthly ÷ 2)", premium: "Holiday extra (special +30% · regular +1 day)", premiumC: "Rest-day / holiday premium", ot: "Overtime (hours × daily÷{h})", otC: "Overtime 125%", nd: "Night differential (10%)", otIncl: "Overtime (within the built-in 1h/day · not paid separately)", otExtra: "Overtime (beyond the built-in 1h/day · 125%)", basicSplit: "　└ basic {b} + built-in OT {o}", penalty: "Late penalty (same as late amount)",
     silPay: "Paid leave", holOff: "Regular holiday paid (not worked)", allowance: "Motorcycle maintenance ({d} days × ₱{a})", absentDed: "Absence deduction ({d} days)",
@@ -468,7 +468,7 @@ function defaultPay() {
     pay_type: "daily", daily_rate: +S.settings.min_wage || 718, monthly_rate: +S.settings.kitchen_monthly || 30000, allowance_per_day: 0,
     break_hours: +S.settings.break_hours || 1, days: [], late_minutes: 0, incentive: 0, other_deduction: 0,
     gov: { sss: !!S.settings.sss_on, philhealth: !!S.settings.philhealth_on, pagibig: !!S.settings.pagibig_on, share: +S.settings.gov_share || 0.5 },
-    ledger: [], paid_on: null, paid_via: null, restDow: 1, fillShift: "8-18" };
+    ledger: [], paid_on: null, paid_via: null, pay_via: "CASH", pay_split: 0, restDow: 1, fillShift: "8-18" };
 }
 function emptyDay(date) { return { date, shift: "", type: "off" }; }
 async function loadPay(P) {
@@ -480,12 +480,12 @@ async function loadPay(P) {
     const row = await db.getPayroll(P.employee_id, P.start, P.end);
     if (row) {
       Object.assign(P, { id: row.id, status: row.status, daily_rate: +row.daily_rate, monthly_rate: +row.monthly_rate || +emp.monthly_rate, allowance_per_day: +row.allowance_per_day,
-        break_hours: +row.break_hours, late_minutes: row.late_minutes, incentive: +row.incentive, other_deduction: +row.other_deduction, gov: row.gov, paid_on: row.paid_on, paid_via: row.paid_via, note: row.note || "", result: row.result || null });
+        break_hours: +row.break_hours, late_minutes: row.late_minutes, incentive: +row.incentive, other_deduction: +row.other_deduction, gov: row.gov, paid_on: row.paid_on, paid_via: row.paid_via, note: row.note || "", result: row.result || null, pay_via: row.result?.payout?.via || row.paid_via || "CASH", pay_split: +(row.result?.payout?.split || 0) });
       const byDate = Object.fromEntries((row.days || []).map(d => [d.date, d]));
       P.days = dates.map(d => byDate[d] || emptyDay(d));
     } else {
       Object.assign(P, { id: null, status: "draft", daily_rate: +emp.daily_rate, monthly_rate: +emp.monthly_rate || +S.settings.kitchen_monthly, allowance_per_day: +emp.allowance_per_day || 0,
-        late_minutes: 0, incentive: 0, other_deduction: 0, paid_on: null, paid_via: null, note: "", result: null });
+        late_minutes: 0, incentive: 0, other_deduction: 0, paid_on: null, paid_via: null, note: "", result: null, pay_via: emp.info?.gcash ? "GCASH" : "CASH", pay_split: 0 });
       // 새 급여: 스케줄표(계획) 기준으로 미리 채움 — 실제 출퇴근은 "앱 출퇴근 불러오기"로 덮어쓰기
       let plan = {}; try { plan = Object.fromEntries((await db.cashbookShifts(P.start, P.end)).filter(r => String(r.staff_name || "").trim().toLowerCase() === String(emp.name).trim().toLowerCase() && r.shift).map(r => [r.day, r.shift])); } catch { }
       P.days = dates.map(d => planDay(d, plan[d]));
@@ -613,15 +613,17 @@ async function renderPay() {
   for (const l of P.ledger) ledList.append(h("div", { class: "item", onclick: () => ledgerForm(l, re) },
     h("div", { class: "t" }, t("k_" + l.kind), l.kind === "shortage" && !(l.verified && l.authorized) && h("span", { class: "pill draft", style: "margin-left:6px" }, t("notDeducted"))),
     h("div", { class: "s" }, l.biz_date, l.note ? ` · ${l.note}` : ""), h("div", { class: "m money " + (l.kind === "bonus" ? "pos" : "neg") }, (l.kind === "bonus" ? "+" : "−") + money(l.amount))));
+  const payViaSel = sel(PAY_VIAS, P.pay_via || "CASH", { disabled: locked, onchange: e => { P.pay_via = e.target.value; refresh(); } });
   const ded = h("div", { class: "card" }, h("h2", {}, t("deductions")),
     h("div", { class: "grid2" }, adjFields),
     h("div", { class: "row" }, h("b", {}, t("ledgerAuto")), h("span", { class: "sp" }), emp && h("button", { class: "btn sm", type: "button", onclick: () => ledgerForm({ employee_id: emp.id, kind: "advance", biz_date: P.end, amount: "" }, re) }, "+ " + t("led_add"))),
     P.ledger.length ? ledList : h("span", { class: "muted" }, t("none")),
+    h("div", { class: "row" }, h("b", {}, t("payout")), payViaSel, h("span", { class: "muted" }, t("payoutSplit")), numIn("pSplit", "pay_split", 100), h("span", { class: "muted", id: "payRest" })), h("small", { class: "muted" }, t("payoutHelp")),
     h("div", { class: "row" }, h("b", {}, t("gov")), shareSel), h("div", { class: "row" }, govBox("sss", "SSS"), govBox("philhealth", "PhilHealth"), govBox("pagibig", "Pag-IBIG")), h("small", { class: "muted" }, t("govHelp")));
 
   // --- result ---
   const tbl = h("table");
-  function drawResult() { tbl.innerHTML = ""; tbl.append(...resultRows(R, P)); document.getElementById("barNet").textContent = money(R.net); for13.textContent = `${t("for13")}: ₱${money(R.basicFor13th)}`; }
+  function drawResult() { const pr = document.getElementById("payRest"); if (pr) pr.textContent = P.pay_split > 0 && P.pay_via !== "CASH" ? `→ ${payoutText(payoutOf(P, R, emp), emp)}` : ""; tbl.innerHTML = ""; tbl.append(...resultRows(R, P)); document.getElementById("barNet").textContent = money(R.net); for13.textContent = `${t("for13")}: ₱${money(R.basicFor13th)}`; }
   const for13 = h("small", { class: "muted" });
   const result = h("div", { class: "card" }, h("h2", {}, t("result")), h("div", { class: "tbl" }, tbl), for13);
 
@@ -642,6 +644,7 @@ async function renderPay() {
   async function save(paid, extra = {}) {
     if (!P.employee_id) return toast(t("pickEmp"));
     const res = computePayroll(P.days, payOpts(P));
+    res.payout = payoutOf(P, res, emp);
     res.ledgerItems = P.ledger.map(l => ({ kind: l.kind, biz_date: l.biz_date, amount: +l.amount, note: l.note || "", verified: l.verified, authorized: l.authorized }));
     try {
       const row = await db.savePayroll({ id: P.id || undefined, employee_id: P.employee_id, period_start: P.start, period_end: P.end, pay_type: P.pay_type, daily_rate: P.daily_rate, monthly_rate: P.monthly_rate, allowance_per_day: P.allowance_per_day,
@@ -652,7 +655,7 @@ async function renderPay() {
   }
   function markPaid() {
     const dIn = h("input", { type: "date", id: "paidOn", value: today() });
-    const vIn = sel([["CASH", "Cash"], ["GCASH", "GCash"], ["MAYA", "Maya"], ["METROBANK", "Metrobank"], ["SAVINGBOX", "Saving box"]], P.paid_via || "CASH", { id: "paidVia" });
+    const vIn = sel([["CASH", "Cash"], ["GCASH", "GCash"], ["MAYA", "Maya"], ["METROBANK", "Metrobank"], ["SAVINGBOX", "Saving box"]], P.paid_via || P.pay_via || "CASH", { id: "paidVia" });
     const close = sheet([h("h3", {}, t("markPaid")), h("div", { class: "grid2" }, field(t("paidOn"), dIn), field(t("paidVia"), vIn)),
       h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", onclick: () => close() }, t("cancel")), h("button", { class: "btn primary", onclick: async () => { close(); await save(true, { paid_on: dIn.value, paid_via: vIn.value }); } }, t("markPaid")))]);
   }
@@ -667,7 +670,7 @@ function payslip(P, emp, R) {
     h("div", { class: "head" }, h("div", {}, h("b", {}, "PALTONG RESTAURANT"), h("div", { class: "muted" }, "603 Remedios St. Malate Manila")), h("div", {}, h("b", {}, t("slip")), h("div", { class: "muted" }, `${P.start} ~ ${P.end}`))),
     h("div", { class: "grid2" }, h("div", {}, h("b", {}, emp?.name), h("div", { class: "muted" }, t("pos_" + (emp?.position || "other")))), h("div", {}, rate, h("div", { class: "muted" }, summaryText(R)))),
     h("table", {}, resultRows(R, P)), h("br"), days,
-    P.status === "paid" && h("p", { class: "muted" }, `${t("paid")}: ${P.paid_on} · ${P.paid_via}`), P.note && h("p", { class: "muted" }, P.note),
+    h("p", { class: "muted" }, `${t("payLine")}: ${payoutText(R.payout || payoutOf(P, R, emp), emp)}` + (P.status === "paid" ? ` · ${P.paid_on}` : "")), P.note && h("p", { class: "muted" }, P.note),
     h("div", { class: "sig" }, h("div", {}, "Employer / Paltong Restaurant"), h("div", {}, "Employee / " + (emp?.name || ""))),
     h("div", { class: "row noprint", style: "margin-top:14px" }, h("span", { class: "sp" }), h("button", { class: "btn", onclick: () => close() }, t("close")),
       h("button", { class: "btn", onclick: () => printSlip("detail") }, t("printA4")), h("button", { class: "btn primary", onclick: () => printSlip("simple") }, t("printSimple")))));
@@ -906,6 +909,19 @@ async function renderHist() {
   main.append(h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_hist")), h("span", { class: "sp" }), mIn)), ...(out.length ? out : [h("p", { class: "muted" }, t("hist_empty"))]));
 }
 
+/* ---- payout: how the net is handed over (cash / GCash / bank, optionally split) ---- */
+const PAY_VIAS = [["CASH", "Cash"], ["GCASH", "GCash"], ["MAYA", "Maya"], ["METROBANK", "Metrobank"], ["SAVINGBOX", "Saving box"]];
+const viaLabel = v => (PAY_VIAS.find(x => x[0] === v) || [v, v])[1];
+function payoutOf(P, R, emp) {
+  const via = P.pay_via || P.paid_via || "CASH", net = +R.net || 0, split = Math.min(net, Math.max(0, +P.pay_split || 0));
+  const parts = via !== "CASH" && split > 0 && split < net ? [{ via, amount: split }, { via: "CASH", amount: Math.round((net - split) * 100) / 100 }] : [{ via, amount: net }];
+  return { via, split: via !== "CASH" ? split : 0, parts };
+}
+function payoutText(po, emp) {
+  if (!po || !po.parts) return "";
+  const acct = v => v === "GCASH" && emp?.info?.gcash ? ` ${emp.info.gcash}` : v === "METROBANK" && emp?.info?.bank_acct ? ` ${emp.info.bank_acct}` : "";
+  return po.parts.map(x => `${viaLabel(x.via)}${acct(x.via)} ₱${money(x.amount)}`).join(" + ");
+}
 /* ---- batch print: all payslips of a period, tiled 2 × 3 per A4 (6 per sheet) ---- */
 function slipCompact(r) {
   const R = r.result || {}; const emp = r.employees || {};
@@ -915,7 +931,7 @@ function slipCompact(r) {
     h("div", { class: "head" }, h("div", {}, h("b", {}, "PALTONG RESTAURANT"), h("div", { class: "muted" }, "603 Remedios St. Malate Manila")), h("div", {}, h("b", {}, t("slip")), h("div", { class: "muted" }, `${r.period_start} ~ ${r.period_end}`))),
     h("div", { class: "grid2" }, h("div", {}, h("b", {}, emp.name), h("div", { class: "muted" }, t("pos_" + (emp.position || "other")))), h("div", {}, rate, h("div", { class: "muted" }, R.net != null ? summaryText(R) : ""))),
     R.net != null ? h("table", {}, resultRows(R, P)) : h("p", { class: "muted" }, t("draft")),
-    r.status === "paid" ? h("p", { class: "muted" }, `${t("paid")}: ${r.paid_on || ""} · ${r.paid_via || ""}`) : h("p", { class: "muted" }, t("notPaidYet")),
+    h("p", { class: "muted" }, `${t("payLine")}: ${R.payout ? payoutText(R.payout, emp) : (r.paid_via ? viaLabel(r.paid_via) + " ₱" + money(R.net) : "")}` + (r.status === "paid" ? ` · ${r.paid_on || ""}` : ` · ${t("notPaidYet")}`)),
     h("div", { class: "sig" }, h("div", {}, "Employer"), h("div", {}, "Employee / " + (emp.name || ""))));
 }
 function batchPrint(rows, s, e) {
