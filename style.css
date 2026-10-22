@@ -160,3 +160,21 @@ table.sched .pl{color:var(--muted);font-size:10px}
 
 /* 스케줄: 부서별 묶음 */
 table.sched tr.grp th { position: sticky; left: 0; text-align: left; background: var(--line, #e5e5e5); color: inherit; font-size: 13px; padding: 6px 10px; }
+/* 일괄 인쇄: 보름치 명세서 전원을 A4 한 장에 2×3 바둑판 */
+#batchPrint{display:none}
+@media print{
+  body.print-batch #batchPrint{display:grid;grid-template-columns:1fr 1fr;gap:0;width:194mm}
+  body.print-batch main,body.print-batch #sheetRoot{display:none!important}
+  body.print-batch{font-size:9px}
+  #batchPrint .slip.mini{width:97mm;height:93mm;box-sizing:border-box;padding:3mm 4mm;border:1px dashed #999;overflow:hidden;page-break-inside:avoid;break-inside:avoid;font-size:9px}
+  #batchPrint .slip.mini .head{display:flex;justify-content:space-between;border-bottom:1px solid #000;margin-bottom:2px}
+  #batchPrint .slip.mini .head b{font-size:10px}
+  #batchPrint .slip.mini .grid2{display:flex;justify-content:space-between;gap:6px;margin:2px 0}
+  #batchPrint .slip.mini table{width:100%;border-collapse:collapse}
+  #batchPrint .slip.mini td,#batchPrint .slip.mini th{padding:0 2px;font-size:8.5px;line-height:1.25;border:0}
+  #batchPrint .slip.mini tr.sum td,#batchPrint .slip.mini tr.net td{font-weight:700;border-top:1px solid #000}
+  #batchPrint .slip.mini p{margin:2px 0;font-size:8px}
+  #batchPrint .slip.mini .sig{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;font-size:8px}
+  #batchPrint .slip.mini .sig div{border-top:1px solid #000;padding-top:2px}
+  #batchPrint .slip.mini:nth-child(6n){page-break-after:always;break-after:page}
+}

@@ -26,7 +26,7 @@ const I18N = {
     lateDed: "지각·조퇴 공제", gross: "총 지급액 (Gross)", adv: "가불금", shortage: "현금 부족분", bonus: "보너스 (최고매출일 · 신메뉴 등)", net: "실수령액 (Net)",
     summary: "근무 {d}일{hd} · 초과 {o}h · 유급휴가 {s}일", summaryC: "근무 {d}일 · {h}h · 초과 {o}h · 야간 {n}h · 유급휴가 {s}일", halfSum: " + 반일 {n}", netLbl: "실수령액",
     for13: "13월급 산정용 기본급", riderNote: "배달비·유류비는 당일 현금 지급 (캐시북 직원 탭) · 급여에 포함 안 됨", monthlyNote: "월급 ₱30,000 = 기본 25,945 + 포함 OT 4,055 (08~18시 중 1h/일) · 일급 994.70 · 시급 124.34 · 그 밖의 초과근무(18시 이후)·휴무일 130%·공휴일·야간은 별도 · 결근·지각은 일급/시급 기준 공제 · 13월급은 기본 25,945 기준",
-    save: "저장", saved: "저장됨", markPaid: "지급 완료로 기록", paid: "지급됨", draft: "작성중", unpay: "지급 취소", paidOn: "지급일", paidVia: "지급 계좌", slip: "급여명세서", print: "인쇄", printSimple: "간단 인쇄 (58mm)", printA4: "상세 인쇄 (A4)", delete: "삭제", confirmDel: "정말 삭제할까요?", yes: "삭제", cancel: "취소", close: "닫기",
+    save: "저장", saved: "저장됨", markPaid: "지급 완료로 기록", paid: "지급됨", draft: "작성중", unpay: "지급 취소", paidOn: "지급일", paidVia: "지급 계좌", slip: "급여명세서", print: "인쇄", printSimple: "간단 인쇄 (58mm)", printA4: "상세 인쇄 (A4)", printBatch: "일괄 인쇄 (A4 한 장에 6명)", delete: "삭제", confirmDel: "정말 삭제할까요?", yes: "삭제", cancel: "취소", close: "닫기",
     emp_add: "직원 추가", emp_name: "이름", emp_pos: "직위", pos_waiter: "웨이터/서버", pos_kitchen: "주방", pos_rider: "라이더", pos_other: "기타",
     emp_status: "고용 형태", st_regular: "정규직", st_probationary: "수습", st_fixed: "계약직", st_other: "기타", emp_hired: "입사일", emp_bday: "생일", emp_active: "재직 중", emp_note: "메모",
     emp_payType: "급여 형태", pt_daily: "일급", pt_monthly: "월급 (OT 포함)",
@@ -78,7 +78,7 @@ const I18N = {
     lateDed: "Tardiness / undertime", gross: "Gross pay", adv: "Salary advance", shortage: "Cash shortage", bonus: "Bonus (highest-sales day · new menu)", net: "Net pay",
     summary: "{d} days{hd} · OT {o}h · leave {s} days", summaryC: "{d} days · {h}h · OT {o}h · night {n}h · leave {s} days", halfSum: " + {n} half", netLbl: "Net pay",
     for13: "Basic for 13th-month pay", riderNote: "Delivery fee & fuel are paid same day in cash (cash book Staff tab) · not part of payroll", monthlyNote: "₱30,000 = basic 25,945 + built-in OT 4,055 (1h/day within 08–18) · daily 994.70 · hourly 124.34 · other OT (after 18:00), rest day 130%, holidays and night diff paid on top · absence & tardiness at the daily/hourly rate · 13th month on the basic 25,945",
-    save: "Save", saved: "Saved", markPaid: "Record as paid", paid: "Paid", draft: "Draft", unpay: "Undo paid", paidOn: "Paid on", paidVia: "Paid via", slip: "Payslip", print: "Print", printSimple: "Print simple (58mm)", printA4: "Print detail (A4)", delete: "Delete", confirmDel: "Delete this?", yes: "Delete", cancel: "Cancel", close: "Close",
+    save: "Save", saved: "Saved", markPaid: "Record as paid", paid: "Paid", draft: "Draft", unpay: "Undo paid", paidOn: "Paid on", paidVia: "Paid via", slip: "Payslip", print: "Print", printSimple: "Print simple (58mm)", printA4: "Print detail (A4)", printBatch: "Print all (6 per A4)", delete: "Delete", confirmDel: "Delete this?", yes: "Delete", cancel: "Cancel", close: "Close",
     emp_add: "Add employee", emp_name: "Name", emp_pos: "Position", pos_waiter: "Waiter / Server", pos_kitchen: "Kitchen", pos_rider: "Rider", pos_other: "Other",
     emp_status: "Employment status", st_regular: "Regular", st_probationary: "Probationary", st_fixed: "Fixed-term", st_other: "Other", emp_hired: "Date hired", emp_bday: "Birthday", emp_active: "Active", emp_note: "Note",
     emp_payType: "Pay type", pt_daily: "Daily", pt_monthly: "Monthly (OT-inclusive)",
@@ -861,13 +861,36 @@ async function renderHist() {
   const out = [];
   for (const [k, g] of Object.entries(groups)) {
     const [s, e] = k.split("|"); const tot = g.reduce((a, r) => a + (+r.result?.net || 0), 0);
-    out.push(h("div", { class: "card" }, h("div", { class: "row" }, h("h3", {}, periodLabel(s, e)), h("span", { class: "sp" }), h("span", { class: "money" }, `${t("total")} ₱${money(tot)}`)),
+    out.push(h("div", { class: "card" }, h("div", { class: "row" }, h("h3", {}, periodLabel(s, e)), h("span", { class: "sp" }), h("span", { class: "money" }, `${t("total")} ₱${money(tot)}`),
+        h("button", { class: "btn sm", type: "button", onclick: () => batchPrint(g, s, e) }, "🖨 " + t("printBatch"))),
       h("div", { class: "list" }, g.map(r => h("div", { class: "item", onclick: () => { S.pay = { ...defaultPay(), employee_id: r.employee_id, month: s.slice(0, 7), half: +s.slice(8) === 1 ? 1 : 2, loaded: false }; S.tab = "pay"; render(); } },
         h("div", { class: "t" }, r.employees?.name, " ", h("span", { class: "pill " + r.status }, r.status === "paid" ? t("paid") : t("draft"))),
         h("div", { class: "s" }, `${t("pos_" + (r.employees?.position || "other"))} · ${r.result?.daysWorked ?? 0}d · OT ${r.result?.otHours ?? 0}h` + (r.paid_on ? ` · ${r.paid_on} ${r.paid_via || ""}` : "")),
         h("div", { class: "m money" }, "₱" + money(r.result?.net)))))));
   }
   main.append(h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_hist")), h("span", { class: "sp" }), mIn)), ...(out.length ? out : [h("p", { class: "muted" }, t("hist_empty"))]));
+}
+
+/* ---- batch print: all payslips of a period, tiled 2 × 3 per A4 (6 per sheet) ---- */
+function slipCompact(r) {
+  const R = r.result || {}; const emp = r.employees || {};
+  const P = { pay_type: r.pay_type || "daily", allowance_per_day: +r.allowance_per_day || 0 };
+  const rate = P.pay_type === "monthly" ? `₱${money(r.monthly_rate)}/mo` : `₱${money(r.daily_rate)}/day`;
+  return h("div", { class: "slip mini" },
+    h("div", { class: "head" }, h("div", {}, h("b", {}, "PALTONG RESTAURANT"), h("div", { class: "muted" }, "603 Remedios St. Malate Manila")), h("div", {}, h("b", {}, t("slip")), h("div", { class: "muted" }, `${r.period_start} ~ ${r.period_end}`))),
+    h("div", { class: "grid2" }, h("div", {}, h("b", {}, emp.name), h("div", { class: "muted" }, t("pos_" + (emp.position || "other")))), h("div", {}, rate, h("div", { class: "muted" }, R.net != null ? summaryText(R) : ""))),
+    R.net != null ? h("table", {}, resultRows(R, P)) : h("p", { class: "muted" }, t("draft")),
+    r.status === "paid" ? h("p", { class: "muted" }, `${t("paid")}: ${r.paid_on || ""} · ${r.paid_via || ""}`) : h("p", { class: "muted" }, t("notPaidYet")),
+    h("div", { class: "sig" }, h("div", {}, "Employer"), h("div", {}, "Employee / " + (emp.name || ""))));
+}
+function batchPrint(rows, s, e) {
+  const sorted = rows.slice().sort((a, b) => String(a.employees?.name).localeCompare(String(b.employees?.name)));
+  const box = h("div", { id: "batchPrint" }, sorted.map(slipCompact));
+  document.body.append(box); document.body.classList.add("print-batch");
+  const done = () => { box.remove(); document.body.classList.remove("print-batch"); window.removeEventListener("afterprint", done); };
+  window.addEventListener("afterprint", done);
+  window.print();
+  setTimeout(() => { if (document.body.contains(box)) done(); }, 60000);
 }
 
 /* ================= 13TH MONTH ================= */
