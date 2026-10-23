@@ -94,6 +94,12 @@ near(r.premium, 8 * (30000 / MONTHLY_FACTOR / 8), "monthly holiday +100%"); near
 // default scheme is contract
 assert.equal(compute(cdays, { daily: 718 }).scheme, "contract");
 
+/* fixed monthly gov amounts (Noemie: SSS 450, Pag-IBIG 200 per month) → half per payroll */
+{ const r = compute(cdays, { scheme: "contract", daily: 718, gov: { sss: true, pagibig: true, philhealth: false, fixed: { sss: 450, pagibig: 200 } }, govShare: 0.5 });
+  assert.equal(r.sss, 225); assert.equal(r.pagibig, 100); assert.equal(r.philhealth, 0);
+  const r2 = compute(cdays, { scheme: "contract", daily: 718, gov: { sss: false, pagibig: true, fixed: { sss: 450, pagibig: 200 } }, govShare: 1 });
+  assert.equal(r2.sss, 0); assert.equal(r2.pagibig, 200); }
+
 console.log("payroll tests OK");
 
 /* ---------- app clock in/out → shifts ---------- */

@@ -92,7 +92,7 @@ export function pagibigEmployee(monthly) {
  *  days: [{ date, shift, type, ot }]   ot = (paper) overtime hours written on the time card for that day
  *  opts: { scheme:'contract'|'paper', payType:'daily'|'monthly', daily, monthly, breakHrs, hoursPerDay (paper, 10), latePenalty (paper, true),
  *          allowancePerDay, lateMinutes, incentive, bonus, advances, shortage, otherDeduction,
- *          gov:{sss,philhealth,pagibig}, govShare: 1|0.5 }
+ *          gov:{sss,philhealth,pagibig, fixed:{sss,philhealth,pagibig} monthly}, govShare: 1|0.5 }
  */
 export function computePayroll(days, opts) {
   const scheme = opts.scheme === "paper" ? "paper" : "contract";
@@ -153,9 +153,12 @@ export function computePayroll(days, opts) {
   const monthly = isMonthly ? monthlyRate : daily * MONTHLY_FACTOR;
   const share = opts.govShare === 0.5 ? 0.5 : 1;
   const gov = opts.gov || {};
-  const sss = gov.sss ? r2(sssEmployee(monthly) * share) : 0;
-  const philhealth = gov.philhealth ? r2(philhealthEmployee(monthly) * share) : 0;
-  const pagibig = gov.pagibig ? r2(pagibigEmployee(monthly) * share) : 0;
+  // gov.fixed = monthly amounts actually remitted for this employee (e.g. SSS 450, Pag-IBIG 200) → used instead of the table estimate
+  const fx = gov.fixed || {};
+  const govAmt = (k, est) => !gov[k] ? 0 : r2((+fx[k] > 0 ? +fx[k] : est(monthly)) * share);
+  const sss = govAmt("sss", sssEmployee);
+  const philhealth = govAmt("philhealth", philhealthEmployee);
+  const pagibig = govAmt("pagibig", pagibigEmployee);
   const advances = +opts.advances || 0, shortage = +opts.shortage || 0, otherDeduction = +opts.otherDeduction || 0;
   const deductions = sss + philhealth + pagibig + advances + shortage + otherDeduction + penalty;
 
