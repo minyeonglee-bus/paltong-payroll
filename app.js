@@ -20,7 +20,7 @@ const I18N = {
     custom: "타임카드 (직접 입력)", inT: "출근", outT: "퇴근", otDay: "OT", otAuto: "비우면 시프트에서 자동 (10h 기본 + 1h 휴게 제외, 나머지가 OT · 12h = OT 1h) · 카드 숫자를 넣으면 그 값",
     late: "지각·조퇴 합계 (분)", lateHelp: "일급 ÷ 10 ÷ 60 · 분당 ₱", lateHelpC: "실제 미근무 분만 (일급 ÷ 8 ÷ 60) · 분당 ₱", incentive: "수동 인센티브·수당 (+)", other: "기타 공제 · 벌금 (−)",
     deductions: "공제 · 보너스", payout: "지급 방법", payoutVia: "지급 수단", payoutSplit: "일부를 GCash/계좌로 (금액)", payoutRest: "나머지 현금", payoutHelp: "명세서에 '지급: GCash 5,000 + Cash 2,075'처럼 찍혀요. 번호는 직원 정보의 GCash/계좌에서 가져와요.", payLine: "지급", ledgerAuto: "이 기간 자동 반영 (가불 · 현금 부족분 · 보너스)", none: "없음",
-    gov: "법정 공제 (근로자 부담분)", perMonth: "월", govFixed: "법정 공제 고정액 (월, 본인 부담)", govFixedHelp: "실제 납부하는 월 금액 — 급여(보름)마다 절반씩 공제. 비우면 공제 안 함 (급여 화면 체크 시 표 기준 추정)", govShare: "반달치 (½)", govFull: "한 달치", govHelp: "참고값 · SSS 5% · PhilHealth 2.5% · Pag-IBIG 2% (최대 ₱200)",
+    gov: "법정 공제 (근로자 부담분)", perMonth: "월", govFixed: "법정 공제 고정액 (월, 본인 부담)", govFixedHelp: "실제 납부하는 월 금액 — 급여(보름)마다 절반씩 공제. 비우면 공제 안 함 (급여 화면 체크 시 표 기준 추정)", govShare: "매 급여 절반씩 (15일·30일)", govFull: "30일 급여에서 한 달치 한 번", govHelp: "그 달 보험료를 그 달 급여에서 공제해요 (절반씩 = 15일·30일에 반씩 / 한 번 = 30일에 전액). 직원 탭 고정액이 있으면 그 금액, 없으면 참고값 SSS 5% · PhilHealth 2.5% · Pag-IBIG 2% (최대 ₱200)",
     result: "계산 내역", basic: "기본급 (근무일 × 일급)", basicC: "기본급 (근무시간 × 시급)", basicM: "기본급 (월급 ÷ 2)", premium: "공휴일 가산 (특별 +30% · 정규 +1일)", premiumC: "휴무일·공휴일 할증", ot: "초과근무 (시간 × 일급÷{h})", otC: "초과근무 125%", nd: "야간근무 가산 (10%)", otIncl: "초과근무 (월급 포함분 1h/일 이내 · 별도 지급 없음)", otExtra: "초과근무 (포함분 1h/일 초과 · 125%)", basicSplit: "　└ 기본급 {b} + 포함 OT {o}", penalty: "지각 벌금 (지각액과 동일)",
     silPay: "유급휴가", holOff: "정규공휴일 유급 (쉼)", allowance: "오토바이 정비비 ({d}일 × ₱{a})", absentDed: "결근 공제 ({d}일)",
     lateDed: "지각·조퇴 공제", gross: "총 지급액 (Gross)", dedHead: "── 공제 내역 ──", dedTotal: "공제 합계", otherManual: "수동 입력 (급여 계산 화면)", govSSS: "SSS (본인 부담)", govPH: "PhilHealth (본인 부담)", govPI: "Pag-IBIG (본인 부담)", adv: "가불금 (CA)", shortage: "현금 부족분", bonus: "보너스 (최고매출일 · 신메뉴 등)", net: "실수령액 (Net)",
@@ -30,7 +30,7 @@ const I18N = {
     emp_add: "직원 추가", emp_name: "이름", emp_pos: "직위", pos_waiter: "웨이터/서버", pos_kitchen: "주방", pos_rider: "라이더", pos_other: "기타",
     emp_status: "고용 형태", st_regular: "정규직", st_probationary: "수습", st_fixed: "계약직", st_other: "기타", emp_hired: "입사일", emp_bday: "생일", emp_active: "재직 중", emp_note: "메모",
     emp_payType: "급여 형태", pt_daily: "일급", pt_monthly: "월급 (OT 포함)",
-    led_add: "기록 추가", led_kind: "종류", k_advance: "가불", k_shortage: "현금 부족분", k_bonus: "보너스 (+)", k_other: "기타 공제", led_date: "날짜", led_amount: "금액", led_note: "메모",
+    led_add: "기록 추가", led_kind: "종류", k_advance: "가불", k_shortage: "현금 부족분", k_bonus: "보너스 (+)", k_other: "기타 공제", led_date: "날짜", led_amount: "금액", led_note: "메모", led_noteKo: "메모 (한국어)", led_noteEn: "메모 (영어)", led_noteHelp: "영어 화면·영어 명세서엔 영어 메모가 나와요 (비우면 한국어 메모)",
     led_verified: "조사 완료 · 본인 책임 확인", led_auth: "서면 동의 받음", led_applies: "→ {p} 급여에 반영", led_deducted: "반영됨", led_pending: "미반영", led_filter_all: "전체",
     bonusHint: "계약서 6조 최고매출일 보너스 = 보름 중 매출 최고일 총매출 × 2% ÷ 그날 근무한 직원 수 (아래 버튼으로 캐시북+출퇴근에서 자동) · 주방 신메뉴 ₱500 (5조) · 생일 인센티브 ₱500 (3.4조, 직전 3개월 개근) · 개근 → 다음 달 유급휴가 1일 (3.2조)는 날짜 종류 '유급휴가'로",
     topBonus: "최고매출일 보너스 계산", topTitle: "최고매출일 보너스 (계약서 6조)", topDay: "최고매출일", topSales: "총매출", topPool: "풀 (2%)", topEach: "1인당", topStaff: "그날 근무 (출퇴근 기록 기준) — 체크 해제하면 제외", topSave: "보너스로 저장", topNone: "이 기간 캐시북 매출이 없어요", topDone: "{n}명에게 ₱{a} 보너스 저장했어요 (10/16 이후 급여에 자동 반영)", topExists: "이미 이 기간 최고매출일 보너스가 저장돼 있어요",
@@ -72,7 +72,7 @@ const I18N = {
     custom: "Time card (enter times)", inT: "In", outT: "Out", otDay: "OT", otAuto: "Empty = from the shift (10h base + 1h break, the rest is OT · 12h = 1h OT) · type the card figure to override",
     late: "Tardiness / undertime (minutes)", lateHelp: "daily ÷ 10 ÷ 60 · per minute ₱", lateHelpC: "actual unworked minutes only (daily ÷ 8 ÷ 60) · per minute ₱", incentive: "Manual incentive / allowance (+)", other: "Other deduction · penalty (−)",
     deductions: "Deductions · bonuses", payout: "Payout", payoutVia: "Paid via", payoutSplit: "Part by GCash / bank (amount)", payoutRest: "rest in cash", payoutHelp: "Shows on the payslip as 'Paid: GCash 5,000 + Cash 2,075'. The number comes from the employee's info (GCash / bank account).", payLine: "Paid", ledgerAuto: "Applied automatically this period (advances · shortage · bonuses)", none: "none",
-    gov: "Statutory deductions (employee share)", perMonth: "mo", govFixed: "Fixed statutory deductions (monthly, employee share)", govFixedHelp: "Monthly amount actually remitted — half is deducted each payroll. Leave empty for none (ticking it on the payroll screen uses the table estimate)", govShare: "Half-month (½)", govFull: "Full month", govHelp: "Reference · SSS 5% · PhilHealth 2.5% · Pag-IBIG 2% (max ₱200)",
+    gov: "Statutory deductions (employee share)", perMonth: "mo", govFixed: "Fixed statutory deductions (monthly, employee share)", govFixedHelp: "Monthly amount actually remitted — half is deducted each payroll. Leave empty for none (ticking it on the payroll screen uses the table estimate)", govShare: "Half each payroll (15th & 30th)", govFull: "Whole month once, on the 30th payroll", govHelp: "The month's contribution comes out of that month's pay (half each = half on the 15th and half on the 30th / once = all on the 30th). Uses the fixed amount from the Staff tab, otherwise the reference SSS 5% · PhilHealth 2.5% · Pag-IBIG 2% (max ₱200)",
     result: "Computation", basic: "Basic pay (days × daily)", basicC: "Basic pay (hours × hourly)", basicM: "Basic pay (monthly ÷ 2)", premium: "Holiday extra (special +30% · regular +1 day)", premiumC: "Rest-day / holiday premium", ot: "Overtime (hours × daily÷{h})", otC: "Overtime 125%", nd: "Night differential (10%)", otIncl: "Overtime (within the built-in 1h/day · not paid separately)", otExtra: "Overtime (beyond the built-in 1h/day · 125%)", basicSplit: "　└ basic {b} + built-in OT {o}", penalty: "Late penalty (same as late amount)",
     silPay: "Paid leave", holOff: "Regular holiday paid (not worked)", allowance: "Motorcycle maintenance ({d} days × ₱{a})", absentDed: "Absence deduction ({d} days)",
     lateDed: "Tardiness / undertime", gross: "Gross pay", dedHead: "── Deductions ──", dedTotal: "Total deductions", otherManual: "manual entry (payroll screen)", govSSS: "SSS (employee share)", govPH: "PhilHealth (employee share)", govPI: "Pag-IBIG (employee share)", adv: "Cash advances (CA)", shortage: "Cash shortage", bonus: "Bonus (highest-sales day · new menu)", net: "Net pay",
@@ -82,7 +82,7 @@ const I18N = {
     emp_add: "Add employee", emp_name: "Name", emp_pos: "Position", pos_waiter: "Waiter / Server", pos_kitchen: "Kitchen", pos_rider: "Rider", pos_other: "Other",
     emp_status: "Employment status", st_regular: "Regular", st_probationary: "Probationary", st_fixed: "Fixed-term", st_other: "Other", emp_hired: "Date hired", emp_bday: "Birthday", emp_active: "Active", emp_note: "Note",
     emp_payType: "Pay type", pt_daily: "Daily", pt_monthly: "Monthly (OT-inclusive)",
-    led_add: "Add record", led_kind: "Kind", k_advance: "Advance", k_shortage: "Cash shortage", k_bonus: "Bonus (+)", k_other: "Other deduction", led_date: "Date", led_amount: "Amount", led_note: "Note",
+    led_add: "Add record", led_kind: "Kind", k_advance: "Advance", k_shortage: "Cash shortage", k_bonus: "Bonus (+)", k_other: "Other deduction", led_date: "Date", led_amount: "Amount", led_note: "Note", led_noteKo: "Note (Korean)", led_noteEn: "Note (English)", led_noteHelp: "Shown when the app or payslip is in English (falls back to the Korean note)",
     led_verified: "Investigated · responsibility established", led_auth: "Written authorization on file", led_applies: "→ applied to {p} payroll", led_deducted: "applied", led_pending: "pending", led_filter_all: "All",
     bonusHint: "Contract §6 highest-sales-day bonus = the period's top sales day × 2% ÷ staff who worked that day (button below computes it from the cash book + clock-ins) · kitchen new menu ₱500 (§5) · birthday incentive ₱500 (§3.4, 3 perfect months) · perfect month → 1 paid leave day (§3.2) as day type 'Paid leave'",
     topBonus: "Compute highest-sales-day bonus", topTitle: "Highest-sales-day bonus (contract §6)", topDay: "Highest-sales day", topSales: "Total sales", topPool: "Pool (2%)", topEach: "Each", topStaff: "On duty that day (from clock-ins) — untick to exclude", topSave: "Save as bonuses", topNone: "No cash book sales in this period", topDone: "Saved ₱{a} bonus for {n} staff (applied to the payroll of that period)", topExists: "A highest-sales-day bonus is already saved for this period",
@@ -123,6 +123,7 @@ const h = (tag, attrs = {}, ...kids) => {
   return el;
 };
 const money = v => (+v || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const noteOf = l => !l ? "" : lang === "en" ? (l.note_en || l.note || "") : (l.note || l.note_en || "");
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 const periodLabel = (s, e) => `${s.slice(0, 7)} · ${+s.slice(8) === 1 ? t("first") : t("second")}`;
 let toastT; function toast(msg) { const el = document.getElementById("toast"); el.textContent = msg; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => el.hidden = true, 2200); }
@@ -233,7 +234,7 @@ function renderStaffHome() {
     : h("span", { class: "muted" }, t("noData")));
   const ledList = h("div", { class: "list", id: "my-ledger" }, v.ledger.length ? v.ledger.map(l => { const p = periodForDate(l.biz_date);
     return h("div", { class: "item" }, h("div", { class: "t" }, t("k_" + l.kind), " ", h("span", { class: "pill " + (l.deducted ? "paid" : "draft") }, l.deducted ? t("led_deducted") : t("led_pending"))),
-      h("div", { class: "s" }, l.biz_date, " ", t("led_applies").replace("{p}", periodLabel(p.start, p.end)), l.note ? ` · ${l.note}` : ""), h("div", { class: "m money " + (l.kind === "bonus" ? "pos" : "neg") }, (l.kind === "bonus" ? "+" : "−") + money(l.amount))); })
+      h("div", { class: "s" }, l.biz_date, " ", t("led_applies").replace("{p}", periodLabel(p.start, p.end)), noteOf(l) ? ` · ${noteOf(l)}` : ""), h("div", { class: "m money " + (l.kind === "bonus" ? "pos" : "neg") }, (l.kind === "bonus" ? "+" : "−") + money(l.amount))); })
     : h("span", { class: "muted" }, t("noData")));
   const shifts = h("div", { id: "my-shifts" }, v.payrolls.length ? v.payrolls.map(p => h("details", { class: "card", style: "margin:0 0 8px" },
       h("summary", {}, h("b", {}, periodLabel(p.period_start, p.period_end)), " ", h("span", { class: "pill " + p.status }, p.status === "paid" ? t("paid") : t("notPaidYet"))),
@@ -326,7 +327,7 @@ function staffCalcCard(emp, v) {
   const setPeriod = () => { const [y, m] = SC.month.split("-").map(Number); const p = periodOf(y, m, SC.half); SC.start = p.start; SC.end = p.end;
     const by = Object.fromEntries(SC.days.map(d => [d.date, d])); SC.days = datesBetween(p.start, p.end).map(d => by[d] || planDay(d, planBy[d])); };
   setPeriod();
-  const opts = () => ({ scheme: schemeOf(emp), payType: emp.pay_type || "daily", daily: +emp.daily_rate, monthly: +emp.monthly_rate || 0, breakHrs: 1, allowancePerDay: +emp.allowance_per_day || 0, gov: SC.gov, govShare: +SC.gov.share === 1 ? 1 : 0.5, hoursPerDay: +(EMP.data?.settings?.hours_per_day) || 10, latePenalty: EMP.data?.settings?.late_penalty !== false, monthlyBasic: +(EMP.data?.settings?.monthly_basic) || 25945, otIncluded: EMP.data?.settings?.monthly_ot_incl ?? 1 });
+  const opts = () => ({ scheme: schemeOf(emp), payType: emp.pay_type || "daily", daily: +emp.daily_rate, monthly: +emp.monthly_rate || 0, breakHrs: 1, allowancePerDay: +emp.allowance_per_day || 0, gov: SC.gov, govShare: +SC.gov.share === 1 ? (SC.half === 2 ? 1 : 0) : 0.5, hoursPerDay: +(EMP.data?.settings?.hours_per_day) || 10, latePenalty: EMP.data?.settings?.late_penalty !== false, monthlyBasic: +(EMP.data?.settings?.monthly_basic) || 25945, otIncluded: EMP.data?.settings?.monthly_ot_incl ?? 1 });
   let R = computePayroll(SC.days, opts());
   const monthIn = h("input", { type: "month", id: "scMonth", value: SC.month, onchange: e => { SC.month = e.target.value; setPeriod(); draw(); } });
   const halfSel = sel([[1, t("first")], [2, t("second")]], SC.half, { id: "scHalf", onchange: e => { SC.half = +e.target.value; setPeriod(); draw(); } });
@@ -415,7 +416,7 @@ const monthly = P.pay_type === "monthly";
   // ledger items (advances / shortage / other / bonus) itemized by date when we have them (live payroll or saved with the result)
   const items = (R.ledgerItems || P.ledger || []).filter(l => l.kind !== "shortage" || (l.verified && l.authorized));
   const itemsOf = k => items.filter(l => l.kind === k);
-  const itemRow = (l, sign, cls) => row(`　· ${l.biz_date ? l.biz_date.slice(5).replace("-", "/") : ""} ${l.note ? l.note : t("k_" + l.kind)}`, sign + money(l.amount), cls + " sub");
+  const itemRow = (l, sign, cls) => row(`　· ${l.biz_date ? l.biz_date.slice(5).replace("-", "/") : ""} ${noteOf(l) || t("k_" + l.kind)}`, sign + money(l.amount), cls + " sub");
   const bonusItems = itemsOf("bonus");
   if (R.bonus) { row(t("bonus"), money(R.bonus)); bonusItems.forEach(l => itemRow(l, "+", "")); }
   if (R.incentive) row(t("incentive"), money(R.incentive));
@@ -502,7 +503,7 @@ function payOpts(P) {
   const sum = k => P.ledger.filter(l => l.kind === k && (k !== "shortage" || (l.verified && l.authorized))).reduce((a, l) => a + +l.amount, 0);
   const o = { scheme: schemeOf(S.employees.find(e => e.id === P.employee_id)), payType: P.pay_type, daily: P.daily_rate, monthly: P.monthly_rate, breakHrs: P.break_hours, allowancePerDay: P.allowance_per_day,
     lateMinutes: P.late_minutes, incentive: P.incentive, bonus: sum("bonus"), advances: sum("advance"), shortage: sum("shortage"),
-    otherDeduction: (+P.other_deduction || 0) + sum("other"), gov: P.gov, govShare: +P.gov.share === 1 ? 1 : 0.5, hoursPerDay: +S.settings.hours_per_day || 10, latePenalty: S.settings.late_penalty !== false, monthlyBasic: +S.settings.monthly_basic || 25945, otIncluded: S.settings.monthly_ot_incl ?? 1 };
+    otherDeduction: (+P.other_deduction || 0) + sum("other"), gov: P.gov, govShare: +P.gov.share === 1 ? (+P.half === 2 ? 1 : 0) : 0.5, hoursPerDay: +S.settings.hours_per_day || 10, latePenalty: S.settings.late_penalty !== false, monthlyBasic: +S.settings.monthly_basic || 25945, otIncluded: S.settings.monthly_ot_incl ?? 1 };
   return o;
 }
 async function renderPay() {
@@ -614,7 +615,7 @@ async function renderPay() {
   const ledList = h("div", { class: "list" });
   for (const l of P.ledger) ledList.append(h("div", { class: "item", onclick: () => ledgerForm(l, re) },
     h("div", { class: "t" }, t("k_" + l.kind), l.kind === "shortage" && !(l.verified && l.authorized) && h("span", { class: "pill draft", style: "margin-left:6px" }, t("notDeducted"))),
-    h("div", { class: "s" }, l.biz_date, l.note ? ` · ${l.note}` : ""), h("div", { class: "m money " + (l.kind === "bonus" ? "pos" : "neg") }, (l.kind === "bonus" ? "+" : "−") + money(l.amount))));
+    h("div", { class: "s" }, l.biz_date, noteOf(l) ? ` · ${noteOf(l)}` : ""), h("div", { class: "m money " + (l.kind === "bonus" ? "pos" : "neg") }, (l.kind === "bonus" ? "+" : "−") + money(l.amount))));
   const payViaSel = sel(PAY_VIAS, P.pay_via || "CASH", { disabled: locked, onchange: e => { P.pay_via = e.target.value; refresh(); } });
   const ded = h("div", { class: "card" }, h("h2", {}, t("deductions")),
     h("div", { class: "grid2" }, adjFields),
@@ -647,7 +648,7 @@ async function renderPay() {
     if (!P.employee_id) return toast(t("pickEmp"));
     const res = computePayroll(P.days, payOpts(P));
     res.payout = payoutOf(P, res, emp);
-    res.ledgerItems = P.ledger.map(l => ({ kind: l.kind, biz_date: l.biz_date, amount: +l.amount, note: l.note || "", verified: l.verified, authorized: l.authorized }));
+    res.ledgerItems = P.ledger.map(l => ({ kind: l.kind, biz_date: l.biz_date, amount: +l.amount, note: l.note || "", note_en: l.note_en || "", verified: l.verified, authorized: l.authorized }));
     try {
       const row = await db.savePayroll({ id: P.id || undefined, employee_id: P.employee_id, period_start: P.start, period_end: P.end, pay_type: P.pay_type, daily_rate: P.daily_rate, monthly_rate: P.monthly_rate, allowance_per_day: P.allowance_per_day,
         break_hours: P.break_hours, days: P.days, late_minutes: P.late_minutes, incentive: P.incentive, other_deduction: P.other_deduction, gov: P.gov, result: res, status: paid ? "paid" : P.status, ...extra });
@@ -817,7 +818,7 @@ async function topBonusSheet() {
         if (!cur) return; const on = cur.boxes.filter(b => b.cb.checked); if (!on.length) return;
         const each = Math.round(cur.pool / on.length * 100) / 100;
         try {
-          for (const b of on) await db.saveLedger({ employee_id: b.e.id, kind: "bonus", biz_date: cur.top, amount: each, note: `최고매출일 보너스 ${cur.top} 매출 ₱${money(cur.total)} × 2% ÷ ${on.length}명 (계약서 6조)`, verified: true, authorized: true });
+          for (const b of on) await db.saveLedger({ employee_id: b.e.id, kind: "bonus", biz_date: cur.top, amount: each, note: `최고매출일 보너스 ${cur.top} 매출 ₱${money(cur.total)} × 2% ÷ ${on.length}명 (계약서 6조)`, note_en: `Highest-sales-day bonus ${cur.top} sales ₱${money(cur.total)} × 2% ÷ ${on.length} staff (contract §6)`, verified: true, authorized: true });
           toast(tf("topDone", { n: on.length, a: money(each) })); close(); render();
         } catch (e) { toast(errMsg(e)); } } }, t("topSave")))]);
   await calc();
@@ -835,7 +836,7 @@ async function renderLedger() {
     const p = periodForDate(l.biz_date);
     list.append(h("div", { class: "item", onclick: () => owner && ledgerForm(l, () => render()) },
       h("div", { class: "t" }, l.employees?.name, " · ", t("k_" + l.kind), " ", h("span", { class: "pill " + (l.payroll_id ? "paid" : "draft") }, l.payroll_id ? t("led_deducted") : t("led_pending"))),
-      h("div", { class: "s" }, l.biz_date, " ", tf("led_applies", { p: periodLabel(p.start, p.end) }), l.note ? ` · ${l.note}` : "", l.kind === "shortage" && !(l.verified && l.authorized) ? " · ⚠ " + t("notDeducted") : ""),
+      h("div", { class: "s" }, l.biz_date, " ", tf("led_applies", { p: periodLabel(p.start, p.end) }), noteOf(l) ? ` · ${noteOf(l)}` : "", l.kind === "shortage" && !(l.verified && l.authorized) ? " · ⚠ " + t("notDeducted") : ""),
       h("div", { class: "m money " + (l.kind === "bonus" ? "pos" : "neg") }, (l.kind === "bonus" ? "+" : "−") + money(l.amount))));
   }
   if (owner) main.append(await cashIssuesCard());
@@ -879,16 +880,16 @@ function ledgerForm(l, after) {
   const empSel = sel(S.employees.map(e => [e.id, e.name]), L.employee_id, { id: "lEmp" });
   const kind = sel(KINDS.map(k => [k, t("k_" + k)]), L.kind, { id: "lKind", onchange: e => { shortBox.hidden = e.target.value !== "shortage"; } });
   const date = h("input", { type: "date", id: "lDate", value: L.biz_date, required: true }); const amt = h("input", { type: "number", id: "lAmt", value: L.amount, step: 1, min: 1, required: true });
-  const note = h("input", { type: "text", id: "lNote", value: L.note || "" });
+  const note = h("input", { type: "text", id: "lNote", value: L.note || "" }); const noteEn = h("input", { type: "text", id: "lNoteEn", value: L.note_en || "" });
   const ver = h("input", { type: "checkbox", id: "lVer", checked: L.verified !== false }); const auth = h("input", { type: "checkbox", id: "lAuth", checked: !!L.authorized });
   const shortBox = h("div", { style: "display:grid;gap:6px", hidden: L.kind !== "shortage" }, h("label", { class: "check" }, ver, t("led_verified")), h("label", { class: "check" }, auth, t("led_auth")));
   const hint = h("small", { class: "muted" }); const upd = () => { const p = periodForDate(date.value || today()); hint.textContent = tf("led_applies", { p: periodLabel(p.start, p.end) }); };
   date.addEventListener("input", upd); upd();
   const close = sheet(h("form", { onsubmit: async ev => { ev.preventDefault(); try {
-      await db.saveLedger({ ...L, employee_id: empSel.value, kind: kind.value, biz_date: date.value, amount: +amt.value, note: note.value || null, verified: kind.value === "shortage" ? ver.checked : true, authorized: auth.checked });
+      await db.saveLedger({ ...L, employee_id: empSel.value, kind: kind.value, biz_date: date.value, amount: +amt.value, note: note.value || null, note_en: noteEn.value || null, verified: kind.value === "shortage" ? ver.checked : true, authorized: auth.checked });
       toast(t("saved")); close(); after(); } catch (er) { toast(errMsg(er)); } } },
     h("h3", {}, t("led_add")),
-    h("div", { class: "grid2" }, field(t("employee"), empSel), field(t("led_kind"), kind), field(t("led_date"), date, hint), field(t("led_amount"), amt), field(t("led_note"), note)), shortBox,
+    h("div", { class: "grid2" }, field(t("employee"), empSel), field(t("led_kind"), kind), field(t("led_date"), date, hint), field(t("led_amount"), amt), field(t("led_noteKo"), note), field(t("led_noteEn"), noteEn, t("led_noteHelp"))), shortBox,
     h("div", { class: "row" }, L.id && h("button", { class: "btn danger sm", type: "button", onclick: () => confirmSheet(t("confirmDel"), async () => { await db.deleteLedger(L.id); close(); after(); }) }, t("delete")),
       h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => close() }, t("cancel")), h("button", { class: "btn primary", type: "submit" }, t("save")))));
 }

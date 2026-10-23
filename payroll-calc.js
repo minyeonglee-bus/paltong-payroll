@@ -151,7 +151,7 @@ export function computePayroll(days, opts) {
   const gross = basic + premium + otPay + ndPay + silPay + holidayOffPay + allowance + incentive + bonus - late - absentDed;
 
   const monthly = isMonthly ? monthlyRate : daily * MONTHLY_FACTOR;
-  const share = opts.govShare === 0.5 ? 0.5 : 1;
+  const share = opts.govShare === 0.5 ? 0.5 : opts.govShare === 0 ? 0 : 1;   // 0 = not this payroll (monthly amount taken on the 30th)
   const gov = opts.gov || {};
   // gov.fixed = monthly amounts actually remitted for this employee (e.g. SSS 450, Pag-IBIG 200) → used instead of the table estimate
   const fx = gov.fixed || {};
