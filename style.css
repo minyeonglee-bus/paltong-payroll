@@ -26,9 +26,9 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .top .sp{flex:1}
 .top button{background:rgba(255,255,255,.14);border:0;color:inherit;border-radius:7px;padding:6px 10px;font-size:13px;cursor:pointer}
 .top button[aria-pressed="true"]{background:var(--accent-ink);color:var(--accent)}
-.tabs{display:flex;gap:4px;overflow-x:auto;background:var(--paper);border-bottom:1px solid var(--line);
+.tabs{display:flex;flex-wrap:wrap;gap:0 2px;background:var(--paper);border-bottom:1px solid var(--line);
   padding:0 max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px));position:sticky;top:0;z-index:4}
-.tabs button{flex:none;background:none;border:0;border-bottom:3px solid transparent;padding:12px 12px 10px;color:var(--muted);font-weight:600;cursor:pointer}
+.tabs button{flex:none;background:none;border:0;border-bottom:3px solid transparent;padding:10px 9px 8px;color:var(--muted);font-weight:600;cursor:pointer}
 .tabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
 main{max-width:900px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 120px;display:grid;gap:16px}
 
@@ -74,6 +74,9 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
 .day.sil{border-color:var(--gold)}
 .day.hol{border-color:var(--accent)}
 .day.wknd .d{color:var(--accent)}
+.day .carryTag{display:block;font-size:10px;font-weight:600;color:var(--gold);line-height:1.2;margin-top:2px}
+.day.carry{border-style:dashed;border-color:var(--gold)}
+.day.carryOut{border-style:dashed}
 .day select{padding:6px 6px;font-size:13px}
 .day .hrs{grid-column:1/-1;font:12px var(--mono);color:var(--muted)}
 
@@ -186,3 +189,4 @@ tr.sub td{font-size:12px;color:var(--muted);padding-top:0;padding-bottom:2px;bor
 tr.sub td:first-child{padding-left:12px}
 tr.neg td:last-child{color:var(--bad,#b3261e)}
 tr.sum.neg td{border-bottom:2px solid var(--fg)}
+.tabs button.due{color:var(--accent)}
