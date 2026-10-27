@@ -36,9 +36,9 @@ const I18N = {
     topBonus: "최고매출일 보너스 계산", topTitle: "최고매출일 보너스 (계약서 6조)", topDay: "최고매출일", topSales: "총매출", topPool: "풀 (2%)", topEach: "1인당", topStaff: "그날 근무 (출퇴근 기록 기준) — 체크 해제하면 제외", topSave: "보너스로 저장", topNone: "이 기간 캐시북 매출이 없어요", topDone: "{n}명에게 ₱{a} 보너스 저장했어요 (10/16 이후 급여에 자동 반영)", topExists: "이미 이 기간 최고매출일 보너스가 저장돼 있어요",
     hist_empty: "저장된 급여가 없어요. 급여 계산 탭에서 저장하세요.", total: "합계",
     carryIn: "↩ 이월", carryInNone: "제외", carryOut: "→ 다음 급여", carryHelp: "급여는 1–15일 · 16–30일. 31일이 있는 달은 30일 야간(자정 넘는 시프트)과 31일 근무가 다음 1–15일 급여에 자동으로 이월돼요 (↩ 표시 줄 · 30일 주간 근무는 16–30일 급여에 그대로).",
-    tab_due: "지급 예정", due_help: "저장했지만 아직 '지급 완료'로 기록 안 한 급여 전체 합계예요. 실수령 = 총급여 − 공제(가불·법정공제 등) = 실제로 줄 돈. 직원별 명단에서 줄을 누르면 급여 계산 탭에서 열려요.",
+    tab_due: "지급 예정", due_help: "저장 안 해도 자동 계산: 캐시북 스케줄 + 앱 출퇴근(있는 날은 실제 시간) + 가불·보너스·부족분·법정공제. 급여 계산 탭에서 저장한 직원은 저장한 내용으로. 실수령 = 총급여 − 공제. 이름을 누르면 급여 계산 탭에서 열려요.",
     due_total: "지급 예정 합계", due_people: "{n}건", due_payday: "지급일 {d}", due_overdue: "지급일 지남", due_byVia: "지급 수단별",
-    due_cnt: "인원", due_gross: "총급여", due_ded: "공제", due_net: "실수령", due_list: "직원별 명단", due_missingHelp: "저장해야 합계에 들어가요.",
+    due_ppl: "{n}명", due_auto: "자동", due_saved: "저장됨", due_days: "근무", due_calc: "스케줄로 계산 중…", due_paidX: "지급 완료 {n}명 제외: {names}", due_prev: "이전 기간 미지급 (저장된 급여)", due_cnt: "인원", due_gross: "총급여", due_ded: "공제", due_net: "실수령", due_list: "직원별 명단", due_missingHelp: "저장해야 합계에 들어가요.",
     due_missing: "이번 기간 ({p}) 아직 저장 안 한 직원", due_empty: "지급 예정 급여가 없어요. 전부 지급 완료예요.",
     set_wage: "기본 일급 (최저임금)", set_break: "기본 식사 휴게 (시간)", set_gov: "법정 공제 기본값", set_lang: "언어", set_rider: "라이더 정비비 (₱/근무일)", set_kitchen: "주방 월급 (총액)", set_mbasic: "월급 중 기본급 (나머지 = 포함 OT)", set_mot: "월급 포함 OT (시간/근무일)", set_hpd: "기존 방식 · 하루 기준 시간 (시프트가 이보다 길면 초과근무 · OT 시급 = 일급 ÷ 이 값)", set_penalty: "기존 방식 · 지각 벌금 (지각액과 같은 금액 추가 공제)", emp_scheme: "계산 방식", sch_contract: "718 계약서 (8h · OT 125% · 야간 10%)", sch_paper: "기존 종이 방식 · 구 계약서 (일급 × 근무일 · OT 일급÷10)", scheme_contract: "계약서", scheme_paper: "기존", penOn: "공제 (종이 방식)", penOff: "공제 안 함",
     contract: "계산 방식 (직원마다 직원 탭에서 선택)", contractText: [
@@ -93,9 +93,9 @@ const I18N = {
     topBonus: "Compute highest-sales-day bonus", topTitle: "Highest-sales-day bonus (contract §6)", topDay: "Highest-sales day", topSales: "Total sales", topPool: "Pool (2%)", topEach: "Each", topStaff: "On duty that day (from clock-ins) — untick to exclude", topSave: "Save as bonuses", topNone: "No cash book sales in this period", topDone: "Saved ₱{a} bonus for {n} staff (applied to the payroll of that period)", topExists: "A highest-sales-day bonus is already saved for this period",
     hist_empty: "No saved payrolls yet. Save one from the Payroll tab.", total: "Total",
     carryIn: "↩ carried", carryInNone: "excluded", carryOut: "→ next pay", carryHelp: "Pay periods are 1–15 and 16–30. In a 31-day month the 30th's night shift (past midnight) and the 31st are carried into the next 1–15 payroll automatically (rows marked ↩; a day shift on the 30th stays in 16–30).",
-    tab_due: "To pay", due_help: "All saved payrolls not yet recorded as paid, in one place. Totals per payout method show how much cash / GCash / bank transfer to prepare. Tap a row to open it in the Payroll tab.",
+    tab_due: "To pay", due_help: "Calculated automatically, nothing to save: Cash Book schedule + app clock-ins (actual times where present) + advances, bonuses, shortages, gov deductions. Staff already saved in the Payroll tab use what was saved. Net = gross − deductions. Tap a name to open it.",
     due_total: "Total to pay", due_people: "{n} payslips", due_payday: "Pay day {d}", due_overdue: "Past pay day", due_byVia: "By payout method",
-    due_cnt: "Staff", due_gross: "Gross", due_ded: "Deductions", due_net: "Net pay", due_list: "Per employee", due_missingHelp: "Save them to include them in the total.",
+    due_ppl: "{n} staff", due_auto: "auto", due_saved: "saved", due_days: "Worked", due_calc: "Calculating from the schedule…", due_paidX: "{n} already paid, not included: {names}", due_prev: "Earlier periods not paid yet (saved)", due_cnt: "Staff", due_gross: "Gross", due_ded: "Deductions", due_net: "Net pay", due_list: "Per employee", due_missingHelp: "Save them to include them in the total.",
     due_missing: "Not saved yet this period ({p})", due_empty: "Nothing left to pay — every saved payroll is paid.",
     set_wage: "Default daily rate (minimum wage)", set_break: "Default meal break (hours)", set_gov: "Statutory deduction defaults", set_lang: "Language", set_rider: "Rider maintenance (₱/duty day)", set_kitchen: "Kitchen monthly default", set_mbasic: "Basic part of the monthly salary (rest = built-in OT)", set_mot: "Built-in OT in the monthly (hours/working day)", set_hpd: "Paper method · hours per day (OT hourly = daily ÷ this)", set_penalty: "Paper method · late penalty (extra deduction equal to the late amount)", emp_scheme: "Pay scheme", sch_contract: "₱718 contract (8h · OT 125% · night 10%)", sch_paper: "Paper method · old contract (daily × days · OT daily÷10)", scheme_contract: "contract", scheme_paper: "paper", penOn: "Deduct (paper method)", penOff: "Do not deduct",
     contract: "How pay is computed (chosen per employee in the Staff tab)", contractText: [
@@ -946,45 +946,66 @@ function viaTotals(rows) {
   return PAY_VIAS.map(([v]) => v).concat(Object.keys(tot).filter(v => !PAY_VIAS.some(x => x[0] === v))).filter(v => tot[v]).map(v => [v, Math.round(tot[v] * 100) / 100]);
 }
 const viaChips = rows => h("div", { class: "row", style: "flex-wrap:wrap;gap:6px" }, viaTotals(rows).map(([v, a]) => h("span", { class: "pill" + (v === "CASH" ? " draft" : " waiter") }, `${viaLabel(v)} ₱${money(a)}`)));
+const DUE = { month: null, half: null };
+/* one employee's payroll for the period, nothing saved: a saved draft is used as is (admin edits), otherwise
+   the Cash Book schedule with the app clock-ins on top — same loading as the Payroll tab, plus advances / gov / bonus */
+async function autoPay(emp, month, half, punches) {
+  const P = { ...defaultPay(), employee_id: emp.id, month, half };
+  await loadPay(P);
+  if (P.status === "paid") return { emp, P, paid: true };
+  if (!P.id) {
+    const by = pairPunches(punches.map(q => ({ kind: q.kind, at: q.punched_at })));
+    for (const d of P.days) { const x = by[d.date]; if (!x?.shift) continue; d.shift = x.shift; if (!DAY_TYPES[d.type]?.worked) d.type = "regular"; if (d.carry) carryNorm(d); }
+  }
+  const R = computePayroll(paidDays(P.days), payOpts(P)); R.payout = payoutOf(P, R, emp);
+  return { emp, P, R };
+}
 async function renderDue() {
   const main = document.getElementById("main");
-  const cur = defaultPay();
-  const [rows, curRows] = await Promise.all([db.listPayrolls({ status: "draft" }), db.listPayrolls({ from: cur.start, to: cur.end.slice(0, 8) + "31" })]);
-  const net = r => +r.result?.net || 0, sum = g => g.reduce((a, r) => a + net(r), 0);
-  const open = r => { const s = r.period_start; S.pay = { ...defaultPay(), employee_id: r.employee_id, month: s.slice(0, 7), half: +s.slice(8) === 1 ? 1 : 2, loaded: false }; S.tab = "pay"; render(); };
-  const empOf = r => ({ ...(S.employees.find(e => e.id === r.employee_id) || {}), ...(r.employees || {}) });
-  const val = (g, k) => g.reduce((a, r) => a + (+r.result?.[k] || 0), 0);
-  const groups = {}; for (const r of rows) (groups[r.period_start + "|" + r.period_end] ||= []).push(r);
-  const periods = Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
-  // one big number: everything still to pay, all staff, all periods
-  const shortP = (s, e) => `${+s.slice(5, 7)}/${+s.slice(8)}–${+e.slice(8)}`;
-  const sumTbl = h("table", {}, h("tr", {}, h("th", {}, t("period")), h("th", { class: "r" }, t("due_cnt")), h("th", { class: "r" }, t("due_net")), h("th", {})),
-    periods.map(([k, g]) => { const [s, e] = k.split("|"); return h("tr", {}, h("td", {}, shortP(s, e), e < today() ? h("span", { class: "pill draft", style: "margin-left:4px" }, t("due_overdue")) : null),
-      h("td", { class: "r" }, g.length), h("td", { class: "r" }, h("b", {}, money(sum(g)))),
-      h("td", { class: "r" }, h("button", { class: "btn sm", type: "button", title: t("printBatch"), onclick: () => batchPrint(g, s, e) }, "🖨"))); }),
-    periods.length > 1 && h("tr", { class: "sum" }, h("td", {}, t("total")), h("td", { class: "r" }, rows.length), h("td", { class: "r" }, money(sum(rows))), h("td", {})));
+  if (!DUE.month) { const p = periodForDate(today()); DUE.month = p.start.slice(0, 7); DUE.half = p.half; }
+  const [y, m] = DUE.month.split("-").map(Number); const per = periodOf(y, m, DUE.half);
+  const mIn = h("input", { type: "month", value: DUE.month, onchange: e => { DUE.month = e.target.value; render(); } });
+  const hSel = sel([[1, t("first")], [2, t("second")]], DUE.half, { onchange: e => { DUE.half = +e.target.value; render(); } });
+  const head = h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_due")), h("span", { class: "sp" }), mIn, hSel), h("p", { class: "muted" }, h("span", { class: "spin" }), t("due_calc")));
+  main.append(head);
+  const emps = S.employees.filter(e => e.active && e.name !== "test");
+  let all, punches, older;
+  try {
+    [punches, older] = await Promise.all([db.listPunchesAll(per.carry?.[0] || per.start, per.end), db.listPayrolls({ status: "draft", to: addDays(per.start, -1) })]);
+    const pBy = {}; for (const q of punches) (pBy[q.employee_id] ||= []).push(q);
+    all = await Promise.all(emps.map(e => autoPay(e, DUE.month, DUE.half, pBy[e.id] || [])));
+  } catch (e) { head.lastChild.replaceWith(h("p", { class: "err" }, errMsg(e))); return; }
+  const due = all.filter(x => !x.paid), paid = all.filter(x => x.paid);
+  const sumK = k => due.reduce((a, x) => a + (+x.R[k] || 0), 0);
+  const asRow = x => ({ employee_id: x.emp.id, period_start: x.P.start, period_end: x.P.end, status: "draft", pay_type: x.P.pay_type, daily_rate: x.P.daily_rate, monthly_rate: x.P.monthly_rate, allowance_per_day: x.P.allowance_per_day, employees: x.emp, result: x.R });
+  const rows = due.map(asRow);
+  const open = x => { S.pay = { ...defaultPay(), employee_id: x.emp.id, month: DUE.month, half: DUE.half, loaded: false }; S.tab = "pay"; render(); };
   const tile = (l, v) => h("div", { style: "text-align:center" }, h("div", { class: "muted", style: "font-size:12px" }, l), h("div", { class: "money", style: "font:600 15px var(--mono)" }, money(v)));
-  main.append(h("div", { class: "card" }, h("h2", {}, t("tab_due")),
-    rows.length > 0 && h("div", { style: "text-align:center;padding:6px 0 10px" }, h("div", { class: "muted" }, `${t("due_total")} · ${tf("due_people", { n: rows.length })}`),
-      h("div", { class: "money", style: "font:700 32px var(--mono);color:var(--good)" }, "₱" + money(sum(rows)))),
-    rows.length > 0 && h("div", { class: "grid2", style: "grid-template-columns:1fr 1fr 1fr;margin-bottom:10px" }, tile(t("due_gross"), val(rows, "gross")), tile("− " + t("due_ded"), val(rows, "deductions")), tile("= " + t("due_net"), sum(rows))),
-    rows.length > 0 && viaChips(rows),
-    rows.length > 0 && h("div", { class: "tbl", style: "margin-top:10px" }, sumTbl),
-    h("small", { class: "muted" }, t("due_help"))));
-  const saved = new Set(curRows.map(r => r.employee_id));
-  const missing = S.employees.filter(e => e.active !== false && !saved.has(e.id));
-  if (missing.length) main.append(h("div", { class: "card" }, h("h3", {}, tf("due_missing", { p: periodLabel(cur.start, cur.end) })), h("small", { class: "muted" }, t("due_missingHelp")),
-    h("div", { class: "row", style: "flex-wrap:wrap;gap:6px" }, missing.map(e => h("button", { class: "btn sm", type: "button", onclick: () => { S.pay = { ...defaultPay(), employee_id: e.id, loaded: false }; S.tab = "pay"; render(); } }, e.name)))));
-  if (!rows.length) return main.append(h("p", { class: "muted" }, t("due_empty")));
-  // everyone in one table (tap a row to open it)
-  const all = rows.slice().sort((a, b) => a.period_start.localeCompare(b.period_start) || String(a.employees?.name).localeCompare(String(b.employees?.name)));
-  main.append(h("div", { class: "card" }, h("details", {}, h("summary", {}, h("b", {}, t("due_list")), " ", h("span", { class: "muted" }, tf("due_people", { n: rows.length }))),
-    h("div", { class: "tbl" }, h("table", {}, h("tr", {}, h("th", {}, t("employee")), h("th", {}, t("payout")), h("th", { class: "r" }, t("due_net"))),
-      all.map(r => h("tr", { style: "cursor:pointer", onclick: () => open(r) },
-        h("td", {}, h("b", {}, r.employees?.name), h("div", { class: "muted", style: "font-size:12px" }, periodLabel(r.period_start, r.period_end))),
-        h("td", { style: "font-size:12px" }, payoutText({ parts: payParts(r) }, empOf(r))),
-        h("td", { class: "r" }, money(net(r))))),
-      h("tr", { class: "sum" }, h("td", {}, t("total")), h("td", {}), h("td", { class: "r" }, money(sum(rows)))))))));
+  head.lastChild.replaceWith(h("div", {},
+    h("div", { style: "text-align:center;padding:6px 0 10px" }, h("div", { class: "muted" }, `${periodLabel(per.start, per.end)} · ${t("due_total")} · ${tf("due_ppl", { n: due.length })}`),
+      h("div", { class: "money", style: "font:700 32px var(--mono);color:var(--good)" }, "₱" + money(sumK("net")))),
+    h("div", { class: "grid2", style: "grid-template-columns:1fr 1fr 1fr;margin-bottom:10px" }, tile(t("due_gross"), sumK("gross")), tile("− " + t("due_ded"), sumK("deductions")), tile("= " + t("due_net"), sumK("net"))),
+    viaChips(rows),
+    paid.length > 0 && h("small", { class: "muted" }, tf("due_paidX", { n: paid.length, names: paid.map(x => x.emp.name).join(", ") })),
+    h("small", { class: "muted", style: "display:block;margin-top:6px" }, t("due_help"))));
+  const ORDER = ["waiter", "kitchen", "rider", "other"];
+  due.sort((a, b) => ORDER.indexOf(a.emp.position) - ORDER.indexOf(b.emp.position) || String(a.emp.name).localeCompare(String(b.emp.name)));
+  main.append(h("div", { class: "card" }, h("div", { class: "row" }, h("h3", {}, t("due_list")), h("span", { class: "sp" }),
+      due.length > 0 && h("button", { class: "btn sm", type: "button", onclick: () => batchPrint(rows, per.start, per.end) }, "🖨 " + t("printBatch"))),
+    h("div", { class: "tbl" }, h("table", {}, h("tr", {}, h("th", {}, t("employee")), h("th", { class: "r" }, t("due_days")), h("th", { class: "r" }, t("due_net"))),
+      due.map(x => h("tr", { style: "cursor:pointer", onclick: () => open(x) },
+        h("td", {}, h("b", {}, x.emp.name), " ", h("span", { class: "pill " + (x.P.id ? "draft" : "paid") }, x.P.id ? t("due_saved") : t("due_auto")),
+          h("div", { class: "muted", style: "font-size:12px" }, payoutText(x.R.payout, x.emp))),
+        h("td", { class: "r" }, `${x.R.daysWorked ?? 0}d` + (x.R.otHours ? ` +${x.R.otHours}h` : "")),
+        h("td", { class: "r" }, money(x.R.net)))),
+      h("tr", { class: "sum" }, h("td", {}, t("total")), h("td", {}), h("td", { class: "r" }, money(sumK("net"))))))));
+  // unpaid saved payrolls of earlier periods (stored figures)
+  if (older.length) {
+    const net = r => +r.result?.net || 0;
+    main.append(h("div", { class: "card" }, h("div", { class: "row" }, h("h3", {}, t("due_prev")), h("span", { class: "sp" }), h("span", { class: "money" }, "₱" + money(older.reduce((a, r) => a + net(r), 0)))),
+      h("div", { class: "list" }, older.map(r => h("div", { class: "item", onclick: () => { const s = r.period_start; S.pay = { ...defaultPay(), employee_id: r.employee_id, month: s.slice(0, 7), half: +s.slice(8) === 1 ? 1 : 2, loaded: false }; S.tab = "pay"; render(); } },
+        h("div", { class: "t" }, r.employees?.name), h("div", { class: "s" }, periodLabel(r.period_start, r.period_end)), h("div", { class: "m money" }, "₱" + money(net(r))))))));
+  }
 }
 
 /* ---- fixed monthly gov deductions per employee (amounts actually remitted, from the bookkeeper) ---- */
