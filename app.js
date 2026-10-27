@@ -35,6 +35,9 @@ const I18N = {
     bonusHint: "계약서 6조 최고매출일 보너스 = 보름 중 매출 최고일 총매출 × 2% ÷ 그날 근무한 직원 수 (아래 버튼으로 캐시북+출퇴근에서 자동) · 주방 신메뉴 ₱500 (5조) · 생일 인센티브 ₱500 (3.4조, 직전 3개월 개근) · 개근 → 다음 달 유급휴가 1일 (3.2조)는 날짜 종류 '유급휴가'로",
     topBonus: "최고매출일 보너스 계산", topTitle: "최고매출일 보너스 (계약서 6조)", topDay: "최고매출일", topSales: "총매출", topPool: "풀 (2%)", topEach: "1인당", topStaff: "그날 근무 (출퇴근 기록 기준) — 체크 해제하면 제외", topSave: "보너스로 저장", topNone: "이 기간 캐시북 매출이 없어요", topDone: "{n}명에게 ₱{a} 보너스 저장했어요 (10/16 이후 급여에 자동 반영)", topExists: "이미 이 기간 최고매출일 보너스가 저장돼 있어요",
     hist_empty: "저장된 급여가 없어요. 급여 계산 탭에서 저장하세요.", total: "합계",
+    tab_due: "지급 예정", due_help: "저장했지만 아직 '지급 완료'로 기록 안 한 급여를 한 번에 모아 봐요. 지급 수단별 합계로 현금·GCash·계좌 이체 준비 금액을 확인하세요. 줄을 누르면 급여 계산 탭에서 열려요.",
+    due_total: "지급 예정 합계", due_people: "{n}건", due_payday: "지급일 {d}", due_overdue: "지급일 지남", due_byVia: "지급 수단별",
+    due_missing: "이번 기간 ({p}) 아직 저장 안 한 직원", due_empty: "지급 예정 급여가 없어요. 전부 지급 완료예요.",
     set_wage: "기본 일급 (최저임금)", set_break: "기본 식사 휴게 (시간)", set_gov: "법정 공제 기본값", set_lang: "언어", set_rider: "라이더 정비비 (₱/근무일)", set_kitchen: "주방 월급 (총액)", set_mbasic: "월급 중 기본급 (나머지 = 포함 OT)", set_mot: "월급 포함 OT (시간/근무일)", set_hpd: "기존 방식 · 하루 기준 시간 (시프트가 이보다 길면 초과근무 · OT 시급 = 일급 ÷ 이 값)", set_penalty: "기존 방식 · 지각 벌금 (지각액과 같은 금액 추가 공제)", emp_scheme: "계산 방식", sch_contract: "718 계약서 (8h · OT 125% · 야간 10%)", sch_paper: "기존 종이 방식 · 구 계약서 (일급 × 근무일 · OT 일급÷10)", scheme_contract: "계약서", scheme_paper: "기존", penOn: "공제 (종이 방식)", penOff: "공제 안 함",
     contract: "계산 방식 (직원마다 직원 탭에서 선택)", contractText: [
       "【718 계약서 (2026-10-01 신계약 · Erika 제외)】 일급 ₱718 · 하루 8시간, 시급 = 일급 ÷ 8 · 시프트에서 8h 넘는 시간은 30분 단위 내림으로 초과근무 125% · 야간(22~06시) +10% (초과근무 시간도 포함 → 137.5%) · 휴무일 130% · 특별공휴일 130% · 정규공휴일 200%(쉬어도 100%) · 지각은 실제 미근무 분만 공제(벌금 없음)",
@@ -87,6 +90,9 @@ const I18N = {
     bonusHint: "Contract §6 highest-sales-day bonus = the period's top sales day × 2% ÷ staff who worked that day (button below computes it from the cash book + clock-ins) · kitchen new menu ₱500 (§5) · birthday incentive ₱500 (§3.4, 3 perfect months) · perfect month → 1 paid leave day (§3.2) as day type 'Paid leave'",
     topBonus: "Compute highest-sales-day bonus", topTitle: "Highest-sales-day bonus (contract §6)", topDay: "Highest-sales day", topSales: "Total sales", topPool: "Pool (2%)", topEach: "Each", topStaff: "On duty that day (from clock-ins) — untick to exclude", topSave: "Save as bonuses", topNone: "No cash book sales in this period", topDone: "Saved ₱{a} bonus for {n} staff (applied to the payroll of that period)", topExists: "A highest-sales-day bonus is already saved for this period",
     hist_empty: "No saved payrolls yet. Save one from the Payroll tab.", total: "Total",
+    tab_due: "To pay", due_help: "All saved payrolls not yet recorded as paid, in one place. Totals per payout method show how much cash / GCash / bank transfer to prepare. Tap a row to open it in the Payroll tab.",
+    due_total: "Total to pay", due_people: "{n} payslips", due_payday: "Pay day {d}", due_overdue: "Past pay day", due_byVia: "By payout method",
+    due_missing: "Not saved yet this period ({p})", due_empty: "Nothing left to pay — every saved payroll is paid.",
     set_wage: "Default daily rate (minimum wage)", set_break: "Default meal break (hours)", set_gov: "Statutory deduction defaults", set_lang: "Language", set_rider: "Rider maintenance (₱/duty day)", set_kitchen: "Kitchen monthly default", set_mbasic: "Basic part of the monthly salary (rest = built-in OT)", set_mot: "Built-in OT in the monthly (hours/working day)", set_hpd: "Paper method · hours per day (OT hourly = daily ÷ this)", set_penalty: "Paper method · late penalty (extra deduction equal to the late amount)", emp_scheme: "Pay scheme", sch_contract: "₱718 contract (8h · OT 125% · night 10%)", sch_paper: "Paper method · old contract (daily × days · OT daily÷10)", scheme_contract: "contract", scheme_paper: "paper", penOn: "Deduct (paper method)", penOff: "Do not deduct",
     contract: "How pay is computed (chosen per employee in the Staff tab)", contractText: [
       "[₱718 contract (new contracts 2026-10-01, all staff except Erika)] ₱718/day · 8h/day, hourly = daily ÷ 8 · shift hours over 8 (rounded down to ½h) = overtime 125% · night (10pm–6am) +10% · rest day 130% · special holiday 130% · regular holiday 200% (100% if off) · late = actual unworked minutes only (no penalty)",
@@ -378,7 +384,7 @@ function setLang(l) { lang = l; try { localStorage.setItem("pp-lang", l); } catc
 
 function render() {
   root.innerHTML = "";
-  const tabs = [["pay", t("tab_pay")], ["sched", t("tab_sched")], ["emp", t("tab_emp")], ["ledger", t("tab_ledger")], ["hist", t("tab_hist")], ["m13", t("tab_13")], ["set", t("tab_set")]];
+  const tabs = [["pay", t("tab_pay")], ["sched", t("tab_sched")], ["emp", t("tab_emp")], ["ledger", t("tab_ledger")], ["due", t("tab_due")], ["hist", t("tab_hist")], ["m13", t("tab_13")], ["set", t("tab_set")]];
   root.append(
     h("div", { class: "top" }, h("span", { class: "brand" }, t("app")), h("span", { class: "sp" }),
       h("span", { class: "muted", style: "color:inherit;opacity:.8;font-size:13px" }, S.user?.name || ""),
@@ -386,7 +392,7 @@ function render() {
       h("button", { onclick: menu }, "⋯")),
     h("div", { class: "tabs", role: "tablist" }, tabs.map(([k, l]) => h("button", { role: "tab", "aria-selected": S.tab === k, onclick: () => { S.tab = k; render(); } }, l))),
     h("main", { id: "main" }));
-  ({ pay: renderPay, sched: renderSched, emp: renderEmp, ledger: renderLedger, hist: renderHist, m13: render13, set: renderSet })[S.tab]();
+  ({ pay: renderPay, sched: renderSched, emp: renderEmp, ledger: renderLedger, due: renderDue, hist: renderHist, m13: render13, set: renderSet })[S.tab]();
 }
 function menu() {
   const close = sheet([
@@ -912,6 +918,44 @@ async function renderHist() {
         h("div", { class: "m money" }, "₱" + money(r.result?.net)))))));
   }
   main.append(h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_hist")), h("span", { class: "sp" }), mIn)), ...(out.length ? out : [h("p", { class: "muted" }, t("hist_empty"))]));
+}
+
+/* ---- 지급 예정: every saved-but-unpaid payroll, grouped by period, with cash / GCash / bank totals ---- */
+const payParts = r => r.result?.payout?.parts || [{ via: r.paid_via || "CASH", amount: +r.result?.net || 0 }];
+function viaTotals(rows) {
+  const tot = {}; for (const r of rows) for (const x of payParts(r)) tot[x.via] = (tot[x.via] || 0) + (+x.amount || 0);
+  return PAY_VIAS.map(([v]) => v).concat(Object.keys(tot).filter(v => !PAY_VIAS.some(x => x[0] === v))).filter(v => tot[v]).map(v => [v, Math.round(tot[v] * 100) / 100]);
+}
+const viaChips = rows => h("div", { class: "row", style: "flex-wrap:wrap;gap:6px" }, viaTotals(rows).map(([v, a]) => h("span", { class: "pill" + (v === "CASH" ? " draft" : " waiter") }, `${viaLabel(v)} ₱${money(a)}`)));
+async function renderDue() {
+  const main = document.getElementById("main");
+  const cur = defaultPay();
+  const [rows, curRows] = await Promise.all([db.listPayrolls({ status: "draft" }), db.listPayrolls({ from: cur.start, to: cur.end })]);
+  const net = r => +r.result?.net || 0, sum = g => g.reduce((a, r) => a + net(r), 0);
+  const open = r => { const s = r.period_start; S.pay = { ...defaultPay(), employee_id: r.employee_id, month: s.slice(0, 7), half: +s.slice(8) === 1 ? 1 : 2, loaded: false }; S.tab = "pay"; render(); };
+  const empOf = r => ({ ...(S.employees.find(e => e.id === r.employee_id) || {}), ...(r.employees || {}) });
+  main.append(h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_due")), h("span", { class: "sp" }),
+      rows.length > 0 && h("span", { class: "money" }, `${t("due_total")} ₱${money(sum(rows))}`)),
+    h("p", { class: "muted" }, t("due_help")),
+    rows.length > 0 && h("div", {}, h("small", { class: "muted" }, `${t("due_byVia")} · ${tf("due_people", { n: rows.length })}`), viaChips(rows))));
+  const saved = new Set(curRows.map(r => r.employee_id));
+  const missing = S.employees.filter(e => e.active !== false && !saved.has(e.id));
+  if (missing.length) main.append(h("div", { class: "card" }, h("h3", {}, tf("due_missing", { p: periodLabel(cur.start, cur.end) })),
+    h("div", { class: "row", style: "flex-wrap:wrap;gap:6px" }, missing.map(e => h("button", { class: "btn sm", type: "button", onclick: () => { S.pay = { ...defaultPay(), employee_id: e.id, loaded: false }; S.tab = "pay"; render(); } }, e.name)))));
+  if (!rows.length) return main.append(h("p", { class: "muted" }, t("due_empty")));
+  const groups = {}; for (const r of rows) (groups[r.period_start + "|" + r.period_end] ||= []).push(r);
+  for (const [k, g] of Object.entries(groups).sort(([a], [b]) => a.localeCompare(b))) {
+    const [s, e] = k.split("|"); const late = e < today();
+    g.sort((a, b) => String(a.employees?.name).localeCompare(String(b.employees?.name)));
+    main.append(h("div", { class: "card" },
+      h("div", { class: "row" }, h("h3", {}, periodLabel(s, e)), h("span", { class: "pill " + (late ? "draft" : "paid") }, late ? t("due_overdue") : tf("due_payday", { d: e })), h("span", { class: "sp" }),
+        h("span", { class: "money" }, `${t("total")} ₱${money(sum(g))}`), h("button", { class: "btn sm", type: "button", onclick: () => batchPrint(g, s, e) }, "🖨 " + t("printBatch"))),
+      viaChips(g),
+      h("div", { class: "list", style: "margin-top:8px" }, g.map(r => h("div", { class: "item", onclick: () => open(r) },
+        h("div", { class: "t" }, r.employees?.name, " ", h("span", { class: "pill " + (r.employees?.position || "") }, t("pos_" + (r.employees?.position || "other")))),
+        h("div", { class: "s" }, payoutText({ parts: payParts(r) }, empOf(r)) + ` · ${r.result?.daysWorked ?? 0}d` + (r.result?.otHours ? ` · OT ${r.result.otHours}h` : "")),
+        h("div", { class: "m money" }, "₱" + money(net(r))))))));
+  }
 }
 
 /* ---- fixed monthly gov deductions per employee (amounts actually remitted, from the bookkeeper) ---- */

@@ -62,11 +62,12 @@ export async function detachLedger(payrollId) { must(await sb.from("pr_ledger").
 export async function getPayroll(employeeId, start, end) {
   return must(await sb.from("pr_payrolls").select("*").eq("employee_id", employeeId).eq("period_start", start).eq("period_end", end).maybeSingle());
 }
-export async function listPayrolls({ from, to, employeeId } = {}) {
-  let q = sb.from("pr_payrolls").select("*, employees:pr_employees(name, position)").order("period_start", { ascending: false }).limit(300);
+export async function listPayrolls({ from, to, employeeId, status } = {}) {
+  let q = sb.from("pr_payrolls").select("*, employees:pr_employees(name, position, info)").order("period_start", { ascending: false }).limit(300);
   if (from) q = q.gte("period_start", from);
   if (to) q = q.lte("period_end", to);
   if (employeeId) q = q.eq("employee_id", employeeId);
+  if (status) q = q.eq("status", status);
   return must(await q);
 }
 export async function savePayroll(row) {
