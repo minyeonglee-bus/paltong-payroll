@@ -1,5 +1,5 @@
 import * as db from "./data.js";
-import { computePayroll, shiftHours, paperOt, pairPunches, SHIFTS, SHIFT_LABEL, isPreset, parseShift, DAY_TYPES, dayTypesFor, periodOf, periodForDate, datesBetween, fmtDate, addDays } from "./payroll-calc.js";
+import { computePayroll, shiftHours, paperOt, pairPunches, SHIFTS, SHIFT_LABEL, isPreset, parseShift, DAY_TYPES, dayTypesFor, periodOf, periodForDate, datesBetween, fmtDate, addDays, isNightShift, carriesOver, paidDays } from "./payroll-calc.js";
 
 /* ---------- i18n ---------- */
 const I18N = {
@@ -11,7 +11,7 @@ const I18N = {
     c13_projHelp: "연말 예상 = 지금까지 평균 반월 기본급 × 남은 반월 수를 더한 값 ÷ 12 (참고용)", c13_total_row: "합계", c13_draftNote: "작성중 급여 포함",
     emp_before: "앱 이전 올해 기본급 (13월급용)", emp_beforeHelp: "앱 쓰기 전 올해 1월~9월에 받은 기본급 합계 (초과·수당 제외). 모르면 0",
     my13: "내 13월급", my13help: "올해 지급된 급여의 기본급(초과·야간·가산·정비비·인센티브 제외)으로 계산한 예상치예요. 1년 이상 근무면 한 달 평균, 1년 미만이면 합계 ÷ 12. 12월 24일 전 지급. 확정 금액은 관리자가 지급 기록한 값이에요.", my13_basic: "올해 기본급 합계 ({n}회 지급)", my13_by12: "÷ 12 (1년 미만)", my13_avg: "한 달 평균 (1년 이상)", my13_est: "예상 13월급", my13_1yr: "1년 이상", my13_under: "1년 미만",
-    employee: "직원", period: "급여 기간", first: "1 – 15일", second: "16일 – 말일", month: "월",
+    employee: "직원", period: "급여 기간", first: "1 – 15일", second: "16 – 30일", month: "월",
     daily: "일급", monthlyRate: "월급 (초과근무 포함)", breakH: "식사 휴게 (시간/일)", allowDay: "정비비 (₱/근무일)",
     roster: "보름치 시프트 표", off: "휴무", wkend: "주말",
     type_regular: "근무", type_half: "반일 (½)", type_rest: "휴무일 근무 (130%)", type_special: "특별공휴일 근무 (+30%)", type_specialRest: "특별공휴일+휴무일 (150%)", type_holiday: "정규공휴일 근무 (+1일)", type_holidayRest: "정규공휴일+휴무일 (260%)", type_holidayOff: "정규공휴일 쉼 (1일)", type_sil: "유급휴가 (1일)", type_absent: "결근 (공제)", type_off: "휴무",
@@ -35,6 +35,7 @@ const I18N = {
     bonusHint: "계약서 6조 최고매출일 보너스 = 보름 중 매출 최고일 총매출 × 2% ÷ 그날 근무한 직원 수 (아래 버튼으로 캐시북+출퇴근에서 자동) · 주방 신메뉴 ₱500 (5조) · 생일 인센티브 ₱500 (3.4조, 직전 3개월 개근) · 개근 → 다음 달 유급휴가 1일 (3.2조)는 날짜 종류 '유급휴가'로",
     topBonus: "최고매출일 보너스 계산", topTitle: "최고매출일 보너스 (계약서 6조)", topDay: "최고매출일", topSales: "총매출", topPool: "풀 (2%)", topEach: "1인당", topStaff: "그날 근무 (출퇴근 기록 기준) — 체크 해제하면 제외", topSave: "보너스로 저장", topNone: "이 기간 캐시북 매출이 없어요", topDone: "{n}명에게 ₱{a} 보너스 저장했어요 (10/16 이후 급여에 자동 반영)", topExists: "이미 이 기간 최고매출일 보너스가 저장돼 있어요",
     hist_empty: "저장된 급여가 없어요. 급여 계산 탭에서 저장하세요.", total: "합계",
+    carryIn: "↩ 이월", carryInNone: "제외", carryOut: "→ 다음 급여", carryHelp: "급여는 1–15일 · 16–30일. 31일이 있는 달은 30일 야간(자정 넘는 시프트)과 31일 근무가 다음 1–15일 급여에 자동으로 이월돼요 (↩ 표시 줄 · 30일 주간 근무는 16–30일 급여에 그대로).",
     tab_due: "지급 예정", due_help: "저장했지만 아직 '지급 완료'로 기록 안 한 급여를 한 번에 모아 봐요. 지급 수단별 합계로 현금·GCash·계좌 이체 준비 금액을 확인하세요. 줄을 누르면 급여 계산 탭에서 열려요.",
     due_total: "지급 예정 합계", due_people: "{n}건", due_payday: "지급일 {d}", due_overdue: "지급일 지남", due_byVia: "지급 수단별",
     due_missing: "이번 기간 ({p}) 아직 저장 안 한 직원", due_empty: "지급 예정 급여가 없어요. 전부 지급 완료예요.",
@@ -66,7 +67,7 @@ const I18N = {
     c13_projHelp: "Year-end estimate = current average basic per half-month × remaining half-months, added, ÷ 12 (reference only)", c13_total_row: "Total", c13_draftNote: "includes draft payrolls",
     emp_before: "Basic earned this year before the app (for 13th month)", emp_beforeHelp: "Basic salary received Jan–Sep this year before the app (no OT / allowances). 0 if unknown",
     my13: "My 13th-month pay", my13help: "Estimate from the basic pay (no OT, night diff, premiums, maintenance or incentives) of payrolls paid this year. 1 year+ of service = one month average; under a year = total ÷ 12. Paid by Dec 24. The final amount is what the admin records.", my13_basic: "Basic pay this year ({n} payrolls)", my13_by12: "÷ 12 (under 1 year)", my13_avg: "One-month average (1 year+)", my13_est: "Estimated 13th month", my13_1yr: "1 year+", my13_under: "under 1 year",
-    employee: "Employee", period: "Pay period", first: "1st – 15th", second: "16th – end", month: "Month",
+    employee: "Employee", period: "Pay period", first: "1st – 15th", second: "16th – 30th", month: "Month",
     daily: "Daily rate", monthlyRate: "Monthly salary (OT-inclusive)", breakH: "Meal break (hrs/day)", allowDay: "Maintenance (₱/duty day)",
     roster: "Half-month shift roster", off: "Off", wkend: "Weekend",
     type_regular: "Worked", type_half: "Half day (½)", type_rest: "Rest day worked (130%)", type_special: "Special holiday worked (+30%)", type_specialRest: "Special holiday + rest day (150%)", type_holiday: "Regular holiday worked (+1 day)", type_holidayRest: "Regular holiday + rest day (260%)", type_holidayOff: "Regular holiday off (1 day)", type_sil: "Paid leave (1 day)", type_absent: "Absent (deducted)", type_off: "Off",
@@ -90,6 +91,7 @@ const I18N = {
     bonusHint: "Contract §6 highest-sales-day bonus = the period's top sales day × 2% ÷ staff who worked that day (button below computes it from the cash book + clock-ins) · kitchen new menu ₱500 (§5) · birthday incentive ₱500 (§3.4, 3 perfect months) · perfect month → 1 paid leave day (§3.2) as day type 'Paid leave'",
     topBonus: "Compute highest-sales-day bonus", topTitle: "Highest-sales-day bonus (contract §6)", topDay: "Highest-sales day", topSales: "Total sales", topPool: "Pool (2%)", topEach: "Each", topStaff: "On duty that day (from clock-ins) — untick to exclude", topSave: "Save as bonuses", topNone: "No cash book sales in this period", topDone: "Saved ₱{a} bonus for {n} staff (applied to the payroll of that period)", topExists: "A highest-sales-day bonus is already saved for this period",
     hist_empty: "No saved payrolls yet. Save one from the Payroll tab.", total: "Total",
+    carryIn: "↩ carried", carryInNone: "excluded", carryOut: "→ next pay", carryHelp: "Pay periods are 1–15 and 16–30. In a 31-day month the 30th's night shift (past midnight) and the 31st are carried into the next 1–15 payroll automatically (rows marked ↩; a day shift on the 30th stays in 16–30).",
     tab_due: "To pay", due_help: "All saved payrolls not yet recorded as paid, in one place. Totals per payout method show how much cash / GCash / bank transfer to prepare. Tap a row to open it in the Payroll tab.",
     due_total: "Total to pay", due_people: "{n} payslips", due_payday: "Pay day {d}", due_overdue: "Past pay day", due_byVia: "By payout method",
     due_missing: "Not saved yet this period ({p})", due_empty: "Nothing left to pay — every saved payroll is paid.",
@@ -329,12 +331,12 @@ const planDay = (date, sh) => !sh ? { date, shift: "", type: "off" } : sh === "o
 function staffCalcCard(emp, v) {
   const planBy = Object.fromEntries((v?.schedule || []).map(r => [r.day, r.shift]));
   const monthly = (emp.pay_type || "daily") === "monthly";
-  if (!SC.month) { const d = new Date(); SC.half = d.getDate() <= 15 ? 1 : 2; SC.month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; }
+  if (!SC.month) { const p = periodForDate(today()); SC.half = p.half; SC.month = p.start.slice(0, 7); }
   const setPeriod = () => { const [y, m] = SC.month.split("-").map(Number); const p = periodOf(y, m, SC.half); SC.start = p.start; SC.end = p.end;
     const by = Object.fromEntries(SC.days.map(d => [d.date, d])); SC.days = datesBetween(p.start, p.end).map(d => by[d] || planDay(d, planBy[d])); };
   setPeriod();
   const opts = () => ({ scheme: schemeOf(emp), payType: emp.pay_type || "daily", daily: +emp.daily_rate, monthly: +emp.monthly_rate || 0, breakHrs: 1, allowancePerDay: +emp.allowance_per_day || 0, gov: SC.gov, govShare: +SC.gov.share === 1 ? (SC.half === 2 ? 1 : 0) : 0.5, hoursPerDay: +(EMP.data?.settings?.hours_per_day) || 10, latePenalty: EMP.data?.settings?.late_penalty !== false, monthlyBasic: +(EMP.data?.settings?.monthly_basic) || 25945, otIncluded: EMP.data?.settings?.monthly_ot_incl ?? 1 });
-  let R = computePayroll(SC.days, opts());
+  let R = computePayroll(paidDays(SC.days), opts());
   const monthIn = h("input", { type: "month", id: "scMonth", value: SC.month, onchange: e => { SC.month = e.target.value; setPeriod(); draw(); } });
   const halfSel = sel([[1, t("first")], [2, t("second")]], SC.half, { id: "scHalf", onchange: e => { SC.half = +e.target.value; setPeriod(); draw(); } });
   const fillSel = sel(SHIFTS.map(v => [v, SHIFT_LABEL(v)]), SC.fillShift, { onchange: e => SC.fillShift = e.target.value });
@@ -343,7 +345,7 @@ function staffCalcCard(emp, v) {
   const govBox = (k, label) => h("label", { class: "check" }, h("input", { type: "checkbox", id: "sc_" + k, checked: !!SC.gov[k], onchange: e => { SC.gov[k] = e.target.checked; draw(); } }), label);
   const shareSel = sel([[0.5, t("govShare")], [1, t("govFull")]], SC.gov.share, { onchange: e => { SC.gov.share = +e.target.value; draw(); } });
   function draw() {
-    R = computePayroll(SC.days, opts());
+    R = computePayroll(paidDays(SC.days), opts());
     rosterEl.innerHTML = "";
     for (const d of SC.days) {
       const dow = new Date(d.date + "T00:00:00").getDay(); const wk = dow === 5 || dow === 6;
@@ -359,7 +361,7 @@ function staffCalcCard(emp, v) {
     calc();
   }
   function calc() {
-    R = computePayroll(SC.days, opts());
+    R = computePayroll(paidDays(SC.days), opts());
     sumEl.textContent = summaryText(R);
     tbl.innerHTML = ""; tbl.append(...resultRows(R, { pay_type: emp.pay_type || "daily", allowance_per_day: +emp.allowance_per_day || 0 }));
     netEl.textContent = "₱" + money(R.net);
@@ -390,7 +392,7 @@ function render() {
       h("span", { class: "muted", style: "color:inherit;opacity:.8;font-size:13px" }, S.user?.name || ""),
       h("button", { onclick: () => setLang(lang === "ko" ? "en" : "ko") }, lang === "ko" ? "EN" : "한"),
       h("button", { onclick: menu }, "⋯")),
-    h("div", { class: "tabs", role: "tablist" }, tabs.map(([k, l]) => h("button", { role: "tab", "aria-selected": S.tab === k, onclick: () => { S.tab = k; render(); } }, l))),
+    h("div", { class: "tabs", role: "tablist" }, tabs.map(([k, l]) => h("button", { role: "tab", class: k === "due" ? "due" : "", "aria-selected": S.tab === k, onclick: () => { S.tab = k; render(); } }, l))),
     h("main", { id: "main" }));
   ({ pay: renderPay, sched: renderSched, emp: renderEmp, ledger: renderLedger, due: renderDue, hist: renderHist, m13: render13, set: renderSet })[S.tab]();
 }
@@ -470,7 +472,7 @@ const mm = m => `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m 
 
 /* ================= PAYROLL TAB ================= */
 function defaultPay() {
-  const d = new Date(); const half = d.getDate() <= 15 ? 1 : 2; const p = periodOf(d.getFullYear(), d.getMonth() + 1, half);
+  const p = periodForDate(today()); const half = p.half;
   return { employee_id: "", month: p.start.slice(0, 7), half, start: p.start, end: p.end, id: null, status: "draft", loaded: false,
     pay_type: "daily", daily_rate: +S.settings.min_wage || 718, monthly_rate: +S.settings.kitchen_monthly || 30000, allowance_per_day: 0,
     break_hours: +S.settings.break_hours || 1, days: [], late_minutes: 0, incentive: 0, other_deduction: 0,
@@ -478,26 +480,39 @@ function defaultPay() {
     ledger: [], paid_on: null, paid_via: null, pay_via: "CASH", pay_split: 0, restDow: 1, fillShift: "8-18" };
 }
 function emptyDay(date) { return { date, shift: "", type: "off" }; }
+/* 1–15 payroll after a 31-day month: the previous month's 30th night shift + 31st come in as carried rows (소급 이월).
+   Taken from what's already in this payroll, else the 16–30 payroll's roster, else the Cash Book plan. */
+const carryNorm = d => { if (+d.date.slice(8) === 30 && !(DAY_TYPES[d.type]?.worked && isNightShift(d.shift))) { d.shift = ""; d.type = "off"; } return d; };
+async function carryRows(P, emp, saved, plan) {
+  if (!P.carry.length) return [];
+  const mine = Object.fromEntries((saved || []).filter(d => d.carry).map(d => [d.date, d]));
+  let prev = null; try { prev = await db.getPayroll(emp.id, P.carry[0].slice(0, 8) + "16"); } catch { }
+  if (prev && prev.status === "paid" && prev.period_end === P.carry[1]) return [];   // old 16–31 period: the 31st was already paid
+  const prevBy = Object.fromEntries((prev?.days || []).map(d => [d.date, d]));
+  if (!plan && P.carry.some(d => !mine[d] && !prevBy[d])) { plan = {}; try { plan = Object.fromEntries((await db.cashbookShifts(P.carry[0], P.carry[1])).filter(r => String(r.staff_name || "").trim().toLowerCase() === String(emp.name).trim().toLowerCase() && r.shift).map(r => [r.day, r.shift])); } catch { } }
+  return P.carry.map(date => carryNorm({ ...(mine[date] || prevBy[date] || planDay(date, (plan || {})[date])), date, carry: true }));
+}
 async function loadPay(P) {
   const emp = S.employees.find(e => e.id === P.employee_id);
   P.pay_type = payTypeOf(emp);
-  const [y, m] = P.month.split("-").map(Number); const p = periodOf(y, m, P.half); P.start = p.start; P.end = p.end;
+  const [y, m] = P.month.split("-").map(Number); const p = periodOf(y, m, P.half); P.start = p.start; P.end = p.end; P.carry = p.carry || [];
   const dates = datesBetween(P.start, P.end);
   if (emp) {
-    const row = await db.getPayroll(P.employee_id, P.start, P.end);
+    const row = await db.getPayroll(P.employee_id, P.start);
     if (row) {
       Object.assign(P, { id: row.id, status: row.status, daily_rate: +row.daily_rate, monthly_rate: +row.monthly_rate || +emp.monthly_rate, allowance_per_day: +row.allowance_per_day,
         break_hours: +row.break_hours, late_minutes: row.late_minutes, incentive: +row.incentive, other_deduction: +row.other_deduction, gov: row.gov, paid_on: row.paid_on, paid_via: row.paid_via, note: row.note || "", result: row.result || null, pay_via: row.result?.payout?.via || row.paid_via || "CASH", pay_split: +(row.result?.payout?.split || 0) });
       if (row.status !== "paid" && Object.keys(govFixedOf(emp)).length) P.gov = govFor(emp, { share: 0.5, ...(row.gov || {}) });
       const byDate = Object.fromEntries((row.days || []).map(d => [d.date, d]));
-      P.days = dates.map(d => byDate[d] || emptyDay(d));
+      if (row.status === "paid") { P.end = row.period_end; P.days = (row.days || []).slice(); }   // paid: exactly what was paid (old 16–31 periods too)
+      else P.days = [...await carryRows(P, emp, row.days), ...dates.map(d => byDate[d] && !byDate[d].carry ? byDate[d] : emptyDay(d))];
     } else {
       Object.assign(P, { id: null, status: "draft", daily_rate: +emp.daily_rate, monthly_rate: +emp.monthly_rate || +S.settings.kitchen_monthly, allowance_per_day: +emp.allowance_per_day || 0,
         late_minutes: 0, incentive: 0, other_deduction: 0, paid_on: null, paid_via: null, note: "", result: null, pay_via: emp.info?.gcash ? "GCASH" : "CASH", pay_split: 0,
         gov: govFor(emp, { sss: !!S.settings.sss_on, philhealth: !!S.settings.philhealth_on, pagibig: !!S.settings.pagibig_on, share: +S.settings.gov_share || 0.5 }) });
       // 새 급여: 스케줄표(계획) 기준으로 미리 채움 — 실제 출퇴근은 "앱 출퇴근 불러오기"로 덮어쓰기
-      let plan = {}; try { plan = Object.fromEntries((await db.cashbookShifts(P.start, P.end)).filter(r => String(r.staff_name || "").trim().toLowerCase() === String(emp.name).trim().toLowerCase() && r.shift).map(r => [r.day, r.shift])); } catch { }
-      P.days = dates.map(d => planDay(d, plan[d]));
+      let plan = {}; try { plan = Object.fromEntries((await db.cashbookShifts(P.carry[0] || P.start, P.end)).filter(r => String(r.staff_name || "").trim().toLowerCase() === String(emp.name).trim().toLowerCase() && r.shift).map(r => [r.day, r.shift])); } catch { }
+      P.days = [...await carryRows(P, emp, null, plan), ...dates.map(d => planDay(d, plan[d]))];
     }
     const led = await db.listLedger({ employeeId: P.employee_id });
     const inPeriod = l => periodForDate(l.biz_date).start === P.start;
@@ -521,7 +536,7 @@ async function renderPay() {
   const owner = S.user?.role === "owner";
   const locked = P.status === "paid";
   // a paid payroll shows the figures it was paid with (stored result), not a fresh recomputation
-  const calc = () => locked && P.result && P.result.net != null ? { ...P.result } : computePayroll(P.days, payOpts(P));
+  const calc = () => locked && P.result && P.result.net != null ? { ...P.result } : computePayroll(paidDays(P.days), payOpts(P));
   const R = calc();
   const monthly = P.pay_type === "monthly";
   const re = async () => { P.loaded = false; render(); };
@@ -555,10 +570,11 @@ async function renderPay() {
     for (const d of P.days) {
       const dt = new Date(d.date + "T00:00:00"); const dow = dt.getDay(); const wk = dow === 5 || dow === 6;   // 주말 = 금·토
       const toggle = () => { if (locked) return; if (d.type === "off") { d.shift = d.shift || P.fillShift; d.type = "regular"; } else { d.shift = ""; d.type = "off"; d.ot = null; } drawRoster(); refresh(); };
-      const lbl = h("div", { class: "d", role: "button", title: t("off"), style: locked ? "" : "cursor:pointer", onclick: toggle }, t("dow")[dow], h("b", {}, +d.date.slice(8)));
+      const tag = d.carry ? (paidDays([d]).length ? t("carryIn") : t("carryInNone")) : carriesOver(d.date, d.shift) ? t("carryOut") : "";
+      const lbl = h("div", { class: "d", role: "button", title: t("off"), style: locked ? "" : "cursor:pointer", onclick: toggle }, t("dow")[dow], h("b", {}, (d.carry ? +d.date.slice(5, 7) + "/" : "") + +d.date.slice(8)), tag && h("small", { class: "carryTag" }, tag));
       const sh = DAY_TYPES[d.type]?.worked ? shiftHours(d.shift, P.break_hours) : null;
-      const cls = "day" + (d.type === "off" ? " off" : "") + (d.type === "sil" ? " sil" : "") + (/holiday|special|absent/.test(d.type) ? " hol" : "") + (wk ? " wknd" : "");
-      const shiftCtl = shiftPicker(d, locked, (redraw = true) => { if (redraw) drawRoster(); else { refreshHrs(d); const o = rosterEl.querySelector(`.otin[data-d="${d.date}"] input`); if (o) o.placeholder = String(paperOt(shiftHours(d.shift, 0), +S.settings.hours_per_day || 10, P.break_hours)); } refresh(); }, P.fillShift);
+      const cls = "day" + (d.carry ? " carry" : "") + (tag && !d.carry ? " carryOut" : "") + (d.type === "off" ? " off" : "") + (d.type === "sil" ? " sil" : "") + (/holiday|special|absent/.test(d.type) ? " hol" : "") + (wk ? " wknd" : "");
+      const shiftCtl = shiftPicker(d, locked, (redraw = true) => { if (redraw || d.carry || +d.date.slice(8) === 30) drawRoster(); else { refreshHrs(d); const o = rosterEl.querySelector(`.otin[data-d="${d.date}"] input`); if (o) o.placeholder = String(paperOt(shiftHours(d.shift, 0), +S.settings.hours_per_day || 10, P.break_hours)); } refresh(); }, P.fillShift);
       const typeSel = sel(dayTypesFor(schemeOf(emp), P.pay_type).map(k => [k, t("type_" + k)]), d.type, { disabled: locked, "aria-label": "day type", onchange: e => { d.type = e.target.value; if (!DAY_TYPES[d.type].worked) d.shift = ""; else if (!d.shift) d.shift = P.fillShift; drawRoster(); refresh(); } });
       const hrsEl = h("div", { class: "hrs", "data-d": d.date }, hrsText(sh));
       const otEl = DAY_TYPES[d.type]?.worked && !monthly && paper ? otInput(d, locked, refresh, +S.settings.hours_per_day || 10, P.break_hours) : null; if (otEl) otEl.dataset.d = d.date;
@@ -572,22 +588,23 @@ async function renderPay() {
     const fillBtn = h("button", { class: "btn sm", type: "button", id: "fillAll", disabled: locked, onclick: () => { for (const d of P.days) { d.shift = P.fillShift; d.type = "regular"; } drawRoster(); refresh(); } }, t("fillAll"));
     const schedBtn = h("button", { class: "btn sm", type: "button", id: "fromSched", disabled: locked || !emp, onclick: async () => {
       try {
-        const rows = (await db.cashbookShifts(P.start, P.end)).filter(r => String(r.staff_name || "").trim().toLowerCase() === String(emp.name).trim().toLowerCase() && r.shift);
+        const rows = (await db.cashbookShifts(P.carry?.[0] || P.start, P.end)).filter(r => String(r.staff_name || "").trim().toLowerCase() === String(emp.name).trim().toLowerCase() && r.shift);
         if (!rows.length) return toast(t("schedNone"));
         const by = Object.fromEntries(rows.map(r => [r.day, r.shift]));
         let n = 0;
         for (const d of P.days) { const sh = by[d.date]; if (!sh) continue; n++;
-          if (sh === "off") { d.shift = ""; d.type = "off"; } else if (sh === "sil") { d.shift = ""; d.type = "sil"; } else if (SHIFTS.includes(sh)) { d.shift = sh; if (!DAY_TYPES[d.type]?.worked) d.type = "regular"; } }
+          if (sh === "off") { d.shift = ""; d.type = "off"; } else if (sh === "sil") { d.shift = ""; d.type = "sil"; } else if (SHIFTS.includes(sh)) { d.shift = sh; if (!DAY_TYPES[d.type]?.worked) d.type = "regular"; }
+          if (d.carry) carryNorm(d); }
         drawRoster(); refresh(); toast(tf("schedLoaded", { n }));
       } catch (e) { toast(errMsg(e)); } } }, t("fromSched"));
     const punchBtn = h("button", { class: "btn sm primary", type: "button", id: "fromPunch", disabled: locked || !emp, onclick: async () => {
       try {
-        const rows = await db.listPunches(P.employee_id, P.start, P.end);
+        const rows = await db.listPunches(P.employee_id, P.carry?.[0] || P.start, P.end);
         if (!rows.length) return toast(t("punchNone"));
         const by = pairPunches(rows.map(r => ({ kind: r.kind, at: r.punched_at })));
         let n = 0, inc = 0;
         for (const d of P.days) { const x = by[d.date]; if (!x) continue;
-          if (x.shift) { d.shift = x.shift; if (!DAY_TYPES[d.type]?.worked) d.type = "regular"; n++; } else { inc++; } }
+          if (x.shift) { d.shift = x.shift; if (!DAY_TYPES[d.type]?.worked) d.type = "regular"; n++; if (d.carry) carryNorm(d); } else { inc++; } }
         drawRoster(); refresh(); toast(tf("punchLoaded", { n, x: inc ? tf("punchIncomplete", { n: inc }) : "" }));
       } catch (e) { toast(errMsg(e)); } } }, t("fromPunch"));
     fillRow = h("div", { class: "row" }, punchBtn, fillSel, fillBtn, schedBtn, h("span", { class: "muted" }, t("weekendHelp")));
@@ -610,7 +627,7 @@ async function renderPay() {
       }
     } catch (e) { punchBox.append(h("span", { class: "err" }, errMsg(e))); }
   }
-  const roster = h("div", { class: "card" }, h("h2", {}, t("roster")), fillRow, h("small", { class: "muted" }, t("fillHelp")), rosterEl, sumEl, punchDet);
+  const roster = h("div", { class: "card" }, h("h2", {}, t("roster")), fillRow, h("small", { class: "muted" }, t("fillHelp")), h("small", { class: "muted" }, t("carryHelp")), rosterEl, sumEl, punchDet);
 
   // --- adjustments & deductions ---
   const adjFields = [];
@@ -652,7 +669,7 @@ async function renderPay() {
   function refresh() { Object.assign(R, calc()); drawResult(); sumEl.textContent = summary(); }
   async function save(paid, extra = {}) {
     if (!P.employee_id) return toast(t("pickEmp"));
-    const res = computePayroll(P.days, payOpts(P));
+    const res = computePayroll(paidDays(P.days), payOpts(P));
     res.payout = payoutOf(P, res, emp);
     res.ledgerItems = P.ledger.map(l => ({ kind: l.kind, biz_date: l.biz_date, amount: +l.amount, note: l.note || "", note_en: l.note_en || "", verified: l.verified, authorized: l.authorized }));
     try {
@@ -696,8 +713,8 @@ function printSlip(mode) {
 const SCH = { month: null, half: null };
 async function renderSched() {
   const main = document.getElementById("main");
-  if (!SCH.month) { const d = new Date(); SCH.half = d.getDate() <= 15 ? 1 : 2; SCH.month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; }
-  const [y, m] = SCH.month.split("-").map(Number); const p = periodOf(y, m, SCH.half);
+  if (!SCH.month) { const p = periodForDate(today()); SCH.half = p.half; SCH.month = p.start.slice(0, 7); }
+  const [y, m] = SCH.month.split("-").map(Number); const p = { ...periodOf(y, m, SCH.half) }; if (p.monthEnd) p.end = p.monthEnd;
   const monthIn = h("input", { type: "month", value: SCH.month, onchange: e => { SCH.month = e.target.value; render(); } });
   const halfSel = sel([[1, t("first")], [2, t("second")]], SCH.half, { onchange: e => { SCH.half = +e.target.value; render(); } });
   const card = h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_sched")), h("span", { class: "sp" }), monthIn, halfSel), h("small", { class: "muted" }, t("sched_help")));
@@ -790,7 +807,7 @@ function empForm(e) {
 
 /* ---- contract §6: semi-monthly highest-sales-day bonus = top day's sales × 2% ÷ staff who worked that day ---- */
 async function topBonusSheet() {
-  const d = new Date(); const p0 = periodOf(d.getFullYear(), d.getMonth() + 1, d.getDate() <= 15 ? 1 : 2);
+  const p0 = periodForDate(today());
   const mIn = h("input", { type: "month", value: p0.start.slice(0, 7) }); const hSel = sel([[1, t("first")], [2, t("second")]], p0.half, {});
   const body = h("div", {}); let cur = null;
   async function calc() {
@@ -930,7 +947,7 @@ const viaChips = rows => h("div", { class: "row", style: "flex-wrap:wrap;gap:6px
 async function renderDue() {
   const main = document.getElementById("main");
   const cur = defaultPay();
-  const [rows, curRows] = await Promise.all([db.listPayrolls({ status: "draft" }), db.listPayrolls({ from: cur.start, to: cur.end })]);
+  const [rows, curRows] = await Promise.all([db.listPayrolls({ status: "draft" }), db.listPayrolls({ from: cur.start, to: cur.end.slice(0, 8) + "31" })]);
   const net = r => +r.result?.net || 0, sum = g => g.reduce((a, r) => a + net(r), 0);
   const open = r => { const s = r.period_start; S.pay = { ...defaultPay(), employee_id: r.employee_id, month: s.slice(0, 7), half: +s.slice(8) === 1 ? 1 : 2, loaded: false }; S.tab = "pay"; render(); };
   const empOf = r => ({ ...(S.employees.find(e => e.id === r.employee_id) || {}), ...(r.employees || {}) });

@@ -59,8 +59,9 @@ export async function deleteLedger(id) { must(await sb.from("pr_ledger").delete(
 export async function attachLedger(ids, payrollId) { if (ids.length) must(await sb.from("pr_ledger").update({ payroll_id: payrollId }).in("id", ids)); }
 export async function detachLedger(payrollId) { must(await sb.from("pr_ledger").update({ payroll_id: null }).eq("payroll_id", payrollId)); }
 
-export async function getPayroll(employeeId, start, end) {
-  return must(await sb.from("pr_payrolls").select("*").eq("employee_id", employeeId).eq("period_start", start).eq("period_end", end).maybeSingle());
+// by period start: old second-half rows were saved as 16–31, new ones are 16–30 (saving an old draft moves its end to the 30th)
+export async function getPayroll(employeeId, start) {
+  return must(await sb.from("pr_payrolls").select("*").eq("employee_id", employeeId).eq("period_start", start).order("period_end", { ascending: false }).limit(1).maybeSingle());
 }
 export async function listPayrolls({ from, to, employeeId, status } = {}) {
   let q = sb.from("pr_payrolls").select("*, employees:pr_employees(name, position, info)").order("period_start", { ascending: false }).limit(300);

@@ -174,19 +174,32 @@ export function computePayroll(days, opts) {
   };
 }
 
-/** advance requested 1–15 → 15th payroll; 16–end → 30th payroll. */
+/** pay periods: 1–15 and 16–30 (Feb: 16–28/29). In a 31-day month the 30th's night shift (crosses midnight) and the whole 31st
+ *  are paid in the next 1–15 payroll (carried over, 소급 이월) — the 30th payroll is handed out before that work is done. */
+const pad2 = n => String(n).padStart(2, "0");
+const lastDay = (y, m) => new Date(y, m, 0).getDate();
+/** advance / ledger dated 1–15 → 15th payroll; 16–30 → 30th payroll; 31st → next month's 15th payroll. */
 export function periodForDate(dateStr) {
   const d = new Date(dateStr + "T00:00:00");
   const y = d.getFullYear(), m = d.getMonth() + 1, day = d.getDate();
-  return day <= 15 ? periodOf(y, m, 1) : periodOf(y, m, 2);
+  return day <= 15 ? periodOf(y, m, 1) : day <= 30 ? periodOf(y, m, 2) : (m === 12 ? periodOf(y + 1, 1, 1) : periodOf(y, m + 1, 1));
 }
 export function periodOf(y, m, half) {
-  const last = new Date(y, m, 0).getDate();
-  const pad = n => String(n).padStart(2, "0");
-  return half === 1
-    ? { start: `${y}-${pad(m)}-01`, end: `${y}-${pad(m)}-15`, half: 1 }
-    : { start: `${y}-${pad(m)}-16`, end: `${y}-${pad(m)}-${pad(last)}`, half: 2 };
+  const last = lastDay(y, m);
+  if (half !== 1) return { start: `${y}-${pad2(m)}-16`, end: `${y}-${pad2(m)}-${pad2(Math.min(last, 30))}`, half: 2, monthEnd: `${y}-${pad2(m)}-${pad2(last)}` };
+  const py = m === 1 ? y - 1 : y, pm = m === 1 ? 12 : m - 1;
+  const carry = lastDay(py, pm) === 31 ? [`${py}-${pad2(pm)}-30`, `${py}-${pad2(pm)}-31`] : [];   // previous month's 30th night + 31st
+  return { start: `${y}-${pad2(m)}-01`, end: `${y}-${pad2(m)}-15`, half: 1, carry };
 }
+/** shift that crosses midnight (18-4, 20-6, 22-8 …) */
+export const isNightShift = v => { const p = parseShift(v); return !!p && p.end <= p.start; };
+/** this date+shift is paid in the next payroll: the 30th's night shift in a 31-day month, or anything on the 31st */
+export function carriesOver(date, shift) {
+  const [y, m, d] = date.split("-").map(Number);
+  return d === 31 || (d === 30 && lastDay(y, m) === 31 && isNightShift(shift));
+}
+/** the roster days that count in this payroll: own days minus the ones carried out, plus carried-in rows (carry: true) */
+export const paidDays = days => (days || []).filter(d => d.carry ? carriesOver(d.date, d.shift) || +d.date.slice(8) === 31 : !carriesOver(d.date, d.shift));
 export function fmtDate(d) { const pad = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
 export function datesBetween(start, end) {
   const out = []; const d = new Date(start + "T00:00:00"); const e = new Date(end + "T00:00:00");
