@@ -4,6 +4,7 @@ import { computePayroll, shiftHours, paperOt, pairPunches, SHIFTS, SHIFT_LABEL, 
 /* ---------- i18n ---------- */
 const I18N = {
   ko: {
+    emp_resigned: "퇴사일", emp_resignedHelp: "넣으면 급여·스케줄 목록에서 빠져요. 직원 로그인은 13th month 지급일 + 7일까지 열려 있다가 막혀요", resign13: "퇴사 정산 · 13th month", resign13Help: "퇴사한 해의 기본급 ÷ 12. 퇴사일로부터 30일 안에 지급 (DOLE LA 06-20)", resignDue: "지급 기한 {d}", accessUntil: "직원 로그인 {d}까지", accessOpen: "13th month 지급 후 7일 뒤 로그인 막힘", pinClosed: "퇴사 처리돼서 더 이상 로그인할 수 없어요", punchResigned: "퇴사일 이후에는 출퇴근을 찍을 수 없어요", resignedTag: "퇴사 {d}",
     app: "Paltong 급여", login: "로그인", id: "아이디", pw: "비밀번호", logout: "로그아웃", changePw: "비밀번호 변경", newPw: "새 비밀번호 (6자 이상)",
     tab_pay: "급여 계산", tab_sched: "스케줄", tab_emp: "직원", tab_ledger: "가불·부족분·보너스", tab_hist: "급여 내역", tab_13: "13월급", tab_set: "설정",
     y13: "연도", y13help: "13월급 = 그 해 받은 기본급 합계 ÷ 12 (1년 미만은 받은 만큼만 = 자동 비례) · 12월 24일까지 지급. 기본급엔 초과근무·공휴일 가산·정비비·보너스가 안 들어가요. 앱에 저장된 급여(지급됨 + 작성중)를 더하고, 앱 쓰기 전 기본급은 직원 탭에서 손으로 넣어요.",
@@ -61,6 +62,7 @@ const I18N = {
     myInfo: "내 정보", myInfoHelp: "연락처·주소·급여 받을 계좌·정부 번호는 직접 고칠 수 있어요. 이름·직책·급여는 관리자만 바꿀 수 있어요.", infoSaved: "내 정보를 저장했어요", empInfo: "직원 정보 (직원이 직접 수정 가능)", i_phone: "휴대폰", i_address: "주소", i_gcash: "GCash 번호", i_bank_name: "은행", i_bank_acct: "계좌번호", i_sss: "SSS 번호", i_philhealth: "PhilHealth 번호", i_pagibig: "Pag-IBIG 번호", i_tin: "TIN", i_emergency_name: "비상 연락 (이름·관계)", i_emergency_phone: "비상 연락 번호", myPay: "내 급여명세서", myLedger: "내 가불·부족분", myShifts: "내 근무 기록", notPaidYet: "아직 지급 전", noData: "아직 기록이 없어요", empNoLbl: "번호", resetPin: "PIN 초기화 (0000)", pinReset: "PIN을 0000으로 초기화했어요. 다음 로그인 때 본인이 다시 등록해요.", pinSet: "PIN 등록됨", pinNotSet: "PIN 미등록 (0000)",
   },
   en: {
+    emp_resigned: "Resigned on", emp_resignedHelp: "Removes them from payroll & schedule lists. Staff login stays open until 7 days after the 13th-month payment, then closes", resign13: "Final pay · 13th month", resign13Help: "Basic earned in the year of resignation ÷ 12. Due within 30 days of separation (DOLE LA 06-20)", resignDue: "Due by {d}", accessUntil: "Staff login until {d}", accessOpen: "Login closes 7 days after the 13th-month payment", pinClosed: "Your account was closed after resignation", punchResigned: "You can't clock in or out after your resignation date", resignedTag: "Resigned {d}",
     app: "Paltong Payroll", login: "Sign in", id: "ID", pw: "Password", logout: "Sign out", changePw: "Change password", newPw: "New password (6+ chars)",
     tab_pay: "Payroll", tab_sched: "Schedule", tab_emp: "Staff", tab_ledger: "Advances · shortages · bonuses", tab_hist: "History", tab_13: "13th month", tab_set: "Settings",
     y13: "Year", y13help: "13th-month pay = total basic salary earned in the year ÷ 12 (under a year: whatever was earned = automatic pro-rata) · due by Dec 24. Basic excludes OT, holiday extras, maintenance allowance and bonuses. Adds payrolls saved in the app (paid + draft); basic earned before the app is entered manually in the Staff tab.",
@@ -120,6 +122,9 @@ const I18N = {
 };
 let lang = "ko"; try { lang = localStorage.getItem("pp-lang") || "ko"; } catch {}
 const t = k => I18N[lang][k] ?? I18N.ko[k] ?? k;
+const pinErr = (err, fallback = "pinWrong") => t(err === "locked" ? "pinLocked" : err === "closed" ? "pinClosed" : err === "resigned" ? "punchResigned" : fallback);
+// 재직 중이거나, 이 기간 시작일 이후 퇴사한 직원 (마지막 급여 계산용)
+const onPayroll = (e, start) => e.active || (!!e.resigned_on && e.resigned_on >= start);
 const tf = (k, vars) => Object.entries(vars).reduce((s, [a, b]) => s.replaceAll(`{${a}}`, b), t(k));
 
 /* ---------- helpers ---------- */
@@ -196,7 +201,7 @@ async function staffSignIn(no, pin) {
   try {
     await db.init();
     const v = await db.empView(no, pin);
-    if (!v.ok) return renderStaffLogin(v.err === "locked" ? t("pinLocked") : t("pinWrong"), no);
+    if (!v.ok) return renderStaffLogin(pinErr(v.err), no);
     EMP.no = String(no).trim(); EMP.pin = String(pin);
     try { localStorage.setItem("pp-empno", EMP.no); } catch {}
     if (v.must_change) return renderSetPin(v.name);
@@ -208,7 +213,7 @@ function renderSetPin(name, err) {
   const form = h("form", { onsubmit: async e => { e.preventDefault();
       if (a.value !== b.value) return renderSetPin(name, t("pinMismatch"));
       if (!/^[0-9]{4,6}$/.test(a.value) || a.value === "0000") return renderSetPin(name, t("pinBad"));
-      try { const r = await db.empSetPin(EMP.no, EMP.pin, a.value); if (!r.ok) return renderSetPin(name, r.err === "locked" ? t("pinLocked") : t("pinBad"));
+      try { const r = await db.empSetPin(EMP.no, EMP.pin, a.value); if (!r.ok) return renderSetPin(name, pinErr(r.err, "pinBad"));
         toast(t("pinSaved")); await staffSignIn(EMP.no, a.value); } catch (er) { renderSetPin(name, String(er.message || er)); } } },
     h("div", { class: "card" }, h("h1", {}, t("newPinTitle")), h("p", { class: "muted" }, name ? name + " · " : "", t("newPinHelp")),
       field(t("newPin"), a), field(t("newPin2"), b), err && h("div", { class: "err", id: "np-err" }, err),
@@ -227,7 +232,7 @@ function myInfoCard(emp) {
     h("form", { onsubmit: async e => { e.preventDefault(); save.disabled = true;
         try { const info = Object.fromEntries(INFO_KEYS.map(k => [k, inp[k].value.trim()]));
           const r = await db.empUpdateInfo(EMP.no, EMP.pin, info, bday.value || null);
-          if (!r.ok) throw new Error(r.err === "locked" ? t("pinLocked") : r.err);
+          if (!r.ok) throw new Error(["locked", "closed", "resigned"].includes(r.err) ? pinErr(r.err) : r.err);
           emp.info = { ...(emp.info || {}), ...info }; if (bday.value) emp.birthday = bday.value; toast(t("infoSaved"));
         } catch (er) { toast(errMsg(er)); } save.disabled = false; } },
       h("div", { class: "grid2" }, field(t("emp_name"), h("div", { style: "padding:9px 0" }, emp.name)), field(t("emp_bday"), bday), ...INFO_KEYS.map(k => field(t("i_" + k), inp[k]))),
@@ -311,7 +316,7 @@ function clockCard() {
     const btns = document.querySelectorAll("#clock button"); btns.forEach(b => b.disabled = true);
     try {
       const r = await db.punch(EMP.no, EMP.pin, kind);
-      if (!r.ok) { toast(r.err === "locked" ? t("pinLocked") : t("pinWrong")); return; }
+      if (!r.ok) { toast(pinErr(r.err)); return; }
       if (r.dup) { toast(t("clockDup")); return; }
       toast(tf("clockDone", { k: t(kind === "in" ? "punchIn" : "punchOut"), t: fmtT(r.at) }));
       EMP.data = await db.empView(EMP.no, EMP.pin); renderStaffHome();
@@ -544,7 +549,7 @@ async function renderPay() {
   const re = async () => { P.loaded = false; render(); };
 
   // --- header ---
-  const empSel = sel([["", "—"], ...S.employees.filter(e => e.active || e.id === P.employee_id).map(e => [e.id, e.name])], P.employee_id, { id: "pEmp", onchange: async e => { P.employee_id = e.target.value; await re(); } });
+  const empSel = sel([["", "—"], ...S.employees.filter(e => onPayroll(e, P.start) || e.id === P.employee_id).map(e => [e.id, e.name])], P.employee_id, { id: "pEmp", onchange: async e => { P.employee_id = e.target.value; await re(); } });
   const monthIn = h("input", { type: "month", id: "pMonth", value: P.month, onchange: async e => { P.month = e.target.value; await re(); } });
   const halfSel = sel([[1, t("first")], [2, t("second")]], P.half, { id: "pHalf", onchange: async e => { P.half = +e.target.value; await re(); } });
   const numIn = (id, key, step, obj = P) => h("input", { type: "number", id, value: obj[key], step, min: 0, disabled: locked, oninput: e => { obj[key] = +e.target.value || 0; refresh(); } });
@@ -728,7 +733,7 @@ async function renderSched() {
     const owner = S.user?.role === "owner";
     const planBy = {}; for (const r of plan) planBy[String(r.staff_name).trim().toLowerCase() + "|" + r.day] = r.shift;
     const ORDER = ["waiter", "kitchen", "rider", "other"];
-    const emps = S.employees.filter(e => e.active && e.name !== "test").sort((a, b) => ORDER.indexOf(a.position) - ORDER.indexOf(b.position));
+    const emps = S.employees.filter(e => onPayroll(e, p.start) && e.name !== "test").sort((a, b) => ORDER.indexOf(a.position) - ORDER.indexOf(b.position));
     const tbl = h("table", { class: "sched" },
       h("tr", {}, h("th", {}, t("employee")), ...dates.map(d => { const dt = new Date(d + "T00:00:00"); return h("th", { class: (d === todayS ? "today " : "") + ((dt.getDay() === 5 || dt.getDay() === 6) ? "wk" : "") }, `${+d.slice(8)}`, h("small", {}, t("dow")[dt.getDay()])); })),
       ...emps.flatMap((e, i) => { const by = pairPunches(byEmp[e.id] || []);
@@ -769,7 +774,7 @@ function renderEmp() {
   const list = h("div", { class: "list" });
   const rateOf = e => e.pay_type === "monthly" ? `₱${money(e.monthly_rate)}/mo` : `₱${money(e.daily_rate)}/day`;
   for (const e of S.employees) list.append(h("div", { class: "item", onclick: () => owner && empForm(e) },
-    h("div", { class: "t" }, e.name, " ", h("span", { class: "pill " + (e.position || "") }, t("pos_" + e.position)), !e.active && h("span", { class: "pill", style: "margin-left:6px" }, "✕")),
+    h("div", { class: "t" }, e.name, " ", h("span", { class: "pill " + (e.position || "") }, t("pos_" + e.position)), !e.active && h("span", { class: "pill", style: "margin-left:6px" }, e.resigned_on ? tf("resignedTag", { d: e.resigned_on }) : "✕")),
     h("div", { class: "s" }, `${e.emp_no ? t("empNoLbl") + " " + e.emp_no + " · " : ""}${t("st_" + e.status)} · ${t("pt_" + (e.pay_type || "daily")).split(" (")[0]}${e.position === "rider" && +e.allowance_per_day ? ` · +₱${e.allowance_per_day}/day` : ""} · ${t("scheme_" + schemeOf(e))}${e.hired_on ? " · " + e.hired_on : ""} · ${e.pin_hash ? t("pinSet") : t("pinNotSet")}`), h("div", { class: "m money" }, rateOf(e))));
   main.append(h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_emp")), h("span", { class: "sp" }), owner && h("button", { class: "btn primary sm", onclick: () => empForm({ name: "", position: "waiter", daily_rate: S.settings.min_wage, monthly_rate: S.settings.kitchen_monthly, allowance_per_day: 0, pay_type: "daily", status: "probationary", active: true }) }, "+ " + t("emp_add"))), list));
 }
@@ -788,19 +793,22 @@ function empForm(e) {
   const hired = h("input", { type: "date", id: "eHired", value: E.hired_on || "" }); const bday = h("input", { type: "date", id: "eBday", value: E.birthday || "" });
   const active = h("input", { type: "checkbox", id: "eActive", checked: E.active }); const note = h("input", { type: "text", id: "eNote", value: E.note || "" });
   const before = h("input", { type: "number", id: "eBefore", value: E.basic_before_app || 0, step: 1, min: 0 });
+  const resigned = h("input", { type: "date", id: "eResigned", value: E.resigned_on || "", onchange: () => { if (resigned.value) active.checked = false; } });
   const infoIn = infoInputs(E.info, "ei-");
   const fDaily = field(t("daily"), rate), fMonthly = field(t("monthlyRate"), mrate), fAllow = field(t("allowDay"), allow);
   const govIn = Object.fromEntries(GOV_KEYS.map(k => [k, h("input", { type: "number", id: "eGov_" + k, value: +(E.gov_fixed || {})[k] || "", placeholder: "0", step: 1, min: 0 })]));
   function sync() { fDaily.hidden = pt.value !== "daily"; fMonthly.hidden = pt.value !== "monthly"; fAllow.hidden = pos.value !== "rider"; }
   sync();
   const close = sheet(h("form", { onsubmit: async ev => { ev.preventDefault(); try {
-      await db.saveEmployee({ ...E, info: { ...(E.info || {}), ...Object.fromEntries(INFO_KEYS.map(k => [k, infoIn[k].value.trim()])) }, gov_fixed: Object.fromEntries(GOV_KEYS.map(k => [k, +govIn[k].value || 0]).filter(([, v]) => v > 0)), emp_no: eno.value.trim() || null, name: name.value.trim(), position: pos.value, pay_type: pt.value, scheme: sch.value, daily_rate: +rate.value, monthly_rate: +mrate.value, allowance_per_day: pos.value === "rider" ? +allow.value : 0, status: st.value, hired_on: hired.value || null, birthday: bday.value || null, active: active.checked, note: note.value || null, basic_before_app: +before.value || 0, basic_before_year: new Date().getFullYear() });
+      await db.saveEmployee({ ...E, info: { ...(E.info || {}), ...Object.fromEntries(INFO_KEYS.map(k => [k, infoIn[k].value.trim()])) }, gov_fixed: Object.fromEntries(GOV_KEYS.map(k => [k, +govIn[k].value || 0]).filter(([, v]) => v > 0)), emp_no: eno.value.trim() || null, name: name.value.trim(), position: pos.value, pay_type: pt.value, scheme: sch.value, daily_rate: +rate.value, monthly_rate: +mrate.value, allowance_per_day: pos.value === "rider" ? +allow.value : 0, status: st.value, hired_on: hired.value || null, birthday: bday.value || null, active: active.checked, resigned_on: resigned.value || null, note: note.value || null, basic_before_app: +before.value || 0, basic_before_year: new Date().getFullYear() });
       S.employees = await db.listEmployees(true); if (S.pay) S.pay.loaded = false; toast(t("saved")); close(); render(); } catch (er) { toast(errMsg(er)); } } },
     h("h3", {}, E.id ? E.name : t("emp_add")),
     h("div", { class: "grid2" }, field(t("empNo"), eno), field(t("emp_name"), name), field(t("emp_pos"), pos), field(t("emp_payType"), pt), field(t("emp_scheme"), sch), fDaily, fMonthly, fAllow, field(t("emp_status"), st), field(t("emp_hired"), hired), field(t("emp_bday"), bday), field(t("emp_note"), note), field(t("emp_before"), before, t("emp_beforeHelp"))),
     h("div", {}, h("b", {}, t("govFixed")), h("div", { class: "grid2" }, field("SSS", govIn.sss), field("PhilHealth", govIn.philhealth), field("Pag-IBIG", govIn.pagibig)), h("small", { class: "muted" }, t("govFixedHelp"))),
     h("details", { id: "e-info" }, h("summary", {}, t("empInfo")), h("div", { class: "grid2" }, ...INFO_KEYS.map(k => field(t("i_" + k), infoIn[k])))),
     h("label", { class: "check" }, active, t("emp_active")),
+    field(t("emp_resigned"), resigned, t("emp_resignedHelp")),
+    E.id && E.resigned_on ? resign13Box(E) : null,
     E.id && h("div", { class: "row" }, h("span", { class: "muted" }, e.pin_hash ? t("pinSet") : t("pinNotSet")), h("span", { class: "sp" }),
       h("button", { class: "btn sm", type: "button", id: "e-reset-pin", onclick: async () => { try { await db.resetEmpPin(E.id); S.employees = await db.listEmployees(true); toast(t("pinReset")); close(); render(); } catch (er) { toast(errMsg(er)); } } }, t("resetPin"))),
     h("div", { class: "row" }, E.id && h("button", { class: "btn danger sm", type: "button", onclick: () => confirmSheet(t("confirmDel"), async () => { await db.deleteEmployee(E.id); S.employees = await db.listEmployees(true); close(); render(); }) }, t("delete")),
@@ -968,7 +976,7 @@ async function renderDue() {
   const hSel = sel([[1, t("first")], [2, t("second")]], DUE.half, { onchange: e => { DUE.half = +e.target.value; render(); } });
   const head = h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_due")), h("span", { class: "sp" }), mIn, hSel), h("p", { class: "muted" }, h("span", { class: "spin" }), t("due_calc")));
   main.append(head);
-  const emps = S.employees.filter(e => e.active && e.name !== "test");
+  const emps = S.employees.filter(e => onPayroll(e, per.start) && e.name !== "test");
   let all, punches, older;
   try {
     [punches, older] = await Promise.all([db.listPunchesAll(per.carry?.[0] || per.start, per.end), db.listPayrolls({ status: "draft", to: addDays(per.start, -1) })]);
@@ -1062,18 +1070,14 @@ async function render13() {
   const yIn = h("input", { type: "number", id: "y13", value: year, step: 1, min: 2025, max: 2100, style: "width:110px", onchange: e => { M13.year = +e.target.value || year; render(); } });
   const tbl = h("table"); let tot = 0, totBasic = 0, totAvg = 0;
   tbl.append(h("tr", {}, h("th", {}, t("employee")), h("th", { class: "r" }, t("c13_periods")), h("th", { class: "r" }, t("c13_basicApp")), h("th", { class: "r" }, t("c13_basicBefore")), h("th", { class: "r" }, t("c13_total")), h("th", { class: "r" }, t("c13_amount")), h("th", { class: "r" }, t("c13_avg")), h("th", { class: "r" }, t("c13_proj")), h("th", {}, t("c13_status"))));
-  for (const e of S.employees.filter(e => e.active || rows.some(r => r.employee_id === e.id))) {
-    const mine = rows.filter(r => r.employee_id === e.id);
-    const basicApp = mine.reduce((a, r) => a + (+r.result?.basicFor13th || 0), 0);
-    const before = e.basic_before_year === year ? +e.basic_before_app || 0 : 0;
-    const total = basicApp + before, amount = Math.round(total / 12 * 100) / 100;
-    const avg = mine.length ? basicApp / mine.length : 0;
-    const monthAvg = mine.length ? Math.round(basicApp / mine.length * 2 * 100) / 100 : 0; // 1년 이상 근속자: 한 달치 = 보름 평균 × 2
+  for (const e of S.employees.filter(e => e.active || rows.some(r => r.employee_id === e.id) || (e.resigned_on || "").startsWith(String(year)))) {
+    const { mine, basicApp, before, total, amount, avg, monthAvg } = calc13(e, year, rows);
     const proj = Math.round((total + avg * Math.max(0, 24 - elapsedHalves - (before ? 0 : 0))) / 12 * 100) / 100;
     const p = paidBy[e.id]; tot += amount; totBasic += total; totAvg += monthAvg;
     const drafts = mine.filter(r => r.status !== "paid").length;
     tbl.append(h("tr", {},
-      h("td", {}, e.name, drafts ? h("small", { class: "muted" }, ` · ${drafts} ${t("draft")}`) : null),
+      h("td", {}, e.name, drafts ? h("small", { class: "muted" }, ` · ${drafts} ${t("draft")}`) : null,
+        e.resigned_on ? h("div", {}, h("small", { class: "muted" }, tf("resignedTag", { d: e.resigned_on }) + " · " + (p?.paid_on ? tf("accessUntil", { d: addDays(p.paid_on, 7) }) : tf("resignDue", { d: addDays(e.resigned_on, 30) })))) : null),
       h("td", { class: "r" }, mine.length), h("td", { class: "r" }, money(basicApp)), h("td", { class: "r" }, money(before)), h("td", { class: "r" }, money(total)),
       h("td", { class: "r" }, h("b", {}, money(amount))), h("td", { class: "r" }, h("b", {}, money(monthAvg))), h("td", { class: "r muted" }, money(proj)),
       h("td", {}, p ? h("span", { class: "row", style: "gap:6px" }, h("span", { class: "pill paid" }, `${t("c13_paid")} ₱${money(p.amount)}`), h("small", { class: "muted" }, p.paid_on || ""), owner && h("button", { class: "btn sm ghost", type: "button", onclick: () => confirmSheet(t("confirmDel"), async () => { await db.deleteThirteenth(p.id); render(); }) }, t("c13_unpay")))
@@ -1082,6 +1086,31 @@ async function render13() {
   tbl.append(h("tr", { class: "sum" }, h("td", {}, t("c13_total_row")), h("td", {}), h("td", {}), h("td", {}), h("td", { class: "r" }, money(totBasic)), h("td", { class: "r" }, money(tot)), h("td", { class: "r" }, money(totAvg)), h("td", {}), h("td", {})));
   main.append(h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_13")), h("span", { class: "sp" }), h("span", { class: "muted" }, t("y13")), yIn),
     h("small", { class: "muted" }, t("y13help")), h("div", { class: "tbl" }, tbl), h("small", { class: "muted" }, t("c13_projHelp"))));
+}
+function calc13(e, year, rows) {
+  const mine = rows.filter(r => r.employee_id === e.id);
+  const basicApp = mine.reduce((a, r) => a + (+r.result?.basicFor13th || 0), 0);
+  const before = e.basic_before_year === year ? +e.basic_before_app || 0 : 0;
+  const total = basicApp + before, amount = Math.round(total / 12 * 100) / 100;
+  const avg = mine.length ? basicApp / mine.length : 0;
+  const monthAvg = mine.length ? Math.round(basicApp / mine.length * 2 * 100) / 100 : 0; // 1년 이상 근속자: 한 달치 = 보름 평균 × 2
+  return { mine, basicApp, before, total, amount, avg, monthAvg };
+}
+/* 퇴사 직원: 직원 화면 안 13th month 지급 칸 */
+function resign13Box(e) {
+  const year = +e.resigned_on.slice(0, 4);
+  const box = h("div", { class: "card", style: "margin:0" }, h("b", {}, t("resign13")), h("small", { class: "muted" }, " …"));
+  Promise.all([db.listPayrollsYear(year), db.listThirteenth(year).catch(() => [])]).then(([rows, paid]) => {
+    const p = paid.find(x => x.employee_id === e.id); const c = calc13(e, year, rows);
+    box.innerHTML = "";
+    box.append(h("b", {}, `${t("resign13")} · ${year}`), h("small", { class: "muted" }, t("resign13Help")),
+      h("div", { class: "row" }, h("span", {}, `${t("c13_total")} ₱${money(c.total)} ÷ 12 = `, h("b", {}, "₱" + money(c.amount))), h("span", { class: "sp" }),
+        p ? h("span", { class: "row", style: "gap:6px" }, h("span", { class: "pill paid" }, `${t("c13_paid")} ₱${money(p.amount)}`), h("small", { class: "muted" }, `${p.paid_on || ""} ${p.paid_via || ""}`),
+              h("button", { class: "btn sm ghost", type: "button", onclick: () => confirmSheet(t("confirmDel"), async () => { await db.deleteThirteenth(p.id); render(); }) }, t("c13_unpay")))
+          : h("button", { class: "btn sm primary", type: "button", onclick: () => pay13(e, year, c.total, c.amount, c.monthAvg) }, t("c13_pay"))),
+      h("small", { class: "muted" }, p?.paid_on ? tf("accessUntil", { d: addDays(p.paid_on, 7) }) : `${tf("resignDue", { d: addDays(e.resigned_on, 30) })} · ${t("accessOpen")}`));
+  }).catch(er => box.append(h("div", { class: "err" }, errMsg(er))));
+  return box;
 }
 function pay13(e, year, total, amount, monthAvg = 0) {
   const dIn = h("input", { type: "date", id: "p13On", value: today() });
