@@ -703,8 +703,8 @@ function payslip(P, emp, R) {
     h("div", { class: "head" }, h("div", {}, h("b", {}, "PALTONG RESTAURANT"), h("div", { class: "muted" }, "603 Remedios St. Malate Manila")), h("div", {}, h("b", {}, t("slip")), h("div", { class: "muted" }, `${P.start} ~ ${P.end}`))),
     h("div", { class: "grid2" }, h("div", {}, h("b", {}, emp?.name), h("div", { class: "muted" }, t("pos_" + (emp?.position || "other")))), h("div", {}, rate, h("div", { class: "muted" }, summaryText(R)))),
     h("table", {}, resultRows(R, P)), h("br"), days,
-    h("p", { class: "muted" }, `${t("payLine")}: ${payoutText(R.payout || payoutOf(P, R, emp), emp)}` + (P.status === "paid" ? ` · ${P.paid_on}` : "")), P.note && h("p", { class: "muted" }, P.note),
-    h("div", { class: "sig" }, h("div", {}, "Employer / Paltong Restaurant"), h("div", {}, "Employee / " + (emp?.name || ""))),
+    h("p", { class: "muted" }, `${t("payLine")}: ${payoutText(R.payout || payoutOf(P, R, emp), emp)}` + (P.status === "paid" ? ` · ${P.paid_on}` : "")), P.note && h("div", { class: "slipNote" }, P.note),
+    h("div", { class: "sig" }, h("div", {}, "Employer / Paltong Restaurant", h("br"), "Signature · Date"), h("div", {}, "Employee / " + (emp?.name || ""), h("br"), "Signature · Date")),
     h("div", { class: "row noprint", style: "margin-top:14px" }, h("span", { class: "sp" }), h("button", { class: "btn", onclick: () => close() }, t("close")),
       h("button", { class: "btn", onclick: () => printSlip("detail") }, t("printA4")), h("button", { class: "btn primary", onclick: () => printSlip("simple") }, t("printSimple")))));
 }
@@ -1047,7 +1047,8 @@ function slipCompact(r) {
     h("div", { class: "grid2" }, h("div", {}, h("b", {}, emp.name), h("div", { class: "muted" }, t("pos_" + (emp.position || "other")))), h("div", {}, rate, h("div", { class: "muted" }, R.net != null ? summaryText(R) : ""))),
     R.net != null ? h("table", {}, resultRows(R, P)) : h("p", { class: "muted" }, t("draft")),
     h("p", { class: "muted" }, `${t("payLine")}: ${R.payout ? payoutText(R.payout, emp) : (r.paid_via ? viaLabel(r.paid_via) + " ₱" + money(R.net) : "")}` + (r.status === "paid" ? ` · ${r.paid_on || ""}` : ` · ${t("notPaidYet")}`)),
-    h("div", { class: "sig" }, h("div", {}, "Employer"), h("div", {}, "Employee / " + (emp.name || ""))));
+    r.note && h("div", { class: "slipNote" }, r.note),
+    h("div", { class: "sig" }, h("div", {}, "Employer · Date"), h("div", {}, "Employee / " + (emp.name || "") + " · Date")));
 }
 function batchPrint(rows, s, e) {
   const sorted = rows.slice().sort((a, b) => String(a.employees?.name).localeCompare(String(b.employees?.name)));
