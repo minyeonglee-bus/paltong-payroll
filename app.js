@@ -535,14 +535,14 @@ async function loadPay(P) {
     if (row) {
       Object.assign(P, { id: row.id, status: row.status, daily_rate: +row.daily_rate, monthly_rate: +row.monthly_rate || +emp.monthly_rate, allowance_per_day: +row.allowance_per_day,
         break_hours: +row.break_hours, late_minutes: row.late_minutes, incentive: +row.incentive, other_deduction: +row.other_deduction, gov: row.gov, paid_on: row.paid_on, paid_via: row.paid_via, shared_at: row.shared_at || null, ack_at: row.ack_at || null, note: row.note || "", result: row.result || null, pay_via: row.result?.payout?.via || row.paid_via || "CASH", pay_split: +(row.result?.payout?.split || 0) });
-      if (row.status !== "paid" && Object.keys(govFixedOf(emp)).length) P.gov = govFor(emp, { share: 0.5, ...(row.gov || {}) });
+      if (row.status !== "paid") P.gov = { share: 0.5, ...(row.gov || {}), fixed: govFixedOf(emp) };   // saved payroll: keep the ticks as saved
       const byDate = Object.fromEntries((row.days || []).map(d => [d.date, d]));
       if (row.status === "paid") { P.end = row.period_end; P.days = (row.days || []).slice(); }   // paid: exactly what was paid (old 16–31 periods too)
       else P.days = [...await carryRows(P, emp, row.days), ...dates.map(d => byDate[d] && !byDate[d].carry ? byDate[d] : emptyDay(d))];
     } else {
       Object.assign(P, { id: null, status: "draft", break_hours: breakFor(emp, S.settings.break_hours), daily_rate: +emp.daily_rate, monthly_rate: +emp.monthly_rate || +S.settings.kitchen_monthly, allowance_per_day: +emp.allowance_per_day || 0,
         late_minutes: 0, incentive: 0, other_deduction: 0, paid_on: null, paid_via: null, shared_at: null, note: "", result: null, pay_via: emp.info?.gcash ? "GCASH" : "CASH", pay_split: 0,
-        gov: govFor(emp, { sss: !!S.settings.sss_on, philhealth: !!S.settings.philhealth_on, pagibig: !!S.settings.pagibig_on, share: +S.settings.gov_share || 0.5 }) });
+        gov: govFor(emp, { sss: !!S.settings.sss_on, philhealth: !!S.settings.philhealth_on, pagibig: !!S.settings.pagibig_on, share: +S.settings.gov_share || 0.5 }, P.end) });
       // 새 급여: 스케줄표(계획) 기준으로 미리 채움 — 실제 출퇴근은 "앱 출퇴근 불러오기"로 덮어쓰기
       let plan = {}; try { plan = Object.fromEntries((await db.cashbookShifts(P.carry[0] || P.start, P.end)).filter(r => String(r.staff_name || "").trim().toLowerCase() === String(emp.name).trim().toLowerCase() && r.shift).map(r => [r.day, r.shift])); } catch { }
       P.days = [...await carryRows(P, emp, null, plan), ...dates.map(d => planDay(d, plan[d]))];
@@ -672,12 +672,18 @@ async function renderPay() {
   for (const l of P.ledger) ledList.append(h("div", { class: "item", onclick: () => ledgerForm(l, re) },
     h("div", { class: "t" }, t("k_" + l.kind), l.kind === "shortage" && !(l.verified && l.authorized) && h("span", { class: "pill draft", style: "margin-left:6px" }, t("notDeducted"))),
     h("div", { class: "s" }, l.biz_date, noteOf(l) ? ` · ${noteOf(l)}` : ""), h("div", { class: "m money " + (l.kind === "bonus" ? "pos" : "neg") }, (l.kind === "bonus" ? "+" : "−") + money(l.amount))));
-  const payViaSel = sel(PAY_VIAS, P.pay_via || "CASH", { disabled: locked, onchange: e => { P.pay_via = e.target.value; refresh(); } });
+  // payment method stays editable for the owner even after the payroll is finalized or paid (figures don't change)
+  async function savePayout() {
+    if (!locked || !P.id || !P.result) return refresh();
+    try { await db.savePayroll({ id: P.id, result: { ...P.result, payout: payoutOf(P, P.result, emp) }, ...(P.status === "paid" ? { paid_via: P.pay_via } : {}) }); toast(t("saved")); await re(); } catch (e) { toast(errMsg(e)); }
+  }
+  const payViaSel = sel(PAY_VIAS, P.pay_via || "CASH", { disabled: !owner, onchange: e => { P.pay_via = e.target.value; savePayout(); } });
+  const splitIn = h("input", { type: "number", id: "pSplit", value: P.pay_split, step: 100, min: 0, disabled: !owner, oninput: e => { P.pay_split = +e.target.value || 0; if (!locked) refresh(); }, onchange: () => { if (locked) savePayout(); } });
   const ded = h("div", { class: "card" }, h("h2", {}, t("deductions")),
     h("div", { class: "grid2" }, adjFields),
     h("div", { class: "row" }, h("b", {}, t("ledgerAuto")), h("span", { class: "sp" }), emp && h("button", { class: "btn sm", type: "button", onclick: () => ledgerForm({ employee_id: emp.id, kind: "advance", biz_date: P.end, amount: "" }, re) }, "+ " + t("led_add"))),
     P.ledger.length ? ledList : h("span", { class: "muted" }, t("none")),
-    h("div", { class: "row" }, h("b", {}, t("payout")), payViaSel, h("span", { class: "muted" }, t("payoutSplit")), numIn("pSplit", "pay_split", 100), h("span", { class: "muted", id: "payRest" })), h("small", { class: "muted" }, t("payoutHelp")),
+    h("div", { class: "row" }, h("b", {}, t("payout")), payViaSel, h("span", { class: "muted" }, t("payoutSplit")), splitIn, h("span", { class: "muted", id: "payRest" })), h("small", { class: "muted" }, t("payoutHelp")),
     h("div", { class: "row" }, h("b", {}, t("gov")), shareSel), h("div", { class: "row" }, govBox("sss", "SSS"), govBox("philhealth", "PhilHealth"), govBox("pagibig", "Pag-IBIG")), h("small", { class: "muted" }, t("govHelp")));
 
   // --- result ---
@@ -1048,9 +1054,13 @@ async function renderDue() {
 /* ---- fixed monthly gov deductions per employee (amounts actually remitted, from the bookkeeper) ---- */
 const GOV_KEYS = ["sss", "philhealth", "pagibig"];
 const govFixedOf = emp => Object.fromEntries(GOV_KEYS.map(k => [k, +(emp?.gov_fixed || {})[k] || 0]).filter(([, v]) => v > 0));
-function govFor(emp, base) {
-  const fixed = govFixedOf(emp); const g = { ...base, fixed };
-  for (const k of Object.keys(fixed)) g[k] = true;     // an employee with a remitted amount is always deducted
+// statutory contributions of the current month are NOT deducted from staff who keep working (unticked by default);
+// only an employee who resigns by the end of this period has them deducted (whole month, on the final pay).
+function govFor(emp, base, end) {
+  const fixed = govFixedOf(emp); const leaving = !!emp?.resigned_on && (!end || emp.resigned_on <= end);
+  const g = { ...base, fixed };
+  for (const k of GOV_KEYS) g[k] = leaving ? (!!fixed[k] || !!base[k]) : false;
+  if (leaving) g.share = 1;
   return g;
 }
 /* ---- payout: how the net is handed over (cash / GCash / bank, optionally split) ---- */
