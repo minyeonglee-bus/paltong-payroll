@@ -193,3 +193,7 @@ tr.sum.neg td{border-bottom:2px solid var(--fg)}
 .tabs button.due{color:var(--accent)}
 
 @media print{.slip .slipNote{border-color:#000;color:#000}#batchPrint .slip.mini .slipNote{margin-top:4px;padding:3px 4px;font-size:7px}}
+
+.slip .slipAck{margin-top:22px;padding-top:10px;border-top:2px dashed var(--line2);break-inside:avoid}
+.slip .sig.one{grid-template-columns:1fr;max-width:60%;margin-left:auto}
+@media print{.slip .slipAck{border-top-color:#000}}
