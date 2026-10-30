@@ -130,3 +130,14 @@ assert.equal(pp["2026-10-21"].shift, "17:55-04:05"); assert.equal(pp["2026-10-22
 assert.equal(pp["2026-10-24"].shift, "08:00-19:00"); assert.equal(pp["2026-10-25"].incomplete, true);
 assert.equal(shiftHours("17:55-04:05", 1).span, 10.17);
 console.log("punch tests OK");
+
+// time card → paid part of the shift: early in not paid, late out only when ≥ 60 min
+{
+  const { paidShift } = await import("../payroll-calc.js");
+  assert.equal(paidShift("18-4", "17:54-07:06"), "18:00-07:06");
+  assert.equal(paidShift("18-4", "17:54-04:22"), "18-4");
+  assert.equal(paidShift("20-6", "20:59-06:05"), "20:59-06:00");
+  assert.equal(paidShift("8-20", "07:52-21:47"), "08:00-21:47");
+  assert.equal(paidShift("22-8", "22:11-08:04"), "22:11-08:00");
+  console.log("paidShift tests OK");
+}
