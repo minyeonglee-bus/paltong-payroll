@@ -139,7 +139,7 @@ export function computePayroll(days, opts) {
       if (d.type === "half") halfDays++; else daysWorked++;
       hoursWorked += paper ? sh.span : sh.reg; otHours += ot; ndHours += nd;
     }
-    rows.push({ date: d.date, shift: d.shift || "", type: d.type || "regular", hours: paper ? sh.span : sh.reg, ot, nd, amount: r2(base + extra + otp + ndp - (t.absent && isMonthly ? daily : 0)) });
+    rows.push({ date: d.date, shift: d.shift || "", ...(d.card ? { card: d.card } : {}), type: d.type || "regular", hours: paper ? sh.span : sh.reg, ot, nd, amount: r2(base + extra + otp + ndp - (t.absent && isMonthly ? daily : 0)) });
   }
   if (isMonthly) basic = monthlyRate / 2;                 // half-month fixed basic
   const dutyDays = daysWorked + halfDays;

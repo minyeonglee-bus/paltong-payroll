@@ -4,6 +4,7 @@ import { computePayroll, shiftHours, paperOt, pairPunches, SHIFTS, SHIFT_LABEL, 
 /* ---------- i18n ---------- */
 const I18N = {
   ko: {
+    myFinal: "이번 급여 (확정)", myFinalOpen: "명세서 보기", cardCol: "타임카드",
     share: "확정 · 직원 공개", unshare: "확정 취소", sharedPill: "확정", sharedStaff: "확정 · 지급 예정", shareHelp: "확정하면 금액이 고정되고 직원 본인 화면에 명세서가 그대로 보여요",
     emp_full: "성명 (명세서용 풀네임)", emp_fullHelp: "급여명세서에 이 이름이 나와요. 비우면 위 이름", emp_resigned: "퇴사일", emp_resignedHelp: "넣으면 급여·스케줄 목록에서 빠져요. 직원 로그인은 13th month 지급일 + 7일까지 열려 있다가 막혀요", resign13: "퇴사 정산 · 13th month", resign13Help: "퇴사한 해의 기본급 ÷ 12. 퇴사일로부터 30일 안에 지급 (DOLE LA 06-20)", resignDue: "지급 기한 {d}", accessUntil: "직원 로그인 {d}까지", accessOpen: "13th month 지급 후 7일 뒤 로그인 막힘", pinClosed: "퇴사 처리돼서 더 이상 로그인할 수 없어요", punchResigned: "퇴사일 이후에는 출퇴근을 찍을 수 없어요", resignedTag: "퇴사 {d}",
     app: "Paltong 급여", login: "로그인", id: "아이디", pw: "비밀번호", logout: "로그아웃", changePw: "비밀번호 변경", newPw: "새 비밀번호 (6자 이상)",
@@ -63,6 +64,7 @@ const I18N = {
     myInfo: "내 정보", myInfoHelp: "연락처·주소·급여 받을 계좌·정부 번호는 직접 고칠 수 있어요. 이름·직책·급여는 관리자만 바꿀 수 있어요.", infoSaved: "내 정보를 저장했어요", empInfo: "직원 정보 (직원이 직접 수정 가능)", i_phone: "휴대폰", i_address: "주소", i_gcash: "GCash 번호", i_bank_name: "은행", i_bank_acct: "계좌번호", i_sss: "SSS 번호", i_philhealth: "PhilHealth 번호", i_pagibig: "Pag-IBIG 번호", i_tin: "TIN", i_emergency_name: "비상 연락 (이름·관계)", i_emergency_phone: "비상 연락 번호", myPay: "내 급여명세서", myLedger: "내 가불·부족분", myShifts: "내 근무 기록", notPaidYet: "아직 지급 전", noData: "아직 기록이 없어요", empNoLbl: "번호", resetPin: "PIN 초기화 (0000)", pinReset: "PIN을 0000으로 초기화했어요. 다음 로그인 때 본인이 다시 등록해요.", pinSet: "PIN 등록됨", pinNotSet: "PIN 미등록 (0000)",
   },
   en: {
+    myFinal: "Your payslip (final)", myFinalOpen: "View payslip", cardCol: "Time card",
     share: "Finalize · show to staff", unshare: "Undo finalize", sharedPill: "Final", sharedStaff: "Final · to be paid", shareHelp: "Finalizing locks the figures and shows this payslip to the employee",
     emp_full: "Full name (for payslips)", emp_fullHelp: "Printed on payslips. Empty = the name above", emp_resigned: "Resigned on", emp_resignedHelp: "Removes them from payroll & schedule lists. Staff login stays open until 7 days after the 13th-month payment, then closes", resign13: "Final pay · 13th month", resign13Help: "Basic earned in the year of resignation ÷ 12. Due within 30 days of separation (DOLE LA 06-20)", resignDue: "Due by {d}", accessUntil: "Staff login until {d}", accessOpen: "Login closes 7 days after the 13th-month payment", pinClosed: "Your account was closed after resignation", punchResigned: "You can't clock in or out after your resignation date", resignedTag: "Resigned {d}",
     app: "Paltong Payroll", login: "Sign in", id: "ID", pw: "Password", logout: "Sign out", changePw: "Change password", newPw: "New password (6+ chars)",
@@ -257,13 +259,21 @@ function renderStaffHome() {
   const shifts = h("div", { id: "my-shifts" }, v.payrolls.length ? v.payrolls.map(p => h("details", { class: "card", style: "margin:0 0 8px" },
       h("summary", {}, h("b", {}, periodLabel(p.period_start, p.period_end)), " ", h("span", { class: "pill " + (p.status === "paid" || p.shared ? "paid" : "draft") }, p.status === "paid" ? t("paid") : p.shared ? t("sharedStaff") : t("notPaidYet"))),
       h("div", { class: "tbl" }, h("table", {}, (p.days || []).filter(d => d.type !== "off" || d.shift).map(d => h("tr", {}, h("td", {}, d.date.slice(5) + " " + t("dow")[new Date(d.date + "T00:00:00").getDay()]),
-        h("td", {}, d.shift ? SHIFT_LABEL(d.shift) : "—"), h("td", {}, t("type_" + d.type)))))))) : h("span", { class: "muted" }, t("noData")));
+        h("td", {}, d.card || ""), h("td", {}, d.shift ? SHIFT_LABEL(d.shift) : "—"), h("td", {}, t("type_" + d.type)))))))) : h("span", { class: "muted" }, t("noData")));
+  const openSlip = p => payslip({ start: p.period_start, end: p.period_end, daily_rate: p.daily_rate, status: p.status, paid_on: p.paid_on, paid_via: p.paid_via, note: p.note || "", pay_type: p.pay_type || "daily", monthly_rate: p.monthly_rate }, { name: emp.name, position: emp.position, info: emp.info }, p.result);
+  const finals = v.payrolls.filter(p => p.shared && p.status !== "paid" && p.result);
+  const finalCard = finals.length ? h("div", { class: "card", id: "my-final", style: "border:2px solid var(--gold)" }, h("h2", {}, t("myFinal")),
+    ...finals.map(p => h("div", { class: "row", style: "align-items:center" },
+      h("div", {}, h("b", {}, periodLabel(p.period_start, p.period_end)), h("div", { class: "muted" }, t("sharedStaff"))),
+      h("span", { class: "sp" }), h("div", { class: "money", style: "font-size:26px;font-weight:800" }, "₱" + money(p.result.net)),
+      h("button", { class: "btn primary", type: "button", onclick: () => openSlip(p) }, t("myFinalOpen"))))) : null;
   root.append(
     h("div", { class: "top" }, h("span", { class: "brand" }, t("app")), h("span", { class: "sp" }),
       h("span", { style: "opacity:.85;font-size:13px" }, `${emp.name} · ${t("empNoLbl")} ${emp.emp_no}`),
       h("button", { onclick: () => { setLangOnly(lang === "ko" ? "en" : "ko"); renderStaffHome(); } }, lang === "ko" ? "EN" : "한"),
       h("button", { id: "e-logout", onclick: () => { EMP.pin = ""; EMP.data = null; renderStaffLogin(); } }, t("logout"))),
     h("main", { id: "main" },
+      finalCard,
       clockCard(),
       staffCalcCard(emp, v),
       h("div", { class: "card" }, h("h2", {}, t("myPay")), payList),
@@ -614,7 +624,7 @@ async function renderPay() {
         const by = pairPunches(rows.map(r => ({ kind: r.kind, at: r.punched_at })));
         let n = 0, inc = 0;
         for (const d of P.days) { const x = by[d.date]; if (!x) continue;
-          if (x.shift) { d.shift = x.shift; if (!DAY_TYPES[d.type]?.worked) d.type = "regular"; n++; if (d.carry) carryNorm(d); } else { inc++; } }
+          if (x.shift) { d.shift = x.shift; d.card = x.shift.replace("-", "–"); if (!DAY_TYPES[d.type]?.worked) d.type = "regular"; n++; if (d.carry) carryNorm(d); } else { inc++; } }
         drawRoster(); refresh(); toast(tf("punchLoaded", { n, x: inc ? tf("punchIncomplete", { n: inc }) : "" }));
       } catch (e) { toast(errMsg(e)); } } }, t("fromPunch"));
     fillRow = h("div", { class: "row" }, punchBtn, fillSel, fillBtn, schedBtn, h("span", { class: "muted" }, t("weekendHelp")));
@@ -701,8 +711,8 @@ async function renderPay() {
 }
 
 function payslip(P, emp, R) {
-  const days = h("div", { class: "tbl" }, h("table", {}, h("tr", {}, h("th", {}, "Date"), h("th", {}, "Shift"), h("th", {}, "Type"), h("th", { class: "r" }, "Hrs"), h("th", { class: "r" }, "OT"), R.ndHours ? h("th", { class: "r" }, "ND") : null, h("th", { class: "r" }, "₱")),
-    R.rows.filter(r => r.type !== "off").map(r => h("tr", {}, h("td", {}, r.date.slice(5)), h("td", {}, r.shift ? SHIFT_LABEL(r.shift) : "—"), h("td", {}, t("type_" + r.type)), h("td", { class: "r" }, r.hours || ""), h("td", { class: "r" }, r.ot ? `+${r.ot}h` : ""), R.ndHours ? h("td", { class: "r" }, r.nd || "") : null, h("td", { class: "r" }, money(r.amount))))));
+  const days = h("div", { class: "tbl" }, h("table", {}, h("tr", {}, h("th", {}, "Date"), R.rows.some(r => r.card) ? h("th", {}, "Time card") : null, h("th", {}, "Shift"), h("th", {}, "Type"), h("th", { class: "r" }, "Hrs"), h("th", { class: "r" }, "OT"), R.ndHours ? h("th", { class: "r" }, "ND") : null, h("th", { class: "r" }, "₱")),
+    R.rows.filter(r => r.type !== "off").map(r => h("tr", {}, h("td", {}, r.date.slice(5)), R.rows.some(x => x.card) ? h("td", {}, r.card || "—") : null, h("td", {}, r.shift ? SHIFT_LABEL(r.shift) : "—"), h("td", {}, t("type_" + r.type)), h("td", { class: "r" }, r.hours || ""), h("td", { class: "r" }, r.ot ? `+${r.ot}h` : ""), R.ndHours ? h("td", { class: "r" }, r.nd || "") : null, h("td", { class: "r" }, money(r.amount))))));
   const rate = P.pay_type === "monthly" ? `₱${money(P.monthly_rate)}/mo` : `₱${money(P.daily_rate)}/day`;
   const close = sheet(h("div", { class: "slip" },
     h("div", { class: "head" }, h("div", {}, h("b", {}, "PALTONG RESTAURANT"), h("div", { class: "muted" }, "603 Remedios St. Malate Manila")), h("div", {}, h("b", {}, t("slip")), h("div", { class: "muted" }, `${P.start} ~ ${P.end}`))),
