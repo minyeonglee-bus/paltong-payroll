@@ -234,8 +234,9 @@ const fullName = e => String(e?.info?.full_name || "").trim() || e?.name || "";
 // riders have no meal break (they are on the road the whole shift) → every hour of the shift is paid
 const breakFor = (emp, base) => emp?.position === "rider" ? 0 : (base == null || base === "" ? 1 : +base);
 // payslip note: text after "[[ACK]]" is a separate statement the employee signs (e.g. "computation requested by the employee")
-const noteParts = note => { const [main, ack] = String(note || "").split("[[ACK]]"); return { main: main.trim(), ack: (ack || "").trim() }; };
-const ackBlock = (ack, name) => ack ? h("div", { class: "slipAck" }, h("div", { class: "slipNote" }, ack), h("div", { class: "sig one" }, h("div", {}, "Employee / " + name, h("br"), "Signature · Date"))) : null;
+// several "[[ACK]]" parts = several statements, each with its own employee signature line
+const noteParts = note => { const [main, ...acks] = String(note || "").split("[[ACK]]"); return { main: main.trim(), acks: acks.map(a => a.trim()).filter(Boolean) }; };
+const ackBlock = (acks, name) => acks.length ? acks.map(a => h("div", { class: "slipAck" }, h("div", { class: "slipNote" }, a), h("div", { class: "sig one" }, h("div", {}, "Employee / " + name, h("br"), "Signature · Date")))) : null;
 const INFO_KEYS = ["phone", "address", "gcash", "bank_name", "bank_acct", "sss", "philhealth", "pagibig", "tin", "emergency_name", "emergency_phone"];
 const infoInputs = (info, idp) => Object.fromEntries(INFO_KEYS.map(k => [k, h("input", { type: k === "address" ? "text" : /phone|gcash|acct/.test(k) ? "tel" : "text", id: idp + k, value: (info || {})[k] || "", maxlength: 200 })]));
 /* ---- staff: own info (contact, payout, gov numbers) — pay fields are admin-only ---- */
@@ -592,7 +593,7 @@ async function renderPay() {
   const head = h("div", { class: "card" },
     h("div", { class: "row" }, h("h2", {}, t("tab_pay")), h("span", { class: "sp" }), P.id && h("span", { class: "pill " + (P.status === "paid" ? "paid" : P.shared_at ? "paid" : "draft") }, P.status === "paid" ? t("paid") : P.shared_at ? t("sharedPill") : t("draft")), P.id && (P.shared_at || P.status === "paid") && h("span", { class: "pill " + (P.ack_at ? "paid" : "draft"), title: P.ack_at ? new Date(P.ack_at).toLocaleString() : "" }, P.ack_at ? t("ackPill") : t("ackWait")),
       emp && h("span", { class: "pill " + (emp.position || "") }, t("pos_" + emp.position), " · ", t("pt_" + P.pay_type).split(" (")[0], " · ", t("scheme_" + schemeOf(emp)))),
-    h("div", { class: "grid2" }, headFields), note && h("small", { class: "muted" }, note), P.note && h("div", { class: "muted", style: "white-space:pre-line;padding:8px 10px;border-left:3px solid var(--gold);background:var(--bg);border-radius:6px" }, "📝 " + String(P.note).replace("[[ACK]]", "\n\n✍ ")));
+    h("div", { class: "grid2" }, headFields), note && h("small", { class: "muted" }, note), P.note && h("div", { class: "muted", style: "white-space:pre-line;padding:8px 10px;border-left:3px solid var(--gold);background:var(--bg);border-radius:6px" }, "📝 " + String(P.note).replaceAll("[[ACK]]", "\n\n✍ ")));
 
   // --- roster ---
   const rosterEl = h("div", { class: "roster", id: "roster" });
@@ -741,8 +742,8 @@ function payslip(P, emp, R) {
     h("div", { class: "grid2" }, h("div", {}, h("b", {}, fullName(emp)), h("div", { class: "muted" }, t("pos_" + (emp?.position || "other")))), h("div", {}, rate, h("div", { class: "muted" }, summaryText(R)))),
     h("table", {}, resultRows(R, P)), h("br"), days,
     h("p", { class: "muted" }, `${t("payLine")}: ${payoutText(R.payout || payoutOf(P, R, emp), emp)}` + (P.status === "paid" ? ` · ${P.paid_on}` : "")), noteParts(P.note).main && h("div", { class: "slipNote" }, noteParts(P.note).main),
-    h("div", { class: "sig" }, h("div", {}, "Employer / Paltong Restaurant", h("br"), "Signature · Date"), h("div", {}, "Employee / " + fullName(emp), h("br"), "Signature · Date")),
-    ackBlock(noteParts(P.note).ack, fullName(emp)),
+    h("div", { class: "sig" + (noteParts(P.note).acks.length ? " one" : "") }, h("div", {}, "Employer / Paltong Restaurant", h("br"), "Signature · Date"), noteParts(P.note).acks.length ? null : h("div", {}, "Employee / " + fullName(emp), h("br"), "Signature · Date")),
+    ackBlock(noteParts(P.note).acks, fullName(emp)),
     h("div", { class: "row noprint", style: "margin-top:14px" }, h("span", { class: "sp" }), h("button", { class: "btn", onclick: () => close() }, t("close")),
       h("button", { class: "btn", onclick: () => printSlip("detail") }, t("printA4")), h("button", { class: "btn primary", onclick: () => printSlip("simple") }, t("printSimple")))));
 }
@@ -1093,8 +1094,8 @@ function slipCompact(r) {
     R.net != null ? h("table", {}, resultRows(R, P)) : h("p", { class: "muted" }, t("draft")),
     h("p", { class: "muted" }, `${t("payLine")}: ${R.payout ? payoutText(R.payout, emp) : (r.paid_via ? viaLabel(r.paid_via) + " ₱" + money(R.net) : "")}` + (r.status === "paid" ? ` · ${r.paid_on || ""}` : ` · ${t("notPaidYet")}`)),
     noteParts(r.note).main && h("div", { class: "slipNote" }, noteParts(r.note).main),
-    h("div", { class: "sig" }, h("div", {}, "Employer · Date"), h("div", {}, "Employee / " + fullName(emp) + " · Date")),
-    ackBlock(noteParts(r.note).ack, fullName(emp)));
+    h("div", { class: "sig" + (noteParts(r.note).acks.length ? " one" : "") }, h("div", {}, "Employer · Date"), noteParts(r.note).acks.length ? null : h("div", {}, "Employee / " + fullName(emp) + " · Date")),
+    ackBlock(noteParts(r.note).acks, fullName(emp)));
 }
 function batchPrint(rows, s, e) {
   const sorted = rows.slice().sort((a, b) => String(a.employees?.name).localeCompare(String(b.employees?.name)));
