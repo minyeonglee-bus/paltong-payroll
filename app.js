@@ -4,6 +4,7 @@ import { computePayroll, shiftHours, paperOt, pairPunches, SHIFTS, SHIFT_LABEL, 
 /* ---------- i18n ---------- */
 const I18N = {
   ko: {
+    share: "확정 · 직원 공개", unshare: "확정 취소", sharedPill: "확정", sharedStaff: "확정 · 지급 예정", shareHelp: "확정하면 금액이 고정되고 직원 본인 화면에 명세서가 그대로 보여요",
     emp_full: "성명 (명세서용 풀네임)", emp_fullHelp: "급여명세서에 이 이름이 나와요. 비우면 위 이름", emp_resigned: "퇴사일", emp_resignedHelp: "넣으면 급여·스케줄 목록에서 빠져요. 직원 로그인은 13th month 지급일 + 7일까지 열려 있다가 막혀요", resign13: "퇴사 정산 · 13th month", resign13Help: "퇴사한 해의 기본급 ÷ 12. 퇴사일로부터 30일 안에 지급 (DOLE LA 06-20)", resignDue: "지급 기한 {d}", accessUntil: "직원 로그인 {d}까지", accessOpen: "13th month 지급 후 7일 뒤 로그인 막힘", pinClosed: "퇴사 처리돼서 더 이상 로그인할 수 없어요", punchResigned: "퇴사일 이후에는 출퇴근을 찍을 수 없어요", resignedTag: "퇴사 {d}",
     app: "Paltong 급여", login: "로그인", id: "아이디", pw: "비밀번호", logout: "로그아웃", changePw: "비밀번호 변경", newPw: "새 비밀번호 (6자 이상)",
     tab_pay: "급여 계산", tab_sched: "스케줄", tab_emp: "직원", tab_ledger: "가불·부족분·보너스", tab_hist: "급여 내역", tab_13: "13월급", tab_set: "설정",
@@ -62,6 +63,7 @@ const I18N = {
     myInfo: "내 정보", myInfoHelp: "연락처·주소·급여 받을 계좌·정부 번호는 직접 고칠 수 있어요. 이름·직책·급여는 관리자만 바꿀 수 있어요.", infoSaved: "내 정보를 저장했어요", empInfo: "직원 정보 (직원이 직접 수정 가능)", i_phone: "휴대폰", i_address: "주소", i_gcash: "GCash 번호", i_bank_name: "은행", i_bank_acct: "계좌번호", i_sss: "SSS 번호", i_philhealth: "PhilHealth 번호", i_pagibig: "Pag-IBIG 번호", i_tin: "TIN", i_emergency_name: "비상 연락 (이름·관계)", i_emergency_phone: "비상 연락 번호", myPay: "내 급여명세서", myLedger: "내 가불·부족분", myShifts: "내 근무 기록", notPaidYet: "아직 지급 전", noData: "아직 기록이 없어요", empNoLbl: "번호", resetPin: "PIN 초기화 (0000)", pinReset: "PIN을 0000으로 초기화했어요. 다음 로그인 때 본인이 다시 등록해요.", pinSet: "PIN 등록됨", pinNotSet: "PIN 미등록 (0000)",
   },
   en: {
+    share: "Finalize · show to staff", unshare: "Undo finalize", sharedPill: "Final", sharedStaff: "Final · to be paid", shareHelp: "Finalizing locks the figures and shows this payslip to the employee",
     emp_full: "Full name (for payslips)", emp_fullHelp: "Printed on payslips. Empty = the name above", emp_resigned: "Resigned on", emp_resignedHelp: "Removes them from payroll & schedule lists. Staff login stays open until 7 days after the 13th-month payment, then closes", resign13: "Final pay · 13th month", resign13Help: "Basic earned in the year of resignation ÷ 12. Due within 30 days of separation (DOLE LA 06-20)", resignDue: "Due by {d}", accessUntil: "Staff login until {d}", accessOpen: "Login closes 7 days after the 13th-month payment", pinClosed: "Your account was closed after resignation", punchResigned: "You can't clock in or out after your resignation date", resignedTag: "Resigned {d}",
     app: "Paltong Payroll", login: "Sign in", id: "ID", pw: "Password", logout: "Sign out", changePw: "Change password", newPw: "New password (6+ chars)",
     tab_pay: "Payroll", tab_sched: "Schedule", tab_emp: "Staff", tab_ledger: "Advances · shortages · bonuses", tab_hist: "History", tab_13: "13th month", tab_set: "Settings",
@@ -242,18 +244,18 @@ function myInfoCard(emp) {
 function renderStaffHome() {
   const v = EMP.data, emp = v.employee;
   root.innerHTML = "";
-  const paid = v.payrolls.filter(p => p.status === "paid" && p.result);
+  const paid = v.payrolls.filter(p => (p.status === "paid" || p.shared) && p.result);
   const payList = h("div", { class: "list", id: "my-pay" }, paid.length ? paid.map(p => h("div", { class: "item", onclick: () => {
-      const P = { start: p.period_start, end: p.period_end, daily_rate: p.daily_rate, status: p.status, paid_on: p.paid_on, paid_via: p.paid_via };
+      const P = { start: p.period_start, end: p.period_end, daily_rate: p.daily_rate, status: p.status, paid_on: p.paid_on, paid_via: p.paid_via, note: p.note || "" };
       payslip({ ...P, pay_type: p.pay_type || 'daily', monthly_rate: p.monthly_rate }, { name: emp.name, position: emp.position, info: emp.info }, p.result); } },
-    h("div", { class: "t" }, periodLabel(p.period_start, p.period_end)), h("div", { class: "s" }, `${t("paid")} ${p.paid_on || ""} · ${p.paid_via || ""}`), h("div", { class: "m money" }, "₱" + money(p.result.net))))
+    h("div", { class: "t" }, periodLabel(p.period_start, p.period_end)), h("div", { class: "s" }, p.status === "paid" ? `${t("paid")} ${p.paid_on || ""} · ${p.paid_via || ""}` : t("sharedStaff")), h("div", { class: "m money" }, "₱" + money(p.result.net))))
     : h("span", { class: "muted" }, t("noData")));
   const ledList = h("div", { class: "list", id: "my-ledger" }, v.ledger.length ? v.ledger.map(l => { const p = periodForDate(l.biz_date);
     return h("div", { class: "item" }, h("div", { class: "t" }, t("k_" + l.kind), " ", h("span", { class: "pill " + (l.deducted ? "paid" : "draft") }, l.deducted ? t("led_deducted") : t("led_pending"))),
       h("div", { class: "s" }, l.biz_date, " ", t("led_applies").replace("{p}", periodLabel(p.start, p.end)), noteOf(l) ? ` · ${noteOf(l)}` : ""), h("div", { class: "m money " + (l.kind === "bonus" ? "pos" : "neg") }, (l.kind === "bonus" ? "+" : "−") + money(l.amount))); })
     : h("span", { class: "muted" }, t("noData")));
   const shifts = h("div", { id: "my-shifts" }, v.payrolls.length ? v.payrolls.map(p => h("details", { class: "card", style: "margin:0 0 8px" },
-      h("summary", {}, h("b", {}, periodLabel(p.period_start, p.period_end)), " ", h("span", { class: "pill " + p.status }, p.status === "paid" ? t("paid") : t("notPaidYet"))),
+      h("summary", {}, h("b", {}, periodLabel(p.period_start, p.period_end)), " ", h("span", { class: "pill " + (p.status === "paid" || p.shared ? "paid" : "draft") }, p.status === "paid" ? t("paid") : p.shared ? t("sharedStaff") : t("notPaidYet"))),
       h("div", { class: "tbl" }, h("table", {}, (p.days || []).filter(d => d.type !== "off" || d.shift).map(d => h("tr", {}, h("td", {}, d.date.slice(5) + " " + t("dow")[new Date(d.date + "T00:00:00").getDay()]),
         h("td", {}, d.shift ? SHIFT_LABEL(d.shift) : "—"), h("td", {}, t("type_" + d.type)))))))) : h("span", { class: "muted" }, t("noData")));
   root.append(
@@ -509,14 +511,14 @@ async function loadPay(P) {
     const row = await db.getPayroll(P.employee_id, P.start);
     if (row) {
       Object.assign(P, { id: row.id, status: row.status, daily_rate: +row.daily_rate, monthly_rate: +row.monthly_rate || +emp.monthly_rate, allowance_per_day: +row.allowance_per_day,
-        break_hours: +row.break_hours, late_minutes: row.late_minutes, incentive: +row.incentive, other_deduction: +row.other_deduction, gov: row.gov, paid_on: row.paid_on, paid_via: row.paid_via, note: row.note || "", result: row.result || null, pay_via: row.result?.payout?.via || row.paid_via || "CASH", pay_split: +(row.result?.payout?.split || 0) });
+        break_hours: +row.break_hours, late_minutes: row.late_minutes, incentive: +row.incentive, other_deduction: +row.other_deduction, gov: row.gov, paid_on: row.paid_on, paid_via: row.paid_via, shared_at: row.shared_at || null, note: row.note || "", result: row.result || null, pay_via: row.result?.payout?.via || row.paid_via || "CASH", pay_split: +(row.result?.payout?.split || 0) });
       if (row.status !== "paid" && Object.keys(govFixedOf(emp)).length) P.gov = govFor(emp, { share: 0.5, ...(row.gov || {}) });
       const byDate = Object.fromEntries((row.days || []).map(d => [d.date, d]));
       if (row.status === "paid") { P.end = row.period_end; P.days = (row.days || []).slice(); }   // paid: exactly what was paid (old 16–31 periods too)
       else P.days = [...await carryRows(P, emp, row.days), ...dates.map(d => byDate[d] && !byDate[d].carry ? byDate[d] : emptyDay(d))];
     } else {
       Object.assign(P, { id: null, status: "draft", daily_rate: +emp.daily_rate, monthly_rate: +emp.monthly_rate || +S.settings.kitchen_monthly, allowance_per_day: +emp.allowance_per_day || 0,
-        late_minutes: 0, incentive: 0, other_deduction: 0, paid_on: null, paid_via: null, note: "", result: null, pay_via: emp.info?.gcash ? "GCASH" : "CASH", pay_split: 0,
+        late_minutes: 0, incentive: 0, other_deduction: 0, paid_on: null, paid_via: null, shared_at: null, note: "", result: null, pay_via: emp.info?.gcash ? "GCASH" : "CASH", pay_split: 0,
         gov: govFor(emp, { sss: !!S.settings.sss_on, philhealth: !!S.settings.philhealth_on, pagibig: !!S.settings.pagibig_on, share: +S.settings.gov_share || 0.5 }) });
       // 새 급여: 스케줄표(계획) 기준으로 미리 채움 — 실제 출퇴근은 "앱 출퇴근 불러오기"로 덮어쓰기
       let plan = {}; try { plan = Object.fromEntries((await db.cashbookShifts(P.carry[0] || P.start, P.end)).filter(r => String(r.staff_name || "").trim().toLowerCase() === String(emp.name).trim().toLowerCase() && r.shift).map(r => [r.day, r.shift])); } catch { }
@@ -542,7 +544,7 @@ async function renderPay() {
   const P = S.pay;
   const emp = S.employees.find(e => e.id === P.employee_id);
   const owner = S.user?.role === "owner";
-  const locked = P.status === "paid";
+  const locked = P.status === "paid" || !!P.shared_at;   // paid, or finalized & shown to the employee → figures fixed
   // a paid payroll shows the figures it was paid with (stored result), not a fresh recomputation
   const calc = () => locked && P.result && P.result.net != null ? { ...P.result } : computePayroll(paidDays(P.days), payOpts(P));
   const R = calc();
@@ -562,7 +564,7 @@ async function renderPay() {
   if (emp?.position === "rider") headFields.push(field(t("allowDay"), numIn("pAllow", "allowance_per_day", 10)));
   const note = monthly ? t("monthlyNote") : emp?.position === "rider" ? t("riderNote") : null;
   const head = h("div", { class: "card" },
-    h("div", { class: "row" }, h("h2", {}, t("tab_pay")), h("span", { class: "sp" }), P.id && h("span", { class: "pill " + P.status }, locked ? t("paid") : t("draft")),
+    h("div", { class: "row" }, h("h2", {}, t("tab_pay")), h("span", { class: "sp" }), P.id && h("span", { class: "pill " + (P.status === "paid" ? "paid" : P.shared_at ? "paid" : "draft") }, P.status === "paid" ? t("paid") : P.shared_at ? t("sharedPill") : t("draft")),
       emp && h("span", { class: "pill " + (emp.position || "") }, t("pos_" + emp.position), " · ", t("pt_" + P.pay_type).split(" (")[0], " · ", t("scheme_" + schemeOf(emp)))),
     h("div", { class: "grid2" }, headFields), note && h("small", { class: "muted" }, note), P.note && h("div", { class: "muted", style: "padding:8px 10px;border-left:3px solid var(--gold);background:var(--bg);border-radius:6px" }, "📝 " + P.note));
 
@@ -667,8 +669,10 @@ async function renderPay() {
     h("span", { class: "sp" }),
     P.id && h("button", { class: "btn", type: "button", onclick: () => payslip(P, emp, R) }, t("slip")),
     owner && !locked && h("button", { class: "btn primary", type: "button", onclick: () => save(false) }, t("save")),
-    owner && !locked && P.id && h("button", { class: "btn", type: "button", onclick: () => markPaid() }, t("markPaid")),
-    owner && locked && h("button", { class: "btn", type: "button", onclick: () => unpay() }, t("unpay")),
+    owner && !locked && P.id && h("button", { class: "btn", type: "button", title: t("shareHelp"), onclick: () => save(false, { shared_at: new Date().toISOString() }) }, t("share")),
+    owner && P.status !== "paid" && P.shared_at && h("button", { class: "btn ghost", type: "button", onclick: async () => { try { await db.savePayroll({ id: P.id, shared_at: null }); await re(); } catch (e) { toast(errMsg(e)); } } }, t("unshare")),
+    owner && P.status !== "paid" && P.id && h("button", { class: "btn", type: "button", onclick: () => markPaid() }, t("markPaid")),
+    owner && P.status === "paid" && h("button", { class: "btn", type: "button", onclick: () => unpay() }, t("unpay")),
     owner && P.id && h("button", { class: "btn danger sm", type: "button", onclick: () => confirmSheet(t("confirmDel"), async () => { await db.detachLedger(P.id); await db.deletePayroll(P.id); toast(t("deleted")); await re(); }) }, t("delete"))));
 
   main.append(head, roster, ded, result, bar);
@@ -677,7 +681,7 @@ async function renderPay() {
   function refresh() { Object.assign(R, calc()); drawResult(); sumEl.textContent = summary(); }
   async function save(paid, extra = {}) {
     if (!P.employee_id) return toast(t("pickEmp"));
-    const res = computePayroll(paidDays(P.days), payOpts(P));
+    const res = P.shared_at && P.result && P.result.net != null ? { ...P.result } : computePayroll(paidDays(P.days), payOpts(P));   // finalized: keep the shared figures
     res.payout = payoutOf(P, res, emp);
     res.ledgerItems = P.ledger.map(l => ({ kind: l.kind, biz_date: l.biz_date, amount: +l.amount, note: l.note || "", note_en: l.note_en || "", verified: l.verified, authorized: l.authorized }));
     try {

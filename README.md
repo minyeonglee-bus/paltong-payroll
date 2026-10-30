@@ -92,3 +92,9 @@ supabase/schema.sql                       테이블 · 권한(RLS) · admin 계�
 - 직원 본인 로그인은 **13th month 지급일 + 7일**까지 열려 있다가 그 다음 날부터 막혀요 ("퇴사 처리돼서 더 이상 로그인할 수 없어요"). 13th month를 아직 안 줬으면 계속 열려 있어요.
 - 퇴사일 다음 날부터는 출퇴근 버튼이 막혀요.
 - DB: `supabase/pr_resign.sql` (migration `pr_resign_access`, 적용됨) — `pr_employees.resigned_on`, `pr_emp_access_until`, `pr_emp_check`, `pr_punch`.
+
+## 급여 확정 · 직원 공개 (2026-10-30)
+
+- 급여 계산 화면 **확정 · 직원 공개** → 금액이 고정되고(작성중이어도 다시 계산 안 함), 직원 본인 화면 "내 급여"에 명세서가 그대로 보여요 ("확정 · 지급 예정").
+- 고쳐야 하면 **확정 취소** → 수정 → 다시 확정. 지급하면 **지급 완료** (확정된 금액 그대로 기록).
+- DB: `supabase/pr_shared.sql`
