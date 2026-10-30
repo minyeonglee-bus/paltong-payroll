@@ -262,7 +262,7 @@ function renderStaffHome() {
   const payList = h("div", { class: "list", id: "my-pay" }, paid.length ? paid.map(p => h("div", { class: "item", onclick: () => {
       const P = { start: p.period_start, end: p.period_end, daily_rate: p.daily_rate, status: p.status, paid_on: p.paid_on, paid_via: p.paid_via, note: p.note || "" };
       payslip({ ...P, pay_type: p.pay_type || 'daily', monthly_rate: p.monthly_rate }, { name: emp.name, position: emp.position, info: emp.info }, p.result); } },
-    h("div", { class: "t" }, periodLabel(p.period_start, p.period_end)), h("div", { class: "s" }, p.status === "paid" ? `${t("paid")} ${p.paid_on || ""} · ${p.paid_via || ""}` : t("sharedStaff")), h("div", { class: "m money" }, "₱" + money(p.result.net))))
+    h("div", { class: "t" }, periodLabel(p.period_start, p.period_end)), h("div", { class: "s" }, p.status === "paid" ? `${t("paid")} ${p.paid_on || ""} · ${viaLabel(slipVia(p.paid_via || ""))}` : t("sharedStaff")), h("div", { class: "m money" }, "₱" + money(p.result.net))))
     : h("span", { class: "muted" }, t("noData")));
   const ledList = h("div", { class: "list", id: "my-ledger" }, v.ledger.length ? v.ledger.map(l => { const p = periodForDate(l.biz_date);
     return h("div", { class: "item" }, h("div", { class: "t" }, t("k_" + l.kind), " ", h("span", { class: "pill " + (l.deducted ? "paid" : "draft") }, l.deducted ? t("led_deducted") : t("led_pending"))),
@@ -331,7 +331,7 @@ function my13Card(v, emp) {
     h("tr", {}, h("td", {}, t("my13_by12")), h("td", { class: "r" }, money(by12))),
     h("tr", {}, h("td", {}, t("my13_avg")), h("td", { class: "r" }, money(monthAvg))),
     h("tr", { class: "net" }, h("td", {}, t("my13_est") + (oneYear === null ? "" : oneYear ? ` (${t("my13_1yr")})` : ` (${t("my13_under")})`)), h("td", { class: "r" }, money(est))));
-  const paidList = (v.thirteenth || []).map(x => h("div", { class: "item" }, h("div", { class: "t" }, `${x.year} · ${t("tab_13")} · ${t("c13_paid")}`), h("div", { class: "s" }, `${t("c13_total")} ₱${money(x.basic_total)} · ${x.paid_on || ""} ${x.paid_via || ""}`), h("div", { class: "m money" }, "₱" + money(x.amount))));
+  const paidList = (v.thirteenth || []).map(x => h("div", { class: "item" }, h("div", { class: "t" }, `${x.year} · ${t("tab_13")} · ${t("c13_paid")}`), h("div", { class: "s" }, `${t("c13_total")} ₱${money(x.basic_total)} · ${x.paid_on || ""} ${viaLabel(slipVia(x.paid_via || ""))}`), h("div", { class: "m money" }, "₱" + money(x.amount))));
   return h("div", { class: "card" }, h("h2", {}, t("my13")), h("small", { class: "muted" }, t("my13help")), h("div", { class: "tbl" }, tbl), paidList.length ? h("div", { class: "list" }, paidList) : null);
 }
 /* ---- staff clock in / out: the app record is the attendance basis ---- */
@@ -741,7 +741,7 @@ function payslip(P, emp, R) {
     h("div", { class: "head" }, h("div", {}, h("b", {}, "PALTONG RESTAURANT"), h("div", { class: "muted" }, "603 Remedios St. Malate Manila")), h("div", {}, h("b", {}, t("slip")), h("div", { class: "muted" }, `${P.start} ~ ${P.end}`))),
     h("div", { class: "grid2" }, h("div", {}, h("b", {}, fullName(emp)), h("div", { class: "muted" }, t("pos_" + (emp?.position || "other")))), h("div", {}, rate, h("div", { class: "muted" }, summaryText(R)))),
     h("table", {}, resultRows(R, P)), h("br"), days,
-    h("p", { class: "muted" }, `${t("payLine")}: ${payoutText(R.payout || payoutOf(P, R, emp), emp)}` + (P.status === "paid" ? ` · ${P.paid_on}` : "")), noteParts(P.note).main && h("div", { class: "slipNote" }, noteParts(P.note).main),
+    h("p", { class: "muted" }, `${t("payLine")}: ${payoutText(slipPayout(R.payout || payoutOf(P, R, emp)), emp)}` + (P.status === "paid" ? ` · ${P.paid_on}` : "")), noteParts(P.note).main && h("div", { class: "slipNote" }, noteParts(P.note).main),
     h("div", { class: "sig" + (noteParts(P.note).acks.length ? " one" : "") }, h("div", {}, "Employer / Paltong Restaurant", h("br"), "Signature · Date"), noteParts(P.note).acks.length ? null : h("div", {}, "Employee / " + fullName(emp), h("br"), "Signature · Date")),
     ackBlock(noteParts(P.note).acks, fullName(emp)),
     h("div", { class: "row noprint", style: "margin-top:14px" }, h("span", { class: "sp" }), h("button", { class: "btn", onclick: () => close() }, t("close")),
@@ -1085,6 +1085,13 @@ function payoutOf(P, R, emp) {
   const parts = via !== "CASH" && split > 0 && split < net ? [{ via, amount: split }, { via: "CASH", amount: Math.round((net - split) * 100) / 100 }] : [{ via, amount: net }];
   return { via, split: via !== "CASH" ? split : 0, parts };
 }
+// Payslips (what staff see / sign) show Saving box as Cash; the owner screens keep the real method.
+const slipVia = v => v === "SAVINGBOX" ? "CASH" : v;
+function slipPayout(po) {
+  if (!po || !po.parts) return po; const tot = {};
+  for (const x of po.parts) { const v = slipVia(x.via); tot[v] = Math.round(((tot[v] || 0) + +x.amount) * 100) / 100; }
+  return { ...po, via: slipVia(po.via), parts: Object.entries(tot).map(([via, amount]) => ({ via, amount })) };
+}
 function payoutText(po, emp) {
   if (!po || !po.parts) return "";
   const acct = v => v === "GCASH" && emp?.info?.gcash ? ` ${emp.info.gcash}` : v === "METROBANK" && emp?.info?.bank_acct ? ` ${emp.info.bank_acct}` : "";
@@ -1099,7 +1106,7 @@ function slipCompact(r) {
     h("div", { class: "head" }, h("div", {}, h("b", {}, "PALTONG RESTAURANT"), h("div", { class: "muted" }, "603 Remedios St. Malate Manila")), h("div", {}, h("b", {}, t("slip")), h("div", { class: "muted" }, `${r.period_start} ~ ${r.period_end}`))),
     h("div", { class: "grid2" }, h("div", {}, h("b", {}, fullName(emp)), h("div", { class: "muted" }, t("pos_" + (emp.position || "other")))), h("div", {}, rate, h("div", { class: "muted" }, R.net != null ? summaryText(R) : ""))),
     R.net != null ? h("table", {}, resultRows(R, P)) : h("p", { class: "muted" }, t("draft")),
-    h("p", { class: "muted" }, `${t("payLine")}: ${R.payout ? payoutText(R.payout, emp) : (r.paid_via ? viaLabel(r.paid_via) + " ₱" + money(R.net) : "")}` + (r.status === "paid" ? ` · ${r.paid_on || ""}` : ` · ${t("notPaidYet")}`)),
+    h("p", { class: "muted" }, `${t("payLine")}: ${R.payout ? payoutText(slipPayout(R.payout), emp) : (r.paid_via ? viaLabel(slipVia(r.paid_via)) + " ₱" + money(R.net) : "")}` + (r.status === "paid" ? ` · ${r.paid_on || ""}` : ` · ${t("notPaidYet")}`)),
     noteParts(r.note).main && h("div", { class: "slipNote" }, noteParts(r.note).main),
     h("div", { class: "sig" + (noteParts(r.note).acks.length ? " one" : "") }, h("div", {}, "Employer · Date"), noteParts(r.note).acks.length ? null : h("div", {}, "Employee / " + fullName(emp) + " · Date")),
     ackBlock(noteParts(r.note).acks, fullName(emp)));
