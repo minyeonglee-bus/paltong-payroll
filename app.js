@@ -4,6 +4,7 @@ import { computePayroll, shiftHours, paperOt, pairPunches, SHIFTS, SHIFT_LABEL, 
 /* ---------- i18n ---------- */
 const I18N = {
   ko: {
+    ackBtn: "확인했어요", ackFirst: "먼저 명세서를 열어 확인해 주세요", ackQ: "명세서 내용(근무 시간·금액·공제)을 확인했나요?", ackDone: "확인함 ✓ {d}", ackPill: "직원 확인 ✓", ackWait: "직원 확인 전",
     myFinal: "이번 급여 (확정)", myFinalOpen: "명세서 보기", cardCol: "타임카드",
     share: "확정 · 직원 공개", unshare: "확정 취소", sharedPill: "확정", sharedStaff: "확정 · 지급 예정", shareHelp: "확정하면 금액이 고정되고 직원 본인 화면에 명세서가 그대로 보여요",
     emp_full: "성명 (명세서용 풀네임)", emp_fullHelp: "급여명세서에 이 이름이 나와요. 비우면 위 이름", emp_resigned: "퇴사일", emp_resignedHelp: "넣으면 급여·스케줄 목록에서 빠져요. 직원 로그인은 13th month 지급일 + 7일까지 열려 있다가 막혀요", resign13: "퇴사 정산 · 13th month", resign13Help: "퇴사한 해의 기본급 ÷ 12. 퇴사일로부터 30일 안에 지급 (DOLE LA 06-20)", resignDue: "지급 기한 {d}", accessUntil: "직원 로그인 {d}까지", accessOpen: "13th month 지급 후 7일 뒤 로그인 막힘", pinClosed: "퇴사 처리돼서 더 이상 로그인할 수 없어요", punchResigned: "퇴사일 이후에는 출퇴근을 찍을 수 없어요", resignedTag: "퇴사 {d}",
@@ -64,6 +65,7 @@ const I18N = {
     myInfo: "내 정보", myInfoHelp: "연락처·주소·급여 받을 계좌·정부 번호는 직접 고칠 수 있어요. 이름·직책·급여는 관리자만 바꿀 수 있어요.", infoSaved: "내 정보를 저장했어요", empInfo: "직원 정보 (직원이 직접 수정 가능)", i_phone: "휴대폰", i_address: "주소", i_gcash: "GCash 번호", i_bank_name: "은행", i_bank_acct: "계좌번호", i_sss: "SSS 번호", i_philhealth: "PhilHealth 번호", i_pagibig: "Pag-IBIG 번호", i_tin: "TIN", i_emergency_name: "비상 연락 (이름·관계)", i_emergency_phone: "비상 연락 번호", myPay: "내 급여명세서", myLedger: "내 가불·부족분", myShifts: "내 근무 기록", notPaidYet: "아직 지급 전", noData: "아직 기록이 없어요", empNoLbl: "번호", resetPin: "PIN 초기화 (0000)", pinReset: "PIN을 0000으로 초기화했어요. 다음 로그인 때 본인이 다시 등록해요.", pinSet: "PIN 등록됨", pinNotSet: "PIN 미등록 (0000)",
   },
   en: {
+    ackBtn: "I confirm", ackFirst: "Open your payslip and check it first", ackQ: "Have you checked your payslip (hours, amounts, deductions)?", ackDone: "Confirmed ✓ {d}", ackPill: "Employee confirmed ✓", ackWait: "Not yet confirmed",
     myFinal: "Your payslip (final)", myFinalOpen: "View payslip", cardCol: "Time card",
     share: "Finalize · show to staff", unshare: "Undo finalize", sharedPill: "Final", sharedStaff: "Final · to be paid", shareHelp: "Finalizing locks the figures and shows this payslip to the employee",
     emp_full: "Full name (for payslips)", emp_fullHelp: "Printed on payslips. Empty = the name above", emp_resigned: "Resigned on", emp_resignedHelp: "Removes them from payroll & schedule lists. Staff login stays open until 7 days after the 13th-month payment, then closes", resign13: "Final pay · 13th month", resign13Help: "Basic earned in the year of resignation ÷ 12. Due within 30 days of separation (DOLE LA 06-20)", resignDue: "Due by {d}", accessUntil: "Staff login until {d}", accessOpen: "Login closes 7 days after the 13th-month payment", pinClosed: "Your account was closed after resignation", punchResigned: "You can't clock in or out after your resignation date", resignedTag: "Resigned {d}",
@@ -263,10 +265,15 @@ function renderStaffHome() {
   const openSlip = p => payslip({ start: p.period_start, end: p.period_end, daily_rate: p.daily_rate, status: p.status, paid_on: p.paid_on, paid_via: p.paid_via, note: p.note || "", pay_type: p.pay_type || "daily", monthly_rate: p.monthly_rate }, { name: emp.name, position: emp.position, info: emp.info }, p.result);
   const finals = v.payrolls.filter(p => p.shared && p.status !== "paid" && p.result);
   const finalCard = finals.length ? h("div", { class: "card", id: "my-final", style: "border:2px solid var(--gold)" }, h("h2", {}, t("myFinal")),
-    ...finals.map(p => h("div", { class: "row", style: "align-items:center" },
-      h("div", {}, h("b", {}, periodLabel(p.period_start, p.period_end)), h("div", { class: "muted" }, t("sharedStaff"))),
-      h("span", { class: "sp" }), h("div", { class: "money", style: "font-size:26px;font-weight:800" }, "₱" + money(p.result.net)),
-      h("button", { class: "btn primary", type: "button", onclick: () => openSlip(p) }, t("myFinalOpen"))))) : null;
+    ...finals.map(p => { let seen = false;
+      const ack = p.ack_at ? h("span", { class: "pill paid", id: "my-ack-done" }, tf("ackDone", { d: new Date(p.ack_at).toLocaleDateString() }))
+        : h("button", { class: "btn", type: "button", id: "my-ack", onclick: () => { if (!seen) return toast(t("ackFirst"));
+            confirmSheet(t("ackQ"), async () => { try { const r = await db.empAck(EMP.no, EMP.pin, p.period_start); if (!r.ok) throw new Error(pinErr(r.err, "noData"));
+              p.ack_at = new Date().toISOString(); renderStaffHome(); } catch (er) { toast(errMsg(er)); } }); } }, t("ackBtn"));
+      return h("div", { class: "row", style: "align-items:center;flex-wrap:wrap" },
+        h("div", {}, h("b", {}, periodLabel(p.period_start, p.period_end)), h("div", { class: "muted" }, t("sharedStaff"))),
+        h("span", { class: "sp" }), h("div", { class: "money", style: "font-size:26px;font-weight:800" }, "₱" + money(p.result.net)),
+        h("button", { class: "btn primary", type: "button", onclick: () => { seen = true; openSlip(p); } }, t("myFinalOpen")), ack); })) : null;
   root.append(
     h("div", { class: "top" }, h("span", { class: "brand" }, t("app")), h("span", { class: "sp" }),
       h("span", { style: "opacity:.85;font-size:13px" }, `${emp.name} · ${t("empNoLbl")} ${emp.emp_no}`),
@@ -521,7 +528,7 @@ async function loadPay(P) {
     const row = await db.getPayroll(P.employee_id, P.start);
     if (row) {
       Object.assign(P, { id: row.id, status: row.status, daily_rate: +row.daily_rate, monthly_rate: +row.monthly_rate || +emp.monthly_rate, allowance_per_day: +row.allowance_per_day,
-        break_hours: +row.break_hours, late_minutes: row.late_minutes, incentive: +row.incentive, other_deduction: +row.other_deduction, gov: row.gov, paid_on: row.paid_on, paid_via: row.paid_via, shared_at: row.shared_at || null, note: row.note || "", result: row.result || null, pay_via: row.result?.payout?.via || row.paid_via || "CASH", pay_split: +(row.result?.payout?.split || 0) });
+        break_hours: +row.break_hours, late_minutes: row.late_minutes, incentive: +row.incentive, other_deduction: +row.other_deduction, gov: row.gov, paid_on: row.paid_on, paid_via: row.paid_via, shared_at: row.shared_at || null, ack_at: row.ack_at || null, note: row.note || "", result: row.result || null, pay_via: row.result?.payout?.via || row.paid_via || "CASH", pay_split: +(row.result?.payout?.split || 0) });
       if (row.status !== "paid" && Object.keys(govFixedOf(emp)).length) P.gov = govFor(emp, { share: 0.5, ...(row.gov || {}) });
       const byDate = Object.fromEntries((row.days || []).map(d => [d.date, d]));
       if (row.status === "paid") { P.end = row.period_end; P.days = (row.days || []).slice(); }   // paid: exactly what was paid (old 16–31 periods too)
@@ -574,7 +581,7 @@ async function renderPay() {
   if (emp?.position === "rider") headFields.push(field(t("allowDay"), numIn("pAllow", "allowance_per_day", 10)));
   const note = monthly ? t("monthlyNote") : emp?.position === "rider" ? t("riderNote") : null;
   const head = h("div", { class: "card" },
-    h("div", { class: "row" }, h("h2", {}, t("tab_pay")), h("span", { class: "sp" }), P.id && h("span", { class: "pill " + (P.status === "paid" ? "paid" : P.shared_at ? "paid" : "draft") }, P.status === "paid" ? t("paid") : P.shared_at ? t("sharedPill") : t("draft")),
+    h("div", { class: "row" }, h("h2", {}, t("tab_pay")), h("span", { class: "sp" }), P.id && h("span", { class: "pill " + (P.status === "paid" ? "paid" : P.shared_at ? "paid" : "draft") }, P.status === "paid" ? t("paid") : P.shared_at ? t("sharedPill") : t("draft")), P.id && (P.shared_at || P.status === "paid") && h("span", { class: "pill " + (P.ack_at ? "paid" : "draft"), title: P.ack_at ? new Date(P.ack_at).toLocaleString() : "" }, P.ack_at ? t("ackPill") : t("ackWait")),
       emp && h("span", { class: "pill " + (emp.position || "") }, t("pos_" + emp.position), " · ", t("pt_" + P.pay_type).split(" (")[0], " · ", t("scheme_" + schemeOf(emp)))),
     h("div", { class: "grid2" }, headFields), note && h("small", { class: "muted" }, note), P.note && h("div", { class: "muted", style: "padding:8px 10px;border-left:3px solid var(--gold);background:var(--bg);border-radius:6px" }, "📝 " + P.note));
 
@@ -1018,7 +1025,7 @@ async function renderDue() {
       due.length > 0 && h("button", { class: "btn sm", type: "button", onclick: () => batchPrint(rows, per.start, per.end) }, "🖨 " + t("printBatch"))),
     h("div", { class: "tbl" }, h("table", {}, h("tr", {}, h("th", {}, t("employee")), h("th", { class: "r" }, t("due_days")), h("th", { class: "r" }, t("due_net"))),
       due.map(x => h("tr", { style: "cursor:pointer", onclick: () => open(x) },
-        h("td", {}, h("b", {}, x.emp.name), " ", h("span", { class: "pill " + (x.P.id ? "draft" : "paid") }, x.P.id ? t("due_saved") : t("due_auto")),
+        h("td", {}, h("b", {}, x.emp.name), " ", h("span", { class: "pill " + (x.P.id ? "draft" : "paid") }, x.P.id ? t("due_saved") : t("due_auto")), x.P.shared_at ? h("span", { class: "pill " + (x.P.ack_at ? "paid" : "draft"), style: "margin-left:4px" }, x.P.ack_at ? t("ackPill") : t("ackWait")) : null,
           h("div", { class: "muted", style: "font-size:12px" }, payoutText(x.R.payout, x.emp))),
         h("td", { class: "r" }, `${x.R.daysWorked ?? 0}d` + (x.R.otHours ? ` +${x.R.otHours}h` : "")),
         h("td", { class: "r" }, money(x.R.net)))),

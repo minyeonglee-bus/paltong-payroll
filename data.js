@@ -79,6 +79,7 @@ export async function deletePayroll(id) { must(await sb.from("pr_payrolls").dele
 
 // ---------- 직원 본인 보기 (번호 + PIN, 로그인 계정 없이) ----------
 export async function empView(no, pin) { return must(await sb.rpc("pr_emp_view", { p_no: String(no).trim(), p_pin: String(pin) })); }
+export async function empAck(no, pin, start) { return must(await sb.rpc("pr_emp_ack", { p_no: String(no).trim(), p_pin: String(pin), p_period_start: start })); }
 export async function empSetPin(no, oldPin, newPin) { return must(await sb.rpc("pr_emp_set_pin", { p_no: String(no).trim(), p_old: String(oldPin), p_new: String(newPin) })); }
 export async function empUpdateInfo(no, pin, info, birthday) { return must(await sb.rpc("pr_emp_update_info", { p_no: String(no).trim(), p_pin: String(pin), p_info: info, p_birthday: birthday })); }
 export async function resetEmpPin(id) { must(await sb.rpc("pr_emp_reset_pin", { p_id: id })); }
