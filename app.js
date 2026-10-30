@@ -30,7 +30,7 @@ const I18N = {
     lateDed: "지각·조퇴 공제", gross: "총 지급액 (Gross)", dedHead: "── 공제 내역 ──", dedTotal: "공제 합계", otherManual: "수동 입력 (급여 계산 화면)", govSSS: "SSS (본인 부담)", govPH: "PhilHealth (본인 부담)", govPI: "Pag-IBIG (본인 부담)", adv: "가불금 (CA)", shortage: "현금 부족분", bonus: "보너스 (최고매출일 · 신메뉴 등)", net: "실수령액 (Net)",
     summary: "근무 {d}일{hd} · 초과 {o}h · 유급휴가 {s}일", summaryC: "근무 {d}일 · {h}h · 초과 {o}h · 야간 {n}h · 유급휴가 {s}일", halfSum: " + 반일 {n}", netLbl: "실수령액",
     for13: "13월급 산정용 기본급", riderNote: "배달비·유류비는 당일 현금 지급 (캐시북 직원 탭) · 급여에 포함 안 됨", monthlyNote: "월급 ₱30,000 = 기본 25,945 + 포함 OT 4,055 (08~18시 중 1h/일) · 일급 994.70 · 시급 124.34 · 그 밖의 초과근무(18시 이후)·휴무일 130%·공휴일·야간은 별도 · 결근·지각은 일급/시급 기준 공제 · 13월급은 기본 25,945 기준",
-    save: "저장", saved: "저장됨", markPaid: "지급 완료로 기록", paid: "지급됨", draft: "작성중", unpay: "지급 취소", paidOn: "지급일", paidVia: "지급 계좌", slip: "급여명세서", print: "인쇄", printSimple: "간단 인쇄 (58mm)", printA4: "상세 인쇄 (A4)", printBatch: "일괄 인쇄 (A4 한 장에 6명)", delete: "삭제", confirmDel: "정말 삭제할까요?", yes: "삭제", cancel: "취소", close: "닫기",
+    save: "저장", saved: "저장됨", markPaid: "지급 완료로 기록", paid: "지급됨", draft: "작성중", unpay: "지급 취소", paidOn: "지급일", paidVia: "지급 계좌", slip: "급여명세서", print: "인쇄", printSimple: "간단 인쇄 (58mm)", printA4: "상세 인쇄 (A4)", printBatch: "일괄 인쇄 (A4 한 장에 6명)", delete: "삭제", confirmDel: "정말 삭제할까요?", yes: "삭제", cancel: "취소", no: "아니요", ok: "네", close: "닫기",
     emp_add: "직원 추가", emp_name: "이름", emp_pos: "직위", pos_waiter: "웨이터/서버", pos_kitchen: "주방", pos_rider: "라이더", pos_other: "기타",
     emp_status: "고용 형태", st_regular: "정규직", st_probationary: "수습", st_fixed: "계약직", st_other: "기타", emp_hired: "입사일", emp_bday: "생일", emp_active: "재직 중", emp_note: "메모",
     emp_payType: "급여 형태", pt_daily: "일급", pt_monthly: "월급 (OT 포함)",
@@ -91,7 +91,7 @@ const I18N = {
     lateDed: "Tardiness / undertime", gross: "Gross pay", dedHead: "── Deductions ──", dedTotal: "Total deductions", otherManual: "manual entry (payroll screen)", govSSS: "SSS (employee share)", govPH: "PhilHealth (employee share)", govPI: "Pag-IBIG (employee share)", adv: "Cash advances (CA)", shortage: "Cash shortage", bonus: "Bonus (highest-sales day · new menu)", net: "Net pay",
     summary: "{d} days{hd} · OT {o}h · leave {s} days", summaryC: "{d} days · {h}h · OT {o}h · night {n}h · leave {s} days", halfSum: " + {n} half", netLbl: "Net pay",
     for13: "Basic for 13th-month pay", riderNote: "Delivery fee & fuel are paid same day in cash (cash book Staff tab) · not part of payroll", monthlyNote: "₱30,000 = basic 25,945 + built-in OT 4,055 (1h/day within 08–18) · daily 994.70 · hourly 124.34 · other OT (after 18:00), rest day 130%, holidays and night diff paid on top · absence & tardiness at the daily/hourly rate · 13th month on the basic 25,945",
-    save: "Save", saved: "Saved", markPaid: "Record as paid", paid: "Paid", draft: "Draft", unpay: "Undo paid", paidOn: "Paid on", paidVia: "Paid via", slip: "Payslip", print: "Print", printSimple: "Print simple (58mm)", printA4: "Print detail (A4)", printBatch: "Print all (6 per A4)", delete: "Delete", confirmDel: "Delete this?", yes: "Delete", cancel: "Cancel", close: "Close",
+    save: "Save", saved: "Saved", markPaid: "Record as paid", paid: "Paid", draft: "Draft", unpay: "Undo paid", paidOn: "Paid on", paidVia: "Paid via", slip: "Payslip", print: "Print", printSimple: "Print simple (58mm)", printA4: "Print detail (A4)", printBatch: "Print all (6 per A4)", delete: "Delete", confirmDel: "Delete this?", yes: "Delete", cancel: "Cancel", no: "No", ok: "Yes", close: "Close",
     emp_add: "Add employee", emp_name: "Name", emp_pos: "Position", pos_waiter: "Waiter / Server", pos_kitchen: "Kitchen", pos_rider: "Rider", pos_other: "Other",
     emp_status: "Employment status", st_regular: "Regular", st_probationary: "Probationary", st_fixed: "Fixed-term", st_other: "Other", emp_hired: "Date hired", emp_bday: "Birthday", emp_active: "Active", emp_note: "Note",
     emp_payType: "Pay type", pt_daily: "Daily", pt_monthly: "Monthly (OT-inclusive)",
@@ -153,8 +153,12 @@ function sheet(content) {
   const bg = h("div", { class: "sheet-bg", onclick: e => { if (e.target === bg) close(); } }, h("div", { class: "sheet" }, content));
   const close = () => root.innerHTML = ""; root.append(bg); return close;
 }
-function confirmSheet(msg, onYes) {
-  const close = sheet([h("h3", {}, msg), h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", onclick: () => close() }, t("cancel")), h("button", { class: "btn danger", onclick: () => { close(); onYes(); } }, t("yes")))]);
+// opts.ask = true → 질문용 (아니요 / 네), 기본은 삭제 확인 (취소 / 삭제)
+function confirmSheet(msg, onYes, opts = {}) {
+  const ask = !!opts.ask;
+  const close = sheet([h("h3", {}, msg), h("div", { class: "row" }, h("span", { class: "sp" }),
+    h("button", { class: "btn", id: ask ? "ask-no" : null, onclick: () => close() }, t(ask ? "no" : "cancel")),
+    h("button", { class: "btn " + (ask ? "primary" : "danger"), id: ask ? "ask-yes" : null, onclick: () => { close(); onYes(); } }, t(ask ? "ok" : "yes")))]);
 }
 function field(label, input, help) { return h("div", { class: "f" }, h("label", {}, label), input, help && h("small", {}, help)); }
 function sel(opts, value, attrs = {}) {
@@ -269,7 +273,7 @@ function renderStaffHome() {
       const ack = p.ack_at ? h("span", { class: "pill paid", id: "my-ack-done" }, tf("ackDone", { d: new Date(p.ack_at).toLocaleDateString() }))
         : h("button", { class: "btn", type: "button", id: "my-ack", onclick: () => { if (!seen) return toast(t("ackFirst"));
             confirmSheet(t("ackQ"), async () => { try { const r = await db.empAck(EMP.no, EMP.pin, p.period_start); if (!r.ok) throw new Error(pinErr(r.err, "noData"));
-              p.ack_at = new Date().toISOString(); renderStaffHome(); } catch (er) { toast(errMsg(er)); } }); } }, t("ackBtn"));
+              p.ack_at = new Date().toISOString(); renderStaffHome(); } catch (er) { toast(errMsg(er)); } }, { ask: true }); } }, t("ackBtn"));
       return h("div", { class: "row", style: "align-items:center;flex-wrap:wrap" },
         h("div", {}, h("b", {}, periodLabel(p.period_start, p.period_end)), h("div", { class: "muted" }, t("sharedStaff"))),
         h("span", { class: "sp" }), h("div", { class: "money", style: "font-size:26px;font-weight:800" }, "₱" + money(p.result.net)),
