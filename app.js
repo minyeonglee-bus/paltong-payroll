@@ -592,7 +592,7 @@ async function renderPay() {
   const head = h("div", { class: "card" },
     h("div", { class: "row" }, h("h2", {}, t("tab_pay")), h("span", { class: "sp" }), P.id && h("span", { class: "pill " + (P.status === "paid" ? "paid" : P.shared_at ? "paid" : "draft") }, P.status === "paid" ? t("paid") : P.shared_at ? t("sharedPill") : t("draft")), P.id && (P.shared_at || P.status === "paid") && h("span", { class: "pill " + (P.ack_at ? "paid" : "draft"), title: P.ack_at ? new Date(P.ack_at).toLocaleString() : "" }, P.ack_at ? t("ackPill") : t("ackWait")),
       emp && h("span", { class: "pill " + (emp.position || "") }, t("pos_" + emp.position), " · ", t("pt_" + P.pay_type).split(" (")[0], " · ", t("scheme_" + schemeOf(emp)))),
-    h("div", { class: "grid2" }, headFields), note && h("small", { class: "muted" }, note), P.note && h("div", { class: "muted", style: "white-space:pre-line;padding:8px 10px;border-left:3px solid var(--gold);background:var(--bg);border-radius:6px" }, "📝 " + P.note));
+    h("div", { class: "grid2" }, headFields), note && h("small", { class: "muted" }, note), P.note && h("div", { class: "muted", style: "white-space:pre-line;padding:8px 10px;border-left:3px solid var(--gold);background:var(--bg);border-radius:6px" }, "📝 " + String(P.note).replace("[[ACK]]", "\n\n✍ ")));
 
   // --- roster ---
   const rosterEl = h("div", { class: "roster", id: "roster" });
@@ -1004,7 +1004,9 @@ async function autoPay(emp, month, half, punches) {
     const by = pairPunches(punches.map(q => ({ kind: q.kind, at: q.punched_at })));
     for (const d of P.days) { const x = by[d.date]; if (!x?.shift) continue; d.shift = x.shift; if (!DAY_TYPES[d.type]?.worked) d.type = "regular"; if (d.carry) carryNorm(d); }
   }
-  const R = computePayroll(paidDays(P.days), payOpts(P)); R.payout = payoutOf(P, R, emp);
+  // finalized (shared with the employee): use exactly the figures on the payslip, never a fresh recomputation
+  const R = P.shared_at && P.result && P.result.net != null ? { ...P.result } : computePayroll(paidDays(P.days), payOpts(P));
+  if (!R.payout) R.payout = payoutOf(P, R, emp);
   return { emp, P, R };
 }
 async function renderDue() {
