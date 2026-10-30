@@ -39,7 +39,7 @@ const I18N = {
     bonusHint: "계약서 6조 최고매출일 보너스 = 보름 중 매출 최고일 총매출 × 2% ÷ 그날 근무한 직원 수 (아래 버튼으로 캐시북+출퇴근에서 자동) · 주방 신메뉴 ₱500 (5조) · 생일 인센티브 ₱500 (3.4조, 직전 3개월 개근) · 개근 → 다음 달 유급휴가 1일 (3.2조)는 날짜 종류 '유급휴가'로",
     topBonus: "최고매출일 보너스 계산", topTitle: "최고매출일 보너스 (계약서 6조)", topDay: "최고매출일", topSales: "총매출", topPool: "풀 (2%)", topEach: "1인당", topStaff: "그날 근무 (출퇴근 기록 기준) — 체크 해제하면 제외", topSave: "보너스로 저장", topNone: "이 기간 캐시북 매출이 없어요", topDone: "{n}명에게 ₱{a} 보너스 저장했어요 (10/16 이후 급여에 자동 반영)", topExists: "이미 이 기간 최고매출일 보너스가 저장돼 있어요",
     hist_empty: "저장된 급여가 없어요. 급여 계산 탭에서 저장하세요.", total: "합계",
-    carryIn: "↩ 이월", carryInNone: "제외", carryOut: "→ 다음 급여", carryHelp: "급여는 1–15일 · 16–30일. 31일이 있는 달은 30일 야간(자정 넘는 시프트)과 31일 근무가 다음 1–15일 급여에 자동으로 이월돼요 (↩ 표시 줄 · 30일 주간 근무는 16–30일 급여에 그대로).",
+    carryIn: "↩ 이월", carryInNone: "제외", carryOut: "→ 다음 급여", carryHelp: "급여는 1–15일 · 16–30일. 31일이 있는 달의 16–30일 급여는 29일 야간 퇴근(30일 아침)까지예요. 30일 근무(주간·야간 모두)와 31일 근무는 다음 1–15일 급여에 자동으로 이월돼요 (↩ 표시 줄).",
     tab_due: "지급 예정", due_help: "저장 안 해도 자동 계산: 캐시북 스케줄 + 앱 출퇴근(있는 날은 실제 시간) + 가불·보너스·부족분·법정공제. 급여 계산 탭에서 저장한 직원은 저장한 내용으로. 실수령 = 총급여 − 공제. 이름을 누르면 급여 계산 탭에서 열려요.",
     due_total: "지급 예정 합계", due_people: "{n}건", due_payday: "지급일 {d}", due_overdue: "지급일 지남", due_byVia: "지급 수단별",
     due_ppl: "{n}명", due_auto: "자동", due_saved: "저장됨", due_days: "근무", due_calc: "스케줄로 계산 중…", due_paidX: "지급 완료 {n}명 제외: {names}", due_prev: "이전 기간 미지급 (저장된 급여)", due_cnt: "인원", due_gross: "총급여", due_ded: "공제", due_net: "실수령", due_list: "직원별 명단", due_missingHelp: "저장해야 합계에 들어가요.",
@@ -100,7 +100,7 @@ const I18N = {
     bonusHint: "Contract §6 highest-sales-day bonus = the period's top sales day × 2% ÷ staff who worked that day (button below computes it from the cash book + clock-ins) · kitchen new menu ₱500 (§5) · birthday incentive ₱500 (§3.4, 3 perfect months) · perfect month → 1 paid leave day (§3.2) as day type 'Paid leave'",
     topBonus: "Compute highest-sales-day bonus", topTitle: "Highest-sales-day bonus (contract §6)", topDay: "Highest-sales day", topSales: "Total sales", topPool: "Pool (2%)", topEach: "Each", topStaff: "On duty that day (from clock-ins) — untick to exclude", topSave: "Save as bonuses", topNone: "No cash book sales in this period", topDone: "Saved ₱{a} bonus for {n} staff (applied to the payroll of that period)", topExists: "A highest-sales-day bonus is already saved for this period",
     hist_empty: "No saved payrolls yet. Save one from the Payroll tab.", total: "Total",
-    carryIn: "↩ carried", carryInNone: "excluded", carryOut: "→ next pay", carryHelp: "Pay periods are 1–15 and 16–30. In a 31-day month the 30th's night shift (past midnight) and the 31st are carried into the next 1–15 payroll automatically (rows marked ↩; a day shift on the 30th stays in 16–30).",
+    carryIn: "↩ carried", carryInNone: "excluded", carryOut: "→ next pay", carryHelp: "Pay periods are 1–15 and 16–30. In a 31-day month the 16–30 pay covers work up to the 29th's night shift (clock-out on the morning of the 30th). All work on the 30th (day or night) and the 31st is carried into the next 1–15 payroll automatically (rows marked ↩).",
     tab_due: "To pay", due_help: "Calculated automatically, nothing to save: Cash Book schedule + app clock-ins (actual times where present) + advances, bonuses, shortages, gov deductions. Staff already saved in the Payroll tab use what was saved. Net = gross − deductions. Tap a name to open it.",
     due_total: "Total to pay", due_people: "{n} payslips", due_payday: "Pay day {d}", due_overdue: "Past pay day", due_byVia: "By payout method",
     due_ppl: "{n} staff", due_auto: "auto", due_saved: "saved", due_days: "Worked", due_calc: "Calculating from the schedule…", due_paidX: "{n} already paid, not included: {names}", due_prev: "Earlier periods not paid yet (saved)", due_cnt: "Staff", due_gross: "Gross", due_ded: "Deductions", due_net: "Net pay", due_list: "Per employee", due_missingHelp: "Save them to include them in the total.",
@@ -517,17 +517,19 @@ function defaultPay() {
     ledger: [], paid_on: null, paid_via: null, pay_via: "CASH", pay_split: 0, restDow: 1, fillShift: "8-18" };
 }
 function emptyDay(date) { return { date, shift: "", type: "off" }; }
-/* 1–15 payroll after a 31-day month: the previous month's 30th night shift + 31st come in as carried rows (소급 이월).
-   Taken from what's already in this payroll, else the 16–30 payroll's roster, else the Cash Book plan. */
-const carryNorm = d => { if (+d.date.slice(8) === 30 && !(DAY_TYPES[d.type]?.worked && isNightShift(d.shift))) { d.shift = ""; d.type = "off"; } return d; };
+/* 1–15 payroll after a 31-day month: the previous month's 30th (day + night) and 31st come in as carried rows (소급 이월).
+   Taken from what's already in this payroll, else the 16–30 payroll's roster, else the Cash Book plan.
+   A carried date the 16–30 payroll already paid (older rule / paid leave) is kept as "excluded" so it is never paid twice. */
+const carryNorm = d => { if (d.prevPaid) { d.shift = ""; d.type = "off"; } return d; };
 async function carryRows(P, emp, saved, plan) {
   if (!P.carry.length) return [];
   const mine = Object.fromEntries((saved || []).filter(d => d.carry).map(d => [d.date, d]));
   let prev = null; try { prev = await db.getPayroll(emp.id, P.carry[0].slice(0, 8) + "16"); } catch { }
   if (prev && prev.status === "paid" && prev.period_end === P.carry[1]) return [];   // old 16–31 period: the 31st was already paid
   const prevBy = Object.fromEntries((prev?.days || []).map(d => [d.date, d]));
+  const prevPaid = new Set(((prev?.status === "paid" || prev?.shared_at) ? prev?.result?.rows || [] : []).filter(r => !r.carry && (DAY_TYPES[r.type]?.worked || r.type === "sil" || +r.amount > 0)).map(r => r.date));
   if (!plan && P.carry.some(d => !mine[d] && !prevBy[d])) { plan = {}; try { plan = Object.fromEntries((await db.cashbookShifts(P.carry[0], P.carry[1])).filter(r => String(r.staff_name || "").trim().toLowerCase() === String(emp.name).trim().toLowerCase() && r.shift).map(r => [r.day, r.shift])); } catch { } }
-  return P.carry.map(date => carryNorm({ ...(mine[date] || prevBy[date] || planDay(date, (plan || {})[date])), date, carry: true }));
+  return P.carry.map(date => carryNorm({ ...(mine[date] || prevBy[date] || planDay(date, (plan || {})[date])), date, carry: true, ...(prevPaid.has(date) ? { prevPaid: true } : {}) }));
 }
 async function loadPay(P) {
   const emp = S.employees.find(e => e.id === P.employee_id);

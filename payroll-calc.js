@@ -174,8 +174,9 @@ export function computePayroll(days, opts) {
   };
 }
 
-/** pay periods: 1–15 and 16–30 (Feb: 16–28/29). In a 31-day month the 30th's night shift (crosses midnight) and the whole 31st
- *  are paid in the next 1–15 payroll (carried over, 소급 이월) — the 30th payroll is handed out before that work is done. */
+/** pay periods: 1–15 and 16–30 (Feb: 16–28/29). In a 31-day month the 16–30 payroll covers work up to the 29th's night shift
+ *  (clock-out on the morning of the 30th); everything on the 30th (day or night) and the 31st is paid in the next 1–15 payroll
+ *  (carried over, 소급 이월) — the 30th payroll is handed out before that work is done. */
 const pad2 = n => String(n).padStart(2, "0");
 const lastDay = (y, m) => new Date(y, m, 0).getDate();
 /** advance / ledger dated 1–15 → 15th payroll; 16–30 → 30th payroll; 31st → next month's 15th payroll. */
@@ -188,15 +189,15 @@ export function periodOf(y, m, half) {
   const last = lastDay(y, m);
   if (half !== 1) return { start: `${y}-${pad2(m)}-16`, end: `${y}-${pad2(m)}-${pad2(Math.min(last, 30))}`, half: 2, monthEnd: `${y}-${pad2(m)}-${pad2(last)}` };
   const py = m === 1 ? y - 1 : y, pm = m === 1 ? 12 : m - 1;
-  const carry = lastDay(py, pm) === 31 ? [`${py}-${pad2(pm)}-30`, `${py}-${pad2(pm)}-31`] : [];   // previous month's 30th night + 31st
+  const carry = lastDay(py, pm) === 31 ? [`${py}-${pad2(pm)}-30`, `${py}-${pad2(pm)}-31`] : [];   // previous month's 30th + 31st
   return { start: `${y}-${pad2(m)}-01`, end: `${y}-${pad2(m)}-15`, half: 1, carry };
 }
 /** shift that crosses midnight (18-4, 20-6, 22-8 …) */
 export const isNightShift = v => { const p = parseShift(v); return !!p && p.end <= p.start; };
-/** this date+shift is paid in the next payroll: the 30th's night shift in a 31-day month, or anything on the 31st */
+/** this date is paid in the next payroll: anything on the 30th or 31st of a 31-day month (the 16–30 pay ends with the 29th's night shift) */
 export function carriesOver(date, shift) {
   const [y, m, d] = date.split("-").map(Number);
-  return d === 31 || (d === 30 && lastDay(y, m) === 31 && isNightShift(shift));
+  return d === 31 || (d === 30 && lastDay(y, m) === 31);
 }
 /** the roster days that count in this payroll: own days minus the ones carried out, plus carried-in rows (carry: true) */
 export const paidDays = days => (days || []).filter(d => d.carry ? carriesOver(d.date, d.shift) || +d.date.slice(8) === 31 : !carriesOver(d.date, d.shift));

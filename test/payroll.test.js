@@ -21,13 +21,14 @@ assert.deepEqual(periodOf(2026, 11, 1).carry, ["2026-10-30", "2026-10-31"]);
 assert.deepEqual(periodOf(2026, 12, 1).carry, []);                       // November has 30 days
 assert.deepEqual(periodOf(2027, 1, 1).carry, ["2026-12-30", "2026-12-31"]);
 assert.ok(isNightShift("20-4") && isNightShift("22-8") && !isNightShift("8-18") && !isNightShift("12-22"));
-assert.ok(carriesOver("2026-10-30", "20-4") && !carriesOver("2026-10-30", "8-18") && !carriesOver("2026-11-30", "20-4") && carriesOver("2026-10-31", "8-18"));
+assert.ok(carriesOver("2026-10-30", "20-4") && carriesOver("2026-10-30", "8-18") && !carriesOver("2026-10-29", "20-4") && !carriesOver("2026-11-30", "20-4") && carriesOver("2026-10-31", "8-18"));
 // 16–30: the 30th night shift drops out …
 assert.deepEqual(paidDays([{ date: "2026-10-29", shift: "20-4" }, { date: "2026-10-30", shift: "20-4" }]).map(d => d.date), ["2026-10-29"]);
-assert.equal(paidDays([{ date: "2026-10-30", shift: "8-18" }]).length, 1);
-// … and comes back in 1–15 with the 31st; a carried 30th day shift was already paid → not counted again
+assert.equal(paidDays([{ date: "2026-10-30", shift: "8-18" }]).length, 0);   // 30th day shift also goes to the next pay
+assert.equal(paidDays([{ date: "2026-11-30", shift: "8-18" }]).length, 1);   // 30-day month: the 30th stays
+// … and comes back in 1–15 with the 31st (30th day shifts too)
 assert.deepEqual(paidDays([{ date: "2026-10-30", shift: "20-4", carry: true }, { date: "2026-10-31", shift: "8-18", carry: true }, { date: "2026-11-01", shift: "8-18" }]).map(d => d.date), ["2026-10-30", "2026-10-31", "2026-11-01"]);
-assert.equal(paidDays([{ date: "2026-10-30", shift: "8-18", carry: true }]).length, 0);
+assert.equal(paidDays([{ date: "2026-10-30", shift: "8-18", carry: true }]).length, 1);
 
 /* ---------- paper method: Maria card No.1 (690/day) 1/16–31: 690×13 · OT 552 (8h) · 지각 207 (180m) · 벌금 207 · CA 3,500 → 5,608 ---------- */
 let days = datesBetween("2026-01-16", "2026-01-31").map((d, i) => i < 13 ? { date: d, shift: "8-18", type: "regular", ot: i < 8 ? 1 : 0 } : { date: d, shift: "", type: "off" });
