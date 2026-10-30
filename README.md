@@ -102,3 +102,8 @@ supabase/schema.sql                       테이블 · 권한(RLS) · admin 계�
 - **법정 공제(SSS·PhilHealth·Pag-IBIG) 당월분**: 근무 중인 직원은 기본으로 체크 해제 (공제 안 함). 그 기간 안에 퇴사한 직원만 자동 체크 · 한 달치 전액 (2026-10-30).
 - **지급 방법·나눠 지급 금액**은 확정·지급 완료 뒤에도 관리자가 바꿀 수 있어요 (금액은 그대로, 바꾸면 바로 저장).
 - **타임카드 기준 (2026-10-30)**: "앱 출퇴근 불러오기"는 스케줄 시간 안에서 계산 — 일찍 출근한 시간은 미지급, 스케줄보다 **1시간 이상** 늦게 퇴근한 경우만 OT 인정 (`paidShift`). 명세서·직원 화면의 시간은 모두 타임카드에 찍힌 시간으로 표시.
+
+## Cashbook salary sync (supabase/pr_cashbook_sync.sql)
+- Payroll marked paid → a Staff · salary row is added to the cashbook per payout part (or a hand-entered row with the same amount/method within ±3 days is linked instead). Un-paid → created rows removed, hand-entered rows unlinked. Payout changes after paid re-sync.
+- A salary row entered in the cashbook that matches exactly one finalized unpaid payroll (same net, same method; cash and saving box count as one) marks it paid.
+- Link columns: entries.pr_payroll_id, entries.pr_part.
