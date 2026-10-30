@@ -748,11 +748,18 @@ function payslip(P, emp, R) {
       h("button", { class: "btn", onclick: () => printSlip("detail") }, t("printA4")), h("button", { class: "btn primary", onclick: () => printSlip("simple") }, t("printSimple")))));
 }
 // simple = 58mm receipt printer (print station): summary only, no day table; detail = A4 with the day table
+// prints a copy of the open payslip on its own (top-level), so nothing else on the page (sheets, fixed bars,
+// a leftover batch print) can blank the page
 function printSlip(mode) {
-  document.body.classList.toggle("print-simple", mode === "simple");
-  const done = () => { document.body.classList.remove("print-simple"); window.removeEventListener("afterprint", done); };
+  document.getElementById("batchPrint")?.remove(); document.body.classList.remove("print-batch");
+  const src = document.querySelector("#sheetRoot .slip"); if (!src) return;
+  document.getElementById("printOne")?.remove();
+  const box = h("div", { id: "printOne" }); box.append(src.cloneNode(true)); document.body.append(box);
+  document.body.classList.add("print-one"); document.body.classList.toggle("print-simple", mode === "simple");
+  const done = () => { box.remove(); document.body.classList.remove("print-one", "print-simple"); window.removeEventListener("afterprint", done); };
   window.addEventListener("afterprint", done);
   window.print();
+  setTimeout(() => { if (document.body.contains(box)) done(); }, 60000);
 }
 
 /* ================= SCHEDULE: everyone × every day — actual clock-ins (app) over the Cash Book plan ================= */

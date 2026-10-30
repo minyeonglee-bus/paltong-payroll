@@ -197,3 +197,12 @@ tr.sum.neg td{border-bottom:2px solid var(--fg)}
 .slip .slipAck{margin-top:22px;padding-top:10px;border-top:2px dashed var(--line2);break-inside:avoid}
 .slip .sig.one{grid-template-columns:1fr;max-width:60%;margin-left:auto}
 @media print{.slip .slipAck{border-top-color:#000}}
+
+/* single payslip print: only the copied slip is printed */
+#printOne{display:none}
+@media print{
+  body.print-one > *:not(#printOne){display:none!important}
+  body.print-one #printOne{display:block!important}
+  body.print-one #printOne .slip{max-width:none}
+  body.print-simple #printOne .slip{width:48mm;max-width:48mm}
+}
