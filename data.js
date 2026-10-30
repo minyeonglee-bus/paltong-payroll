@@ -49,7 +49,8 @@ export async function listLedger({ employeeId, from, to, kind, unpaidOnly } = {}
   if (to) q = q.lte("biz_date", to);
   if (kind) q = q.eq("kind", kind);
   if (unpaidOnly) q = q.is("payroll_id", null);
-  return must(await q);
+  // rows voided by the owner ("(취소 …)") are kept only as history: never shown, never counted
+  return must(await q).filter(l => !(l.kind === "shortage" && !l.verified && String(l.note || "").startsWith("(취소")));
 }
 export async function saveLedger(row) {
   return row.id ? must(await sb.from("pr_ledger").update(row).eq("id", row.id).select().single())
