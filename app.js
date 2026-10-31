@@ -1273,9 +1273,9 @@ function storeGuardCard() {
   const s = S.settings, card = h("div", { class: "card", id: "store-guard" });
   const draw = () => { const s = S.settings; card.innerHTML = "";
     const on = h("input", { type: "checkbox", id: "sgOn", checked: !!s.punch_guard });
-    const rad = h("input", { type: "number", id: "sgRad", value: s.store_radius_m ?? 100, min: 30, step: 10, style: "max-width:120px" });
+    const rad = h("input", { type: "number", id: "sgRad", value: s.store_radius_m ?? 100, min: 1, step: 1, style: "max-width:120px" });
     const save = async patch => { try { S.settings = await db.saveSettings(patch); toast(t("saved")); draw(); } catch (e) { toast(errMsg(e)); } };
-    on.onchange = () => save({ punch_guard: on.checked }); rad.onchange = () => save({ store_radius_m: Math.max(30, +rad.value || 100) });
+    on.onchange = () => save({ punch_guard: on.checked }); rad.onchange = () => save({ store_radius_m: Math.max(1, Math.round(+rad.value) || 1) });
     card.append(h("h2", {}, t("sg_title")), h("small", { class: "muted" }, t("sg_help")),
       h("div", { class: "row" }, h("label", { class: "check" }, on, t("sg_on"))),
       h("div", {}, h("b", {}, t("sg_ips"))),
