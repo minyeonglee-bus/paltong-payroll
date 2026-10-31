@@ -208,3 +208,9 @@ tr.sum.neg td{border-bottom:2px solid var(--fg)}
 }
 
 .pill.late{background:color-mix(in srgb,var(--bad) 18%,transparent);color:var(--bad)}
+
+/* Add to Home Screen banner */
+.a2h{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:60;display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  background:var(--card,#fff);color:var(--ink,#222);border:2px solid var(--gold,#c9a24a);border-radius:16px;padding:12px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.a2h img{border-radius:10px;flex:none}.a2h .a2hTxt{flex:1;min-width:160px;font-size:14px;line-height:1.35}.a2h .a2hTxt b{display:block;font-size:15px}
+@media print{.a2h{display:none!important}}
