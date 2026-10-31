@@ -112,7 +112,16 @@ export async function listPayrollsYear(year) {
 }
 
 // ---------- 출퇴근 (직원이 앱에서 버튼 · 앱 기록이 근태 기준) ----------
-export async function punch(no, pin, kind) { return must(await sb.rpc("pr_punch", { p_no: String(no).trim(), p_pin: String(pin), p_kind: kind })); }
+export async function punch(no, pin, kind, reason = null) { return must(await sb.rpc("pr_punch2", { p_no: String(no).trim(), p_pin: String(pin), p_kind: kind, p_reason: reason })); }
+/** owner: punches outside the schedule (pending first, then decided in the last `days` days) */
+export async function listPunchReview(days = 30) {
+  const since = new Date(Date.now() - days * 864e5).toISOString();
+  return must(await sb.from("pr_punches").select("*, employees:pr_employees(name, position, info)").neq("status", "ok").gte("punched_at", since).order("punched_at", { ascending: false }));
+}
+export async function decidePunch(id, status) {
+  const { data: u } = await sb.auth.getUser();
+  return must(await sb.from("pr_punches").update({ status, decided_at: new Date().toISOString(), decided_by: u?.user?.id || null }).eq("id", id).select().single());
+}
 /** owner: punches for a period (+ next-morning punches so an overnight shift's OUT is included) */
 export async function listPunches(employeeId, from, to) {
   const a = new Date(from + "T00:00:00"), b = new Date(to + "T00:00:00"); b.setHours(b.getHours() + 36);

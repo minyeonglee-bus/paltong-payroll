@@ -206,3 +206,5 @@ tr.sum.neg td{border-bottom:2px solid var(--fg)}
   body.print-one #printOne .slip{max-width:none}
   body.print-simple #printOne .slip{width:48mm;max-width:48mm}
 }
+
+.pill.late{background:color-mix(in srgb,var(--bad) 18%,transparent);color:var(--bad)}
