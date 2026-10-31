@@ -60,7 +60,7 @@ const I18N = {
     cbLaw: "근무 중이었다는 이유만으로 나눠서 빼면 안 돼요. 본인에게 설명할 기회를 주고, 책임이 확인된 한 사람에게만 지정하세요. 지정 후 가불·부족분에서 '본인 책임 확인'과 '서면 동의 받음'을 체크해야 공제돼요.", cbWho: "책임 웨이터", cbAssign: "이 웨이터의 부족분으로 넣기 (미확인)", cbAssigned: "부족분에 넣었어요 — 확인·동의 체크 후 공제돼요", cbDismissLbl: "찾았거나 장부 실수였다면 (메모)", cbFoundPh: "예: 다음날 서랍에서 찾음 / 매출 입력 실수", cbDismiss: "해결됨 — 공제 안 함", notDeducted: "공제 전 (확인·동의 필요)",
     asStaff: "직원", asAdmin: "관리자", empNo: "직원 번호", pin: "PIN (숫자)", pinFirst: "처음이면 PIN 0000", pinWrong: "번호 또는 PIN이 틀려요", pinLocked: "5번 틀려서 10분 동안 잠겼어요",
     newPinTitle: "내 PIN 등록", newPinHelp: "처음 로그인이에요. 나만 아는 숫자 4~6자리로 PIN을 새로 정해주세요 (0000 안 됨).", newPin: "새 PIN", newPin2: "새 PIN 다시", pinMismatch: "두 PIN이 달라요", pinBad: "숫자 4~6자리로 정해주세요 (0000 안 됨)", pinSaved: "PIN을 등록했어요",
-    myCalc: "내 급여 계산기 (예상)", myCalcHelp: "스케줄표 기준으로 미리 채워져 있어요 (바꿔서 계산해 볼 수 있어요). 시프트만 넣으면 예상 급여가 나와요. 가불·보너스·부족분은 빠져 있고, 실제 금액은 지급된 급여명세서 기준이에요.", est: "예상 실수령액",
+    myEst: "이번 급여 예상", myEstNote: "안내: 스케줄표 기준이므로 달라질 수 있으며, 공제금(가불·법정 공제 등)이 있으면 금액 보정이 있을 수 있습니다.", myEstDays: "스케줄 {n}일 기준", myCalc: "내 급여 계산기 (예상)", myCalcHelp: "스케줄표 기준으로 미리 채워져 있어요 (바꿔서 계산해 볼 수 있어요). 시프트만 넣으면 예상 급여가 나와요. 가불·보너스·부족분은 빠져 있고, 실제 금액은 지급된 급여명세서 기준이에요.", est: "예상 실수령액",
     sched_tap: "눌러서 이 날 출퇴근 수정", sched_editHelp: "출근·퇴근 시각을 고치거나 지우고, 빠진 기록은 아래에서 추가 (밤 근무 퇴근은 다음날 날짜로)", sched_help: "칸을 누르면 그 날 출퇴근을 고칠 수 있어요. 위 줄 = 앱 출퇴근 실제 (출근–퇴근), 아래 회색 = 계획 (웨이터는 캐시북 스케줄, 주방·라이더는 관리자 입력 근무표). 노란 칸 = 퇴근 전/기록 한쪽 없음.", sched_legend: "실제 / 계획", sched_none: "—", mySched: "내 스케줄 (캐시북)", mySchedHelp: "오늘부터 2주 · 캐시북에 올라온 계획", sched_today: "오늘",
     myInfo: "내 정보", myInfoHelp: "연락처·주소·급여 받을 계좌·정부 번호는 직접 고칠 수 있어요. 이름·직책·급여는 관리자만 바꿀 수 있어요.", infoSaved: "내 정보를 저장했어요", empInfo: "직원 정보 (직원이 직접 수정 가능)", i_phone: "휴대폰", i_address: "주소", i_gcash: "GCash 번호", i_bank_name: "은행", i_bank_acct: "계좌번호", i_sss: "SSS 번호", i_philhealth: "PhilHealth 번호", i_pagibig: "Pag-IBIG 번호", i_tin: "TIN", i_emergency_name: "비상 연락 (이름·관계)", i_emergency_phone: "비상 연락 번호", myPay: "내 급여명세서", myLedger: "내 가불·부족분", myShifts: "내 근무 기록", notPaidYet: "아직 지급 전", noData: "아직 기록이 없어요", empNoLbl: "번호", resetPin: "PIN 초기화 (0000)", pinReset: "PIN을 0000으로 초기화했어요. 다음 로그인 때 본인이 다시 등록해요.", pinSet: "PIN 등록됨", pinNotSet: "PIN 미등록 (0000)",
   },
@@ -121,7 +121,7 @@ const I18N = {
     cbLaw: "Don’t split a shortage among everyone on duty. Give the waiter a chance to explain and assign it only to the one person found responsible. It is deducted only after you tick 'responsibility established' and 'written authorization on file'.", cbWho: "Responsible waiter", cbAssign: "Add as this waiter’s shortage (unverified)", cbAssigned: "Added — deducted after verification & authorization", cbDismissLbl: "Found it / book mistake (note)", cbFoundPh: "e.g. found in drawer next day / sale entered wrong", cbDismiss: "Resolved — no deduction", notDeducted: "not deducted (needs verification & consent)",
     asStaff: "Staff", asAdmin: "Admin", empNo: "Employee no.", pin: "PIN (numbers)", pinFirst: "First time? PIN is 0000", pinWrong: "Wrong number or PIN", pinLocked: "Locked for 10 minutes after 5 wrong tries",
     newPinTitle: "Set your PIN", newPinHelp: "First sign-in. Choose your own 4–6 digit PIN (not 0000).", newPin: "New PIN", newPin2: "New PIN again", pinMismatch: "The PINs don’t match", pinBad: "Use 4–6 digits (not 0000)", pinSaved: "PIN saved",
-    myCalc: "My pay calculator (estimate)", myCalcHelp: "Pre-filled from the schedule (you can change it). Enter your shifts to see an estimate. Advances, bonuses and shortages are not included; the paid payslip is the official amount.", est: "Estimated net pay",
+    myEst: "Expected pay this period", myEstNote: "Note: based on the schedule, so it may change. If there are deductions (cash advances, statutory contributions, etc.), the amount may be adjusted.", myEstDays: "based on {n} scheduled days", myCalc: "My pay calculator (estimate)", myCalcHelp: "Pre-filled from the schedule (you can change it). Enter your shifts to see an estimate. Advances, bonuses and shortages are not included; the paid payslip is the official amount.", est: "Estimated net pay",
     sched_tap: "Tap to edit this day's clock records", sched_editHelp: "Fix or delete the in/out times, add a missing one below (an overnight clock-out goes on the next date)", sched_help: "Tap a cell to edit that day's clock records. Top line = actual app clock-in–out, grey line = plan (waiters: Cash Book schedule; kitchen & riders: roster entered by admin). Yellow = not clocked out / one side missing.", sched_legend: "actual / plan", sched_none: "—", mySched: "My schedule (Cash Book)", mySchedHelp: "Next 2 weeks · as planned in the Cash Book", sched_today: "today",
     myInfo: "My info", myInfoHelp: "You can update your contact, address, payout account and government numbers yourself. Name, position and pay are changed by the admin only.", infoSaved: "Your info is saved", empInfo: "Employee info (the employee can edit this)", i_phone: "Mobile", i_address: "Address", i_gcash: "GCash number", i_bank_name: "Bank", i_bank_acct: "Account number", i_sss: "SSS no.", i_philhealth: "PhilHealth no.", i_pagibig: "Pag-IBIG no.", i_tin: "TIN", i_emergency_name: "Emergency contact (name · relation)", i_emergency_phone: "Emergency contact number", myPay: "My payslips", myLedger: "My advances & shortages", myShifts: "My shifts", notPaidYet: "not paid yet", noData: "Nothing yet", empNoLbl: "No.", resetPin: "Reset PIN (0000)", pinReset: "PIN reset to 0000. They set a new one at next sign-in.", pinSet: "PIN set", pinNotSet: "PIN not set (0000)",
   },
@@ -291,6 +291,7 @@ function renderStaffHome() {
       h("button", { id: "e-logout", onclick: () => { EMP.pin = ""; EMP.data = null; renderStaffLogin(); } }, t("logout"))),
     h("main", { id: "main" },
       finalCard,
+      myEstCard(emp, v),
       clockCard(),
       staffCalcCard(emp, v),
       h("div", { class: "card" }, h("h2", {}, t("myPay")), payList),
@@ -365,6 +366,26 @@ function clockCard() {
 const SC = { month: null, half: null, days: [], gov: { sss: false, philhealth: false, pagibig: false, share: 0.5 }, fillShift: "8-18" };
 // 미리 계산: 비어 있는 날은 스케줄표(계획) 기준으로 채움
 const planDay = (date, sh) => !sh ? { date, shift: "", type: "off" } : sh === "off" ? { date, shift: "", type: "off" } : sh === "sil" ? { date, shift: "", type: "sil" } : { date, shift: sh, type: "regular" };
+/* ---- staff: expected pay for the current pay period, from the schedule (not final) ---- */
+function myEstCard(emp, v) {
+  const per = periodForDate(today());
+  const done = (v.payrolls || []).find(p => p.period_start === per.start && (p.status === "paid" || p.shared));
+  if (done) return null;
+  const planBy = Object.fromEntries((v.schedule || []).map(r => [r.day, r.shift]));
+  const paidBefore = new Set((v.payrolls || []).flatMap(p => (p.result?.rows || []).filter(r => !r.carry && (DAY_TYPES[r.type]?.worked || r.type === "sil" || +r.amount > 0)).map(r => r.date)));
+  const days = [...(per.carry || []).filter(d => !paidBefore.has(d)).map(d => ({ ...planDay(d, planBy[d]), date: d, carry: true })), ...datesBetween(per.start, per.end).map(d => planDay(d, planBy[d]))];
+  const worked = paidDays(days).filter(d => DAY_TYPES[d.type]?.worked || d.type === "sil");
+  if (!worked.length) return null;
+  const st = EMP.data?.settings || {};
+  const R = computePayroll(paidDays(days), { scheme: schemeOf(emp), payType: emp.pay_type || "daily", daily: +emp.daily_rate, monthly: +emp.monthly_rate || 0, breakHrs: breakFor(emp, st.break_hours),
+    allowancePerDay: +emp.allowance_per_day || 0, gov: { share: 0.5 }, govShare: 0.5, hoursPerDay: +st.hours_per_day || 10, latePenalty: st.late_penalty !== false,
+    monthlyBasic: +st.monthly_basic || 25945, otIncluded: st.monthly_ot_incl ?? 1 });
+  return h("div", { class: "card", id: "my-est", style: "border:2px dashed var(--gold)" },
+    h("div", { class: "row", style: "align-items:center;flex-wrap:wrap" },
+      h("div", {}, h("h2", { style: "margin:0" }, t("myEst")), h("div", { class: "muted" }, periodLabel(per.start, per.end) + " · " + tf("myEstDays", { n: worked.length }))),
+      h("span", { class: "sp" }), h("div", { class: "money", style: "font-size:26px;font-weight:800" }, "₱" + money(R.gross))),
+    h("p", { class: "muted", style: "margin:8px 0 0;font-size:13px" }, t("myEstNote")));
+}
 function staffCalcCard(emp, v) {
   const planBy = Object.fromEntries((v?.schedule || []).map(r => [r.day, r.shift]));
   const monthly = (emp.pay_type || "daily") === "monthly";
