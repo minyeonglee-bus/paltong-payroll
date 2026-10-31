@@ -293,7 +293,6 @@ function renderStaffHome() {
       finalCard,
       myEstCard(emp, v),
       clockCard(),
-      staffCalcCard(emp, v),
       h("div", { class: "card" }, h("h2", {}, t("myPay")), payList),
       h("div", { class: "card" }, h("h2", {}, t("myLedger")), ledList),
       h("div", { class: "card" }, h("h2", {}, t("myShifts")), shifts),
