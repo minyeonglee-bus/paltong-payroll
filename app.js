@@ -60,7 +60,7 @@ const I18N = {
     cbLaw: "근무 중이었다는 이유만으로 나눠서 빼면 안 돼요. 본인에게 설명할 기회를 주고, 책임이 확인된 한 사람에게만 지정하세요. 지정 후 가불·부족분에서 '본인 책임 확인'과 '서면 동의 받음'을 체크해야 공제돼요.", cbWho: "책임 웨이터", cbAssign: "이 웨이터의 부족분으로 넣기 (미확인)", cbAssigned: "부족분에 넣었어요 — 확인·동의 체크 후 공제돼요", cbDismissLbl: "찾았거나 장부 실수였다면 (메모)", cbFoundPh: "예: 다음날 서랍에서 찾음 / 매출 입력 실수", cbDismiss: "해결됨 — 공제 안 함", notDeducted: "공제 전 (확인·동의 필요)",
     asStaff: "직원", asAdmin: "관리자", empNo: "직원 번호", pin: "PIN (숫자)", pinFirst: "처음이면 PIN 0000", pinWrong: "번호 또는 PIN이 틀려요", pinLocked: "5번 틀려서 10분 동안 잠겼어요",
     newPinTitle: "내 PIN 등록", newPinHelp: "처음 로그인이에요. 나만 아는 숫자 4~6자리로 PIN을 새로 정해주세요 (0000 안 됨).", newPin: "새 PIN", newPin2: "새 PIN 다시", pinMismatch: "두 PIN이 달라요", pinBad: "숫자 4~6자리로 정해주세요 (0000 안 됨)", pinSaved: "PIN을 등록했어요",
-    rsnTitle: "스케줄과 다른 시간이에요", rsnPlan: "스케줄", rsnNow: "지금", rsnLate: "{n}분 늦음", rsnEarly: "{n}분 일찍", rsnNoShift: "오늘 스케줄 없음", rsnLbl: "사유 (필수)", rsnPh: "예: 교통 체증으로 늦었습니다 / 손님이 많아 늦게 퇴근했습니다", rsnNeed: "사유를 적어 주세요", rsnSend: "사유 저장하고 찍기", rsnSent: "저장했어요 · 관리자 확인 대기", st_pending: "확인 대기", st_approved: "승인", st_rejected: "반려", rv_title: "출퇴근 사유 확인", rv_help: "스케줄과 1분이라도 다른 출퇴근은 직원이 사유를 적고, 관리자가 승인해야 확정돼요. 승인 안 된 늦은 퇴근은 초과근무로 계산하지 않아요.", rv_none: "확인할 사유가 없어요", rv_ok: "승인", rv_no: "반려", rv_print: "사유서 인쇄", rv_done: "최근 처리 (30일)", rv_letter: "사유서", myEst: "이번 급여 예상", myEstNote: "안내: 스케줄표 기준이므로 달라질 수 있으며, 공제금(가불·법정 공제 등)이 있으면 금액 보정이 있을 수 있습니다.", myEstDays: "스케줄 {n}일 기준", myCalc: "내 급여 계산기 (예상)", myCalcHelp: "스케줄표 기준으로 미리 채워져 있어요 (바꿔서 계산해 볼 수 있어요). 시프트만 넣으면 예상 급여가 나와요. 가불·보너스·부족분은 빠져 있고, 실제 금액은 지급된 급여명세서 기준이에요.", est: "예상 실수령액",
+    awayErr: "매장에서만 출퇴근할 수 있어요. 매장 와이파이에 연결하거나 휴대폰 위치(GPS)를 켜고 다시 눌러 주세요.", locWait: "위치 확인 중…", sg_title: "매장에서만 출퇴근", sg_help: "켜면 매장 와이파이(등록한 인터넷) 또는 매장 반경 안(GPS) 둘 중 하나가 맞을 때만 출퇴근이 돼요. 통신사가 매장 인터넷 주소를 바꾸면 매장에서 '이 인터넷 등록'을 다시 눌러 주세요.", sg_on: "사용", sg_ips: "등록된 매장 인터넷", sg_ipAdd: "지금 이 인터넷을 매장으로 등록 (매장 와이파이에서)", sg_loc: "매장 위치", sg_locSet: "지금 위치를 매장 위치로 등록 (매장에서)", sg_radius: "허용 반경 (m)", sg_none: "없음", sg_locErr: "위치를 가져올 수 없어요. 위치 권한을 허용해 주세요.", rsnTitle: "스케줄과 다른 시간이에요", rsnPlan: "스케줄", rsnNow: "지금", rsnLate: "{n}분 늦음", rsnEarly: "{n}분 일찍", rsnNoShift: "오늘 스케줄 없음", rsnLbl: "사유 (필수)", rsnPh: "예: 교통 체증으로 늦었습니다 / 손님이 많아 늦게 퇴근했습니다", rsnNeed: "사유를 적어 주세요", rsnSend: "사유 저장하고 찍기", rsnSent: "저장했어요 · 관리자 확인 대기", st_pending: "확인 대기", st_approved: "승인", st_rejected: "반려", rv_title: "출퇴근 사유 확인", rv_help: "스케줄과 1분이라도 다른 출퇴근은 직원이 사유를 적고, 관리자가 승인해야 확정돼요. 승인 안 된 늦은 퇴근은 초과근무로 계산하지 않아요.", rv_none: "확인할 사유가 없어요", rv_ok: "승인", rv_no: "반려", rv_print: "사유서 인쇄", rv_done: "최근 처리 (30일)", rv_letter: "사유서", myEst: "이번 급여 예상", myEstNote: "안내: 스케줄표 기준이므로 달라질 수 있으며, 공제금(가불·법정 공제 등)이 있으면 금액 보정이 있을 수 있습니다.", myEstDays: "스케줄 {n}일 기준", myCalc: "내 급여 계산기 (예상)", myCalcHelp: "스케줄표 기준으로 미리 채워져 있어요 (바꿔서 계산해 볼 수 있어요). 시프트만 넣으면 예상 급여가 나와요. 가불·보너스·부족분은 빠져 있고, 실제 금액은 지급된 급여명세서 기준이에요.", est: "예상 실수령액",
     sched_tap: "눌러서 이 날 출퇴근 수정", sched_editHelp: "출근·퇴근 시각을 고치거나 지우고, 빠진 기록은 아래에서 추가 (밤 근무 퇴근은 다음날 날짜로)", sched_help: "칸을 누르면 그 날 출퇴근을 고칠 수 있어요. 위 줄 = 앱 출퇴근 실제 (출근–퇴근), 아래 회색 = 계획 (웨이터는 캐시북 스케줄, 주방·라이더는 관리자 입력 근무표). 노란 칸 = 퇴근 전/기록 한쪽 없음.", sched_legend: "실제 / 계획", sched_none: "—", mySched: "내 스케줄 (캐시북)", mySchedHelp: "오늘부터 2주 · 캐시북에 올라온 계획", sched_today: "오늘",
     myInfo: "내 정보", myInfoHelp: "연락처·주소·급여 받을 계좌·정부 번호는 직접 고칠 수 있어요. 이름·직책·급여는 관리자만 바꿀 수 있어요.", infoSaved: "내 정보를 저장했어요", empInfo: "직원 정보 (직원이 직접 수정 가능)", i_phone: "휴대폰", i_address: "주소", i_gcash: "GCash 번호", i_bank_name: "은행", i_bank_acct: "계좌번호", i_sss: "SSS 번호", i_philhealth: "PhilHealth 번호", i_pagibig: "Pag-IBIG 번호", i_tin: "TIN", i_emergency_name: "비상 연락 (이름·관계)", i_emergency_phone: "비상 연락 번호", myPay: "내 급여명세서", myLedger: "내 가불·부족분", myShifts: "내 근무 기록", notPaidYet: "아직 지급 전", noData: "아직 기록이 없어요", empNoLbl: "번호", resetPin: "PIN 초기화 (0000)", pinReset: "PIN을 0000으로 초기화했어요. 다음 로그인 때 본인이 다시 등록해요.", pinSet: "PIN 등록됨", pinNotSet: "PIN 미등록 (0000)",
   },
@@ -121,7 +121,7 @@ const I18N = {
     cbLaw: "Don’t split a shortage among everyone on duty. Give the waiter a chance to explain and assign it only to the one person found responsible. It is deducted only after you tick 'responsibility established' and 'written authorization on file'.", cbWho: "Responsible waiter", cbAssign: "Add as this waiter’s shortage (unverified)", cbAssigned: "Added — deducted after verification & authorization", cbDismissLbl: "Found it / book mistake (note)", cbFoundPh: "e.g. found in drawer next day / sale entered wrong", cbDismiss: "Resolved — no deduction", notDeducted: "not deducted (needs verification & consent)",
     asStaff: "Staff", asAdmin: "Admin", empNo: "Employee no.", pin: "PIN (numbers)", pinFirst: "First time? PIN is 0000", pinWrong: "Wrong number or PIN", pinLocked: "Locked for 10 minutes after 5 wrong tries",
     newPinTitle: "Set your PIN", newPinHelp: "First sign-in. Choose your own 4–6 digit PIN (not 0000).", newPin: "New PIN", newPin2: "New PIN again", pinMismatch: "The PINs don’t match", pinBad: "Use 4–6 digits (not 0000)", pinSaved: "PIN saved",
-    rsnTitle: "This is different from your schedule", rsnPlan: "Schedule", rsnNow: "Now", rsnLate: "{n} min late", rsnEarly: "{n} min early", rsnNoShift: "No shift scheduled today", rsnLbl: "Reason (required)", rsnPh: "e.g. Heavy traffic / Stayed late because the restaurant was busy", rsnNeed: "Please write the reason", rsnSend: "Save reason and clock", rsnSent: "Saved · waiting for the manager", st_pending: "Waiting", st_approved: "Approved", st_rejected: "Rejected", rv_title: "Clock-in/out reasons", rv_help: "Any clock in/out that differs from the schedule (even 1 minute) needs a written reason from the employee and the manager's approval. A late clock-out that is not approved is not counted as overtime.", rv_none: "Nothing to review", rv_ok: "Approve", rv_no: "Reject", rv_print: "Print letter", rv_done: "Recently decided (30 days)", rv_letter: "Explanation letter", myEst: "Expected pay this period", myEstNote: "Note: based on the schedule, so it may change. If there are deductions (cash advances, statutory contributions, etc.), the amount may be adjusted.", myEstDays: "based on {n} scheduled days", myCalc: "My pay calculator (estimate)", myCalcHelp: "Pre-filled from the schedule (you can change it). Enter your shifts to see an estimate. Advances, bonuses and shortages are not included; the paid payslip is the official amount.", est: "Estimated net pay",
+    awayErr: "You can only clock in/out at the restaurant. Connect to the restaurant Wi-Fi or turn on your phone's location (GPS) and try again.", locWait: "Checking location…", sg_title: "Clock in/out only at the restaurant", sg_help: "When on, clocking works only on the restaurant Wi-Fi (registered internet) or inside the restaurant radius (GPS). If the internet provider changes the restaurant's address, press 'register this internet' again at the restaurant.", sg_on: "On", sg_ips: "Registered restaurant internet", sg_ipAdd: "Register this internet as the restaurant (on the restaurant Wi-Fi)", sg_loc: "Restaurant location", sg_locSet: "Set my current location as the restaurant (at the restaurant)", sg_radius: "Allowed radius (m)", sg_none: "none", sg_locErr: "Couldn't get the location. Please allow location access.", rsnTitle: "This is different from your schedule", rsnPlan: "Schedule", rsnNow: "Now", rsnLate: "{n} min late", rsnEarly: "{n} min early", rsnNoShift: "No shift scheduled today", rsnLbl: "Reason (required)", rsnPh: "e.g. Heavy traffic / Stayed late because the restaurant was busy", rsnNeed: "Please write the reason", rsnSend: "Save reason and clock", rsnSent: "Saved · waiting for the manager", st_pending: "Waiting", st_approved: "Approved", st_rejected: "Rejected", rv_title: "Clock-in/out reasons", rv_help: "Any clock in/out that differs from the schedule (even 1 minute) needs a written reason from the employee and the manager's approval. A late clock-out that is not approved is not counted as overtime.", rv_none: "Nothing to review", rv_ok: "Approve", rv_no: "Reject", rv_print: "Print letter", rv_done: "Recently decided (30 days)", rv_letter: "Explanation letter", myEst: "Expected pay this period", myEstNote: "Note: based on the schedule, so it may change. If there are deductions (cash advances, statutory contributions, etc.), the amount may be adjusted.", myEstDays: "based on {n} scheduled days", myCalc: "My pay calculator (estimate)", myCalcHelp: "Pre-filled from the schedule (you can change it). Enter your shifts to see an estimate. Advances, bonuses and shortages are not included; the paid payslip is the official amount.", est: "Estimated net pay",
     sched_tap: "Tap to edit this day's clock records", sched_editHelp: "Fix or delete the in/out times, add a missing one below (an overnight clock-out goes on the next date)", sched_help: "Tap a cell to edit that day's clock records. Top line = actual app clock-in–out, grey line = plan (waiters: Cash Book schedule; kitchen & riders: roster entered by admin). Yellow = not clocked out / one side missing.", sched_legend: "actual / plan", sched_none: "—", mySched: "My schedule (Cash Book)", mySchedHelp: "Next 2 weeks · as planned in the Cash Book", sched_today: "today",
     myInfo: "My info", myInfoHelp: "You can update your contact, address, payout account and government numbers yourself. Name, position and pay are changed by the admin only.", infoSaved: "Your info is saved", empInfo: "Employee info (the employee can edit this)", i_phone: "Mobile", i_address: "Address", i_gcash: "GCash number", i_bank_name: "Bank", i_bank_acct: "Account number", i_sss: "SSS no.", i_philhealth: "PhilHealth no.", i_pagibig: "Pag-IBIG no.", i_tin: "TIN", i_emergency_name: "Emergency contact (name · relation)", i_emergency_phone: "Emergency contact number", myPay: "My payslips", myLedger: "My advances & shortages", myShifts: "My shifts", notPaidYet: "not paid yet", noData: "Nothing yet", empNoLbl: "No.", resetPin: "Reset PIN (0000)", pinReset: "PIN reset to 0000. They set a new one at next sign-in.", pinSet: "PIN set", pinNotSet: "PIN not set (0000)",
   },
@@ -337,8 +337,10 @@ function my13Card(v, emp) {
 /* ---- staff clock in / out: the app record is the attendance basis ---- */
 const fmtT = d => { d = new Date(d); return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
 const fmtDT = d => { d = new Date(d); return `${d.getMonth() + 1}/${d.getDate()} ${t("dow")[d.getDay()]} ${fmtT(d)}`; };
+const getLoc = () => new Promise(res => { if (!navigator.geolocation) return res(null);
+  navigator.geolocation.getCurrentPosition(p => res({ lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy }), () => res(null), { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }); });
 const devText = (plan, dev) => plan == null || plan === "off" || plan === "sil" || dev == null ? t("rsnNoShift") : dev > 0 ? tf("rsnLate", { n: dev }) : tf("rsnEarly", { n: -dev });
-function askReason(kind, r) {
+function askReason(kind, r, loc) {
   const ta = h("textarea", { id: "rsn-text", rows: 3, placeholder: t("rsnPh"), style: "width:100%" });
   const close = sheet([h("h3", {}, t("rsnTitle")),
     h("p", {}, h("b", {}, t(kind === "in" ? "punchIn" : "punchOut")), " · ", t("rsnPlan"), " ", r.plan && r.plan !== "off" && r.plan !== "sil" ? SHIFT_LABEL(r.plan) : "—",
@@ -347,7 +349,7 @@ function askReason(kind, r) {
     h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", onclick: () => close() }, t("cancel")),
       h("button", { class: "btn primary", id: "rsn-send", onclick: async () => {
         const txt = ta.value.trim(); if (!txt) return toast(t("rsnNeed"));
-        try { const x = await db.punch(EMP.no, EMP.pin, kind, txt); if (!x.ok) return toast(pinErr(x.err));
+        try { const x = await db.punch(EMP.no, EMP.pin, kind, txt, loc || await getLoc()); if (!x.ok) return toast(x.err === "away" ? t("awayErr") : pinErr(x.err));
           close(); toast(x.dup ? t("clockDup") : t("rsnSent")); EMP.data = await db.empView(EMP.no, EMP.pin); renderStaffHome(); } catch (e) { toast(errMsg(e)); } } }, t("rsnSend")))]);
   setTimeout(() => ta.focus(), 50);
 }
@@ -397,8 +399,10 @@ function clockCard() {
   const press = async kind => {
     const btns = document.querySelectorAll("#clock button"); btns.forEach(b => b.disabled = true);
     try {
-      const r = await db.punch(EMP.no, EMP.pin, kind);
-      if (!r.ok && r.need_reason) { btns.forEach(b => b.disabled = false); askReason(kind, r); return; }
+      const loc = await getLoc();
+      const r = await db.punch(EMP.no, EMP.pin, kind, null, loc);
+      if (!r.ok && r.err === "away") { toast(t("awayErr")); btns.forEach(b => b.disabled = false); return; }
+      if (!r.ok && r.need_reason) { btns.forEach(b => b.disabled = false); askReason(kind, r, loc); return; }
       if (!r.ok) { toast(pinErr(r.err)); return; }
       if (r.dup) { toast(t("clockDup")); return; }
       toast(tf("clockDone", { k: t(kind === "in" ? "punchIn" : "punchOut"), t: fmtT(r.at) }));
@@ -1265,6 +1269,25 @@ function pay13(e, year, total, amount, monthAvg = 0) {
       await db.saveThirteenth({ employee_id: e.id, year, basic_total: total, amount: +aIn.value, paid_on: dIn.value, paid_via: vIn.value }); toast(t("saved")); close(); render(); } catch (er) { toast(errMsg(er)); } } }, t("c13_pay")))]);
 }
 
+function storeGuardCard() {
+  const s = S.settings, card = h("div", { class: "card", id: "store-guard" });
+  const draw = () => { const s = S.settings; card.innerHTML = "";
+    const on = h("input", { type: "checkbox", id: "sgOn", checked: !!s.punch_guard });
+    const rad = h("input", { type: "number", id: "sgRad", value: s.store_radius_m ?? 100, min: 30, step: 10, style: "max-width:120px" });
+    const save = async patch => { try { S.settings = await db.saveSettings(patch); toast(t("saved")); draw(); } catch (e) { toast(errMsg(e)); } };
+    on.onchange = () => save({ punch_guard: on.checked }); rad.onchange = () => save({ store_radius_m: Math.max(30, +rad.value || 100) });
+    card.append(h("h2", {}, t("sg_title")), h("small", { class: "muted" }, t("sg_help")),
+      h("div", { class: "row" }, h("label", { class: "check" }, on, t("sg_on"))),
+      h("div", {}, h("b", {}, t("sg_ips"))),
+      (s.store_ips || []).length ? h("div", { class: "list" }, s.store_ips.map(ip => h("div", { class: "item" }, h("div", { class: "t" }, ip),
+        h("button", { class: "btn sm danger m", type: "button", onclick: () => save({ store_ips: s.store_ips.filter(x => x !== ip) }) }, "✕")))) : h("p", { class: "muted" }, t("sg_none")),
+      h("button", { class: "btn", type: "button", id: "sgIp", onclick: async () => { try { const r = await db.registerStoreIp(); if (!r.ok) return toast(r.err); S.settings = await db.getSettings(); toast(r.ip); draw(); } catch (e) { toast(errMsg(e)); } } }, "📶 " + t("sg_ipAdd")),
+      h("div", { style: "margin-top:10px" }, h("b", {}, t("sg_loc")), " ", h("span", { class: "muted" }, s.store_lat != null ? `${(+s.store_lat).toFixed(5)}, ${(+s.store_lng).toFixed(5)}` : t("sg_none"))),
+      h("div", { class: "row" }, h("button", { class: "btn", type: "button", id: "sgLoc", onclick: async () => { const l = await getLoc(); if (!l) return toast(t("sg_locErr")); save({ store_lat: l.lat, store_lng: l.lng }); } }, "📍 " + t("sg_locSet")),
+        field(t("sg_radius"), rad)));
+  };
+  draw(); return card;
+}
 /* ================= SETTINGS ================= */
 function renderSet() {
   const main = document.getElementById("main"); const owner = S.user?.role === "owner"; const s = S.settings;
@@ -1283,6 +1306,7 @@ function renderSet() {
     owner && h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn primary", onclick: async () => { try {
       S.settings = await db.saveSettings({ min_wage: +wage.value, break_hours: +brk.value, rider_allowance: +rider.value, kitchen_monthly: +kit.value, hours_per_day: +hpd.value || 10, late_penalty: penSel.value === "1", monthly_basic: +mBasic.value || 25945, monthly_ot_incl: +mOt.value || 0, sss_on: sss.firstChild.checked, philhealth_on: ph.firstChild.checked, pagibig_on: pag.firstChild.checked, gov_share: +share.value });
       toast(t("saved")); } catch (e) { toast(errMsg(e)); } } }, t("save")))),
+    owner && storeGuardCard(),
     h("div", { class: "card" }, h("h2", {}, t("contract")), h("ul", { style: "margin:0;padding-left:18px;display:grid;gap:8px;font-size:14px" }, t("contractText").map(x => h("li", {}, x)))));
 }
 

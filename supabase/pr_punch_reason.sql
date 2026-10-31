@@ -69,3 +69,11 @@ end $$;
 grant execute on function public.pr_punch(text, text, text, text) to anon, authenticated;
 
 -- staff view: punches carry their status / reason (rest of the function unchanged)
+
+-- ===== store guard (applied as migrations pr_punch_store_guard / pr_punch2_internal_only / pr_punch_old_delegates) =====
+-- pr_settings: store_ips text[], store_lat, store_lng, store_radius_m (100), punch_guard (off by default)
+-- pr_punches: ip, lat, lng, where_ok ('wifi' | 'gps' | 'off')
+-- pr_client_ip(): client IP from PostgREST request headers (cf-connecting-ip / x-forwarded-for)
+-- pr_store_ip_register(): owner-only, adds the caller's current IP to store_ips
+-- pr_punch3(no, pin, kind, reason, lat, lng): when punch_guard is on, allowed only if IP is a store IP OR GPS is within store_radius_m;
+--   then runs pr_punch2 (schedule / reason check). pr_punch2 is internal only (execute revoked); pr_punch(no,pin,kind) delegates to pr_punch3.

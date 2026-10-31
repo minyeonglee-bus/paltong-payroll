@@ -112,7 +112,8 @@ export async function listPayrollsYear(year) {
 }
 
 // ---------- 출퇴근 (직원이 앱에서 버튼 · 앱 기록이 근태 기준) ----------
-export async function punch(no, pin, kind, reason = null) { return must(await sb.rpc("pr_punch2", { p_no: String(no).trim(), p_pin: String(pin), p_kind: kind, p_reason: reason })); }
+export async function punch(no, pin, kind, reason = null, loc = null) { return must(await sb.rpc("pr_punch3", { p_no: String(no).trim(), p_pin: String(pin), p_kind: kind, p_reason: reason, p_lat: loc?.lat ?? null, p_lng: loc?.lng ?? null })); }
+export async function registerStoreIp() { return must(await sb.rpc("pr_store_ip_register")); }
 /** owner: punches outside the schedule (pending first, then decided in the last `days` days) */
 export async function listPunchReview(days = 30) {
   const since = new Date(Date.now() - days * 864e5).toISOString();
