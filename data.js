@@ -106,9 +106,11 @@ export async function listThirteenth(year) { return must(await sb.from("pr_thirt
 export async function saveThirteenth(row) {
   return must(await sb.from("pr_thirteenth").upsert(row, { onConflict: "employee_id,year" }).select().single());
 }
+export async function empAck13(no, pin, year, amount) { return must(await sb.rpc("pr_emp_ack13", { p_no: String(no).trim(), p_pin: String(pin), p_year: year, p_amount: amount })); }
+export async function listAck13(year) { return must(await sb.from("pr_13_ack").select("*").eq("year", year)); }
 export async function deleteThirteenth(id) { must(await sb.from("pr_thirteenth").delete().eq("id", id)); }
 export async function listPayrollsYear(year) {
-  return must(await sb.from("pr_payrolls").select("employee_id, period_start, period_end, status, result").gte("period_start", `${year}-01-01`).lte("period_start", `${year}-12-31`).limit(2000));
+  return must(await sb.from("pr_payrolls").select("employee_id, period_start, period_end, status, shared_at, result").gte("period_start", `${year}-01-01`).lte("period_start", `${year}-12-31`).limit(2000));
 }
 
 // ---------- 출퇴근 (직원이 앱에서 버튼 · 앱 기록이 근태 기준) ----------

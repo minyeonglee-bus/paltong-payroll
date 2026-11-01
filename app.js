@@ -14,7 +14,7 @@ const I18N = {
     c13_basicApp: "앱 기본급", c13_basicBefore: "앱 이전", c13_total: "기본급 합계", c13_periods: "기간 수", c13_amount: "13월급 (÷12)", c13_avg: "월평균 (1년↑)", c13_proj: "연말 예상", c13_status: "지급", c13_pay: "지급 기록", c13_paid: "지급됨", c13_unpaid: "미지급", c13_unpay: "지급 취소",
     c13_projHelp: "연말 예상 = 지금까지 평균 반월 기본급 × 남은 반월 수를 더한 값 ÷ 12 (참고용)", c13_total_row: "합계", c13_draftNote: "작성중 급여 포함",
     emp_before: "앱 이전 올해 기본급 (13월급용)", emp_beforeHelp: "앱 쓰기 전 올해 1월~9월에 받은 기본급 합계 (초과·수당 제외). 모르면 0",
-    my13: "내 13월급", my13help: "올해 지급된 급여의 기본급(초과·야간·가산·정비비·인센티브 제외)으로 계산한 예상치예요. 1년 이상 근무면 한 달 평균, 1년 미만이면 합계 ÷ 12. 12월 24일 전 지급. 확정 금액은 관리자가 지급 기록한 값이에요.", my13_basic: "올해 기본급 합계 ({n}회 지급)", my13_by12: "÷ 12 (1년 미만)", my13_avg: "한 달 평균 (1년 이상)", my13_est: "예상 13월급", my13_1yr: "1년 이상", my13_under: "1년 미만",
+    p13_title: "13월급 (12월까지 근무 기준 예상)", p13_help: "올해 확정·지급된 급여의 기본급과, 12월 31일까지 계속 근무한다고 가정한 남은 기간(평균 기본급)으로 계산했어요. 초과·야간·가산·인센티브는 빠져요.", p13_req: "11월 7일부터 요청 가능", p13_open: "13월급 명세서 보기", p13_ack: "확인했어요", p13_acked: "확인함 {d}", p13_period: "기간", p13_basic: "기본급", p13_estRow: "예상", p13_sum: "기본급 합계 (12월까지)", p13_by12: "합계 ÷ 12", p13_avgM: "한 달 평균 (1년 이상 근무)", p13_final: "예상 13월급", p13_note: "12월까지 근무했다고 가정한 예상 금액이에요. 실제 근무에 따라 달라질 수 있고, 확정 금액은 관리자가 지급 기록한 값이에요.", p13_due: "13월급 (12월까지 근무 기준)", p13_dueHelp: "직원 화면과 같은 계산이에요. 확정 급여의 기본급 + 남은 기간 평균. 직원이 명세서를 보고 확인을 누르면 표시돼요.", p13_notAck: "확인 전", p13_toDate: "지금까지", my13: "내 13월급", my13help: "올해 지급된 급여의 기본급(초과·야간·가산·정비비·인센티브 제외)으로 계산한 예상치예요. 1년 이상 근무면 한 달 평균, 1년 미만이면 합계 ÷ 12. 12월 24일 전 지급. 확정 금액은 관리자가 지급 기록한 값이에요.", my13_basic: "올해 기본급 합계 ({n}회 지급)", my13_by12: "÷ 12 (1년 미만)", my13_avg: "한 달 평균 (1년 이상)", my13_est: "예상 13월급", my13_1yr: "1년 이상", my13_under: "1년 미만",
     employee: "직원", period: "급여 기간", first: "1 – 15일", second: "16 – 30일", month: "월",
     daily: "일급", monthlyRate: "월급 (초과근무 포함)", breakH: "식사 휴게 (시간/일)", allowDay: "정비비 (₱/근무일)",
     roster: "보름치 시프트 표", off: "휴무", wkend: "주말",
@@ -75,7 +75,7 @@ const I18N = {
     c13_basicApp: "Basic (app)", c13_basicBefore: "Before app", c13_total: "Total basic", c13_periods: "Periods", c13_amount: "13th (÷12)", c13_avg: "Monthly avg (1yr+)", c13_proj: "Year-end est.", c13_status: "Paid", c13_pay: "Record payment", c13_paid: "Paid", c13_unpaid: "Unpaid", c13_unpay: "Undo",
     c13_projHelp: "Year-end estimate = current average basic per half-month × remaining half-months, added, ÷ 12 (reference only)", c13_total_row: "Total", c13_draftNote: "includes draft payrolls",
     emp_before: "Basic earned this year before the app (for 13th month)", emp_beforeHelp: "Basic salary received Jan–Sep this year before the app (no OT / allowances). 0 if unknown",
-    my13: "My 13th-month pay", my13help: "Estimate from the basic pay (no OT, night diff, premiums, maintenance or incentives) of payrolls paid this year. 1 year+ of service = one month average; under a year = total ÷ 12. Paid by Dec 24. The final amount is what the admin records.", my13_basic: "Basic pay this year ({n} payrolls)", my13_by12: "÷ 12 (under 1 year)", my13_avg: "One-month average (1 year+)", my13_est: "Estimated 13th month", my13_1yr: "1 year+", my13_under: "under 1 year",
+    p13_title: "13th month (estimate if you work until December)", p13_help: "Basic pay from this year's finalized/paid payrolls, plus the remaining periods up to December 31 at your average basic pay (as if you keep working). No OT, night diff, premiums or incentives.", p13_req: "You can request it from November 7", p13_open: "View 13th-month slip", p13_ack: "I confirm", p13_acked: "Confirmed {d}", p13_period: "Period", p13_basic: "Basic pay", p13_estRow: "estimate", p13_sum: "Total basic (to December)", p13_by12: "Total ÷ 12", p13_avgM: "One-month average (1 year+ of service)", p13_final: "Estimated 13th month", p13_note: "This is an estimate assuming you work until December. It may change with your actual work; the final amount is what the manager records when paying.", p13_due: "13th month (if working until December)", p13_dueHelp: "Same calculation as the staff screen: basic pay from finalized payrolls + remaining periods at the average. Shows when the employee viewed the slip and pressed confirm.", p13_notAck: "not yet", p13_toDate: "so far", my13: "My 13th-month pay", my13help: "Estimate from the basic pay (no OT, night diff, premiums, maintenance or incentives) of payrolls paid this year. 1 year+ of service = one month average; under a year = total ÷ 12. Paid by Dec 24. The final amount is what the admin records.", my13_basic: "Basic pay this year ({n} payrolls)", my13_by12: "÷ 12 (under 1 year)", my13_avg: "One-month average (1 year+)", my13_est: "Estimated 13th month", my13_1yr: "1 year+", my13_under: "under 1 year",
     employee: "Employee", period: "Pay period", first: "1st – 15th", second: "16th – 30th", month: "Month",
     daily: "Daily rate", monthlyRate: "Monthly salary (OT-inclusive)", breakH: "Meal break (hrs/day)", allowDay: "Maintenance (₱/duty day)",
     roster: "Half-month shift roster", off: "Off", wkend: "Weekend",
@@ -314,25 +314,77 @@ function mySchedCard(v, emp) {
     rows.length ? h("div", { class: "tbl" }, h("table", {}, h("tr", {}, h("th", {}, t("month")), h("th", {}, t("roster")), h("th", {}, t("clock"))), ...rows)) : h("span", { class: "muted" }, t("noData")));
 }
 /* ---- staff 13th-month: estimate from paid payrolls this year (same math as the admin tab) ---- */
+/* ---- 13th month projected to December 31 (same math on the staff screen and the admin due tab) ---- */
+function proj13(periods, year, emp) {
+  // periods: [{ start, end, basic }] from finalized / paid payrolls of `year`
+  const got = periods.filter(x => x.start.startsWith(year + "-")).sort((a, b) => a.start < b.start ? -1 : 1);
+  const before = +emp.basic_before_year === year ? +emp.basic_before_app || 0 : 0;
+  const avg = got.length ? got.reduce((a, x) => a + x.basic, 0) / got.length : 0;
+  const last = got.length ? got[got.length - 1].start : null;
+  const rest = [];
+  for (let m = 1; m <= 12; m++) for (const half of [1, 2]) { const pp = periodOf(year, m, half); if (last && pp.start > last) rest.push({ start: pp.start, end: pp.end, basic: Math.round(avg * 100) / 100, est: true }); }
+  const rows = [...got, ...rest];
+  const total = Math.round((rows.reduce((a, x) => a + x.basic, 0) + before) * 100) / 100;
+  const by12 = Math.round(total / 12 * 100) / 100, monthAvg = Math.round(avg * 2 * 100) / 100;
+  const hired = emp.hired_on ? new Date(emp.hired_on + "T00:00:00") : null;
+  const oneYear = hired ? (new Date(year, 11, 24) - hired) >= 365 * 86400000 : null;
+  const amount = oneYear === false ? by12 : Math.max(by12, monthAvg);   // same rule as before: 1 year+ (or hire date unknown) → the larger of ÷12 and one-month average
+  const toDate = Math.round((got.reduce((a, x) => a + x.basic, 0) + before) * 100) / 100;
+  return { rows, before, total, by12, monthAvg, oneYear, amount, toDate };
+}
+function slip13(emp, year, P) {
+  const tb = h("table", { class: "lines" }, h("tr", {}, h("th", {}, t("p13_period")), h("th", { class: "r" }, t("p13_basic"))),
+    ...P.rows.map(x => h("tr", { class: x.est ? "muted" : "" }, h("td", {}, periodLabel(x.start, x.end) + (x.est ? ` (${t("p13_estRow")})` : "")), h("td", { class: "r" }, money(x.basic)))),
+    P.before ? h("tr", {}, h("td", {}, t("c13_basicBefore")), h("td", { class: "r" }, money(P.before))) : null,
+    h("tr", { class: "sum" }, h("td", {}, t("p13_sum")), h("td", { class: "r" }, money(P.total))),
+    h("tr", {}, h("td", {}, t("p13_by12")), h("td", { class: "r" }, money(P.by12))),
+    P.oneYear !== false ? h("tr", {}, h("td", {}, t("p13_avgM")), h("td", { class: "r" }, money(P.monthAvg))) : null,
+    h("tr", { class: "net" }, h("td", {}, t("p13_final")), h("td", { class: "r" }, "₱" + money(P.amount))));
+  const slip = h("div", { class: "slip" }, h("div", { class: "slipHead" }, h("b", {}, "PALTONG RESTAURANT"), h("div", {}, `13th Month Pay · ${year}`)),
+    h("div", {}, h("b", {}, emp.info?.full_name || emp.name), " · ", t("pos_" + (emp.position || "other"))),
+    h("div", { class: "tbl" }, tb), h("p", { class: "muted", style: "font-size:13px" }, t("p13_note")), h("p", { style: "font-weight:700" }, "📅 " + t("p13_req")));
+  const close = sheet([slip, h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => printSlip() }, "🖨"), h("button", { class: "btn", type: "button", onclick: () => close() }, t("close") || "Close"))]);
+}
 function my13Card(v, emp) {
   const year = new Date().getFullYear();
-  const mine = (v.payrolls || []).filter(p => p.status === "paid" && p.result && p.period_start.startsWith(year + "-"));
-  const basicApp = mine.reduce((a, p) => a + (+p.result.basicFor13th || 0), 0);
-  const before = +emp.basic_before_year === year ? +emp.basic_before_app || 0 : 0;
-  const total = basicApp + before, by12 = Math.round(total / 12 * 100) / 100;
-  const monthAvg = mine.length ? Math.round(basicApp / mine.length * 2 * 100) / 100 : 0;
-  const hired = emp.hired_on ? new Date(emp.hired_on + "T00:00:00") : null;
-  const oneYear = hired ? (new Date(year, 11, 24) - hired) >= 365 * 86400000 : null;   // 1yr+ by Dec 24 → one month average
-  const est = oneYear === false ? by12 : oneYear ? monthAvg : Math.max(by12, monthAvg);
-  const tbl = h("table", {},
-    h("tr", {}, h("td", {}, tf("my13_basic", { n: mine.length })), h("td", { class: "r" }, money(basicApp))),
-    before ? h("tr", {}, h("td", {}, t("c13_basicBefore")), h("td", { class: "r" }, money(before))) : null,
-    h("tr", { class: "sum" }, h("td", {}, t("c13_total")), h("td", { class: "r" }, money(total))),
-    h("tr", {}, h("td", {}, t("my13_by12")), h("td", { class: "r" }, money(by12))),
-    h("tr", {}, h("td", {}, t("my13_avg")), h("td", { class: "r" }, money(monthAvg))),
-    h("tr", { class: "net" }, h("td", {}, t("my13_est") + (oneYear === null ? "" : oneYear ? ` (${t("my13_1yr")})` : ` (${t("my13_under")})`)), h("td", { class: "r" }, money(est))));
+  const periods = (v.payrolls || []).filter(p => (p.status === "paid" || p.shared) && p.result).map(p => ({ start: p.period_start, end: p.period_end, basic: +p.result.basicFor13th || 0 }));
+  const P = proj13(periods, year, emp);
+  const ack = (v.ack13 || []).find(a => a.year === year);
+  let seen = false;
   const paidList = (v.thirteenth || []).map(x => h("div", { class: "item" }, h("div", { class: "t" }, `${x.year} · ${t("tab_13")} · ${t("c13_paid")}`), h("div", { class: "s" }, `${t("c13_total")} ₱${money(x.basic_total)} · ${x.paid_on || ""} ${viaLabel(slipVia(x.paid_via || ""))}`), h("div", { class: "m money" }, "₱" + money(x.amount))));
-  return h("div", { class: "card" }, h("h2", {}, t("my13")), h("small", { class: "muted" }, t("my13help")), h("div", { class: "tbl" }, tbl), paidList.length ? h("div", { class: "list" }, paidList) : null);
+  const ackEl = ack ? h("span", { class: "pill paid", id: "my13-acked" }, tf("p13_acked", { d: new Date(ack.ack_at).toLocaleDateString() }))
+    : h("button", { class: "btn", type: "button", id: "my13-ack", onclick: () => { if (!seen) return toast(t("ackFirst"));
+        confirmSheet(t("ackQ"), async () => { try { const r = await db.empAck13(EMP.no, EMP.pin, year, P.amount); if (!r.ok) throw new Error(pinErr(r.err, "noData"));
+          EMP.data.ack13 = [...(EMP.data.ack13 || []), { year, ack_at: new Date().toISOString(), amount: P.amount }]; renderStaffHome(); } catch (er) { toast(errMsg(er)); } }, { ask: true }); } }, t("p13_ack"));
+  return h("div", { class: "card", id: "my-13" },
+    h("div", { class: "row", style: "align-items:center;flex-wrap:wrap" },
+      h("div", {}, h("h2", { style: "margin:0" }, t("p13_title")), h("div", { class: "muted" }, `${year} · ${t("p13_toDate")} ₱${money(P.toDate)}`)),
+      h("span", { class: "sp" }), h("div", { class: "money", style: "font-size:26px;font-weight:800" }, "₱" + money(P.amount))),
+    h("p", { style: "margin:6px 0;font-weight:700" }, "📅 " + t("p13_req")),
+    h("div", { class: "row", style: "flex-wrap:wrap" }, h("button", { class: "btn primary", type: "button", id: "my13-open", onclick: () => { seen = true; slip13(emp, year, P); } }, t("p13_open")), ackEl),
+    h("small", { class: "muted" }, t("p13_help")),
+    paidList.length ? h("div", { class: "list" }, paidList) : null);
+}
+/* ---- owner: 13th month section in the due tab ---- */
+async function due13Card() {
+  const year = new Date().getFullYear();
+  const card = h("div", { class: "card", id: "due-13" }, h("h2", {}, `${t("p13_due")} · ${year}`), h("small", { class: "muted" }, t("p13_dueHelp")));
+  let rows = [], paid = [], acks = [];
+  try { [rows, paid, acks] = await Promise.all([db.listPayrollsYear(year), db.listThirteenth(year).catch(() => []), db.listAck13(year).catch(() => [])]); } catch (e) { card.append(h("p", { class: "muted" }, errMsg(e))); return card; }
+  const tb = h("table", {}, h("tr", {}, h("th", {}, t("employee")), h("th", { class: "r" }, t("p13_toDate")), h("th", { class: "r" }, t("p13_final")), h("th", {}, t("ackBtn")), h("th", {}, t("c13_status"))));
+  let tot = 0;
+  for (const e of S.employees.filter(e => e.active && !e.resigned_on && e.name !== "test")) {
+    const periods = rows.filter(r => r.employee_id === e.id && (r.status === "paid" || r.shared_at) && r.result).map(r => ({ start: r.period_start, end: r.period_end, basic: +r.result.basicFor13th || 0 }));
+    const P = proj13(periods, year, e); tot += P.amount;
+    const a = acks.find(x => x.employee_id === e.id), pd = paid.find(x => x.employee_id === e.id);
+    tb.append(h("tr", {}, h("td", {}, h("a", { href: "#", onclick: ev => { ev.preventDefault(); slip13(e, year, P); } }, e.name)),
+      h("td", { class: "r" }, money(P.toDate)), h("td", { class: "r" }, h("b", {}, money(P.amount))),
+      h("td", {}, a ? h("span", { class: "pill paid" }, "✓ " + new Date(a.ack_at).toLocaleDateString()) : h("span", { class: "pill draft" }, t("p13_notAck"))),
+      h("td", {}, pd ? h("span", { class: "pill paid" }, `${t("c13_paid")} ₱${money(pd.amount)}`) : h("button", { class: "btn sm", type: "button", onclick: () => pay13(e, year, P.total, P.amount, P.monthAvg) }, t("c13_pay")))));
+  }
+  tb.append(h("tr", { class: "sum" }, h("td", {}, t("c13_total_row")), h("td", {}), h("td", { class: "r" }, h("b", {}, money(tot))), h("td", {}), h("td", {})));
+  card.append(h("div", { class: "tbl" }, tb));
+  return card;
 }
 /* ---- staff clock in / out: the app record is the attendance basis ---- */
 const fmtT = d => { d = new Date(d); return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
@@ -1108,7 +1160,7 @@ async function renderDue() {
   const mIn = h("input", { type: "month", value: DUE.month, onchange: e => { DUE.month = e.target.value; render(); } });
   const hSel = sel([[1, t("first")], [2, t("second")]], DUE.half, { onchange: e => { DUE.half = +e.target.value; render(); } });
   const head = h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_due")), h("span", { class: "sp" }), mIn, hSel), h("p", { class: "muted" }, h("span", { class: "spin" }), t("due_calc")));
-  main.append(await reviewCard(), head);
+  main.append(await reviewCard(), await due13Card(), head);
   const emps = S.employees.filter(e => onPayroll(e, per.start) && e.name !== "test");
   let all, punches, older;
   try {
