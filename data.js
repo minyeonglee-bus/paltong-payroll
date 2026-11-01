@@ -119,7 +119,7 @@ export async function registerStoreIp() { return must(await sb.rpc("pr_store_ip_
 /** owner: punches outside the schedule (pending first, then decided in the last `days` days) */
 export async function listPunchReview(days = 30) {
   const since = new Date(Date.now() - days * 864e5).toISOString();
-  return must(await sb.from("pr_punches").select("*, employees:pr_employees(name, position, info)").neq("status", "ok").gte("punched_at", since).order("punched_at", { ascending: false }));
+  return must(await sb.from("pr_punches").select("*, employees:pr_employees(name, position, info)").not("status", "in", "(ok,void)").gte("punched_at", since).order("punched_at", { ascending: false }));
 }
 export async function decidePunch(id, status) {
   const { data: u } = await sb.auth.getUser();
@@ -128,7 +128,7 @@ export async function decidePunch(id, status) {
 /** owner: punches for a period (+ next-morning punches so an overnight shift's OUT is included) */
 export async function listPunches(employeeId, from, to) {
   const a = new Date(from + "T00:00:00"), b = new Date(to + "T00:00:00"); b.setHours(b.getHours() + 36);
-  return must(await sb.from("pr_punches").select("*").eq("employee_id", employeeId).gte("punched_at", a.toISOString()).lt("punched_at", b.toISOString()).order("punched_at"));
+  return must(await sb.from("pr_punches").select("*").eq("employee_id", employeeId).neq("status", "void").gte("punched_at", a.toISOString()).lt("punched_at", b.toISOString()).order("punched_at"));
 }
 export async function addPunch(row) { return must(await sb.from("pr_punches").insert({ ...row, source: "admin" }).select().single()); }
 export async function deletePunch(id) { must(await sb.from("pr_punches").delete().eq("id", id)); }
@@ -140,6 +140,6 @@ export async function cashbookSalesByDay(from, to) {
 /** owner: everyone's punches for a period (+36h for overnight outs) */
 export async function listPunchesAll(from, to) {
   const a = new Date(from + "T00:00:00"), b = new Date(to + "T00:00:00"); b.setHours(b.getHours() + 36);
-  return must(await sb.from("pr_punches").select("*").gte("punched_at", a.toISOString()).lt("punched_at", b.toISOString()).order("punched_at"));
+  return must(await sb.from("pr_punches").select("*").neq("status", "void").gte("punched_at", a.toISOString()).lt("punched_at", b.toISOString()).order("punched_at"));
 }
 export async function updatePunch(id, patch) { return must(await sb.from("pr_punches").update({ ...patch, source: "admin" }).eq("id", id).select().single()); }
