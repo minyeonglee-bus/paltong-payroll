@@ -142,3 +142,7 @@ console.log("punch tests OK");
   assert.equal(paidShift("22-8", "22:11-08:04"), "22:11-08:00");
   console.log("paidShift tests OK");
 }
+
+import { paidShift as ps2 } from "../payroll-calc.js";
+if (ps2("18-4", "17:55-04:00", 60, true) !== "17:55-04:00" || ps2("18-4", "17:55-04:00") !== "18-4") throw new Error("early approved");
+console.log("early tests OK");
