@@ -55,7 +55,7 @@ const I18N = {
     noPerm: "권한이 없어요 (관리자만 가능)", paidLocked: "지급 완료된 급여는 관리자만 바꿀 수 있어요", loginFail: "아이디 또는 비밀번호가 틀려요",
     pickEmp: "직원을 먼저 고르세요", deleted: "삭제됨", weekendHelp: "금·토 = 주말",
     fromSched: "캐시북 스케줄 불러오기", fromPunch: "앱 출퇴근 불러오기", punchLoaded: "앱 출퇴근에서 {n}일 채웠어요{x}", punchIncomplete: " · {n}일은 출근/퇴근 한쪽이 없어서 비워뒀어요", punchNone: "이 기간 앱 출퇴근 기록이 없어요", punchList: "앱 출퇴근 기록 (이 기간)", punchAdd: "기록 추가", punchIn: "출근", punchOut: "퇴근", punchAt: "시각", punchAdmin: "관리자 입력",
-    clock: "출퇴근", clockHelp: "출근할 때 · 퇴근할 때 눌러주세요. 이 기록이 급여 근무시간 기준이에요.", clockedIn: "출근 중 · {t}부터", clockedOut: "퇴근함 · {t}", notIn: "아직 출근 전", clockDone: "{k} 기록됨 {t}", clockDup: "방금 이미 눌렀어요", clockRecent: "최근 기록", clockToday: "오늘", schedLoaded: "캐시북 스케줄에서 {n}일 불러왔어요", schedNone: "이 기간 캐시북 스케줄에 이 직원이 없어요", fillAll: "전체 채우기", tapOff: "쉬는 날은 날짜를 눌러 휴무로 (다시 누르면 근무)",
+    clock: "출퇴근", clockHelp: "출근할 때 · 퇴근할 때 눌러주세요. 이 기록이 급여 근무시간 기준이에요.", clockedIn: "출근 중 · {t}부터", clockedOut: "퇴근함 · {t}", notIn: "아직 출근 전", clockDone: "{k} 기록됨 {t}", clockDup: "방금 이미 눌렀어요", clockRecent: "최근 기록", schedLoaded: "캐시북 스케줄에서 {n}일 불러왔어요", schedNone: "이 기간 캐시북 스케줄에 이 직원이 없어요", fillAll: "전체 채우기", tapOff: "쉬는 날은 날짜를 눌러 휴무로 (다시 누르면 근무)",
     cbTitle: "캐시북 현금 부족 (확인 필요)", cbHelp: "중간마감·마감에서 센 현금이 장부보다 모자라면 여기 들어와요. 자동으로 빠지지 않아요 — 조사 후 책임 웨이터를 지정하고, 가불·부족분에서 '본인 책임 확인'과 '서면 동의'를 둘 다 체크해야 급여에서 공제돼요.", cbNone: "확인할 부족분이 없어요", cbDone: "처리한 것", cbMid: "중간마감", cbFinal: "마감", cbCounted: "센 현금", cbBook: "장부", cbBy: "센 사람", cbReason: "사유", cbDuty: "근무", is_open: "확인 필요", is_assigned: "웨이터 지정됨", is_dismissed: "해결됨 (공제 안 함)",
     cbLaw: "근무 중이었다는 이유만으로 나눠서 빼면 안 돼요. 본인에게 설명할 기회를 주고, 책임이 확인된 한 사람에게만 지정하세요. 지정 후 가불·부족분에서 '본인 책임 확인'과 '서면 동의 받음'을 체크해야 공제돼요.", cbWho: "책임 웨이터", cbAssign: "이 웨이터의 부족분으로 넣기 (미확인)", cbAssigned: "부족분에 넣었어요 — 확인·동의 체크 후 공제돼요", cbDismissLbl: "찾았거나 장부 실수였다면 (메모)", cbFoundPh: "예: 다음날 서랍에서 찾음 / 매출 입력 실수", cbDismiss: "해결됨 — 공제 안 함", notDeducted: "공제 전 (확인·동의 필요)",
     asStaff: "직원", asAdmin: "관리자", empNo: "직원 번호", pin: "PIN (숫자)", pinFirst: "처음이면 PIN 0000", pinWrong: "번호 또는 PIN이 틀려요", pinLocked: "5번 틀려서 10분 동안 잠겼어요",
@@ -465,10 +465,16 @@ function clockCard() {
   const recent = punches.slice(0, 10);
   return h("div", { class: "card", id: "clock" }, h("h2", {}, t("clock")), h("p", { class: "muted", style: "margin:0" }, t("clockHelp")),
     h("div", { class: "clockStatus" + (inNow ? " in" : "") }, status),
+    (() => { // latest session: the last IN and the OUT after it, big and always visible
+      const lastIn = punches.find(p => p.kind === "in"), lastOut = punches.find(p => p.kind === "out" && (!lastIn || new Date(p.at) > new Date(lastIn.at)));
+      const cell = (k, p) => h("div", {}, h("small", {}, t(k) + (p ? " · " + `${new Date(p.at).getMonth() + 1}/${new Date(p.at).getDate()}` : "")), h("b", {}, p ? fmtT(p.at) : "—:—"),
+        p && p.status && p.status !== "ok" ? h("span", { class: "pill " + (p.status === "approved" ? "paid" : p.status === "rejected" ? "late" : "draft"), style: "margin-left:6px" }, t("st_" + p.status)) : null);
+      return h("div", { class: "clockToday", id: "clock-today" }, cell("punchIn", lastIn), cell("punchOut", lastOut));
+    })(),
     h("div", { class: "clockBtns" },
       h("button", { class: "btn primary big", type: "button", id: "clock-in", disabled: !!inNow, onclick: () => press("in") }, "▶ " + t("punchIn")),
       h("button", { class: "btn big", type: "button", id: "clock-out", disabled: !last || !inNow, onclick: () => press("out") }, "■ " + t("punchOut"))),
-    recent.length ? h("details", {}, h("summary", { class: "muted" }, t("clockRecent")), h("div", { class: "list" }, recent.map(p => h("div", { class: "item" },
+    recent.length ? h("details", { open: true }, h("summary", { class: "muted" }, t("clockRecent")), h("div", { class: "list" }, recent.map(p => h("div", { class: "item" },
       h("div", { class: "t" }, t(p.kind === "in" ? "punchIn" : "punchOut"), p.source === "admin" ? h("span", { class: "pill draft", style: "margin-left:6px" }, t("punchAdmin")) : null,
         p.status && p.status !== "ok" ? h("span", { class: "pill " + (p.status === "approved" ? "paid" : p.status === "rejected" ? "late" : "draft"), style: "margin-left:6px" }, t("st_" + p.status)) : null),
       h("div", { class: "s" }, fmtDT(p.at) + (p.reason ? " · " + p.reason : "")))))) : null);
@@ -1384,7 +1390,7 @@ function showA2H() {
       ...(Array.isArray(msg) ? msg : msg ? [msg] : []).map((m, i) => h("div", { class: i ? "muted" : "" }, m))),
     !inApp && A2H ? h("button", { class: "btn primary", type: "button", id: "a2h-add", onclick: async () => { const ev = A2H; A2H = null; box.remove(); try { await ev.prompt(); } catch {} } }, t("a2h_btn")) : null,
     h("button", { class: "btn", type: "button", id: "a2h-later", onclick: () => { a2hShut = true; box.remove(); } }, t("a2h_later")));
-  document.body.append(box);
+  document.body.prepend(box);
 }
 setTimeout(showA2H, 600);
 document.documentElement.lang = lang;
