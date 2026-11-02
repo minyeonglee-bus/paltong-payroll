@@ -89,7 +89,7 @@ r = C([{ date: "2026-10-01", shift: "18-4", type: "holiday" }], { daily: 718 });
 assert.equal(r.basic, 718); assert.equal(r.premium, 718); near(r.otPay, hr * 2.6, "hol OT"); near(r.ndPay, (5 * 2 + 1 * 2.6) * hr * 0.1, "hol ND (OT hour at 260%)");
 // contract 2.4.1: night hour inside overtime = 137.5% (125% + 10% of it); rider 17:48–04:00 → 9h after break, 1h OT at 03–04 (night)
 r = C([{ date: "2026-10-16", shift: "17:48-04:00", type: "regular" }], { daily: 718 });
-assert.equal(r.otHours, 1); near(r.ndPay, (5 * 1 + 1 * 1.25) * hr * 0.1, "ND incl. OT hour");
+near(r.otHours, 1.2, "OT per minute (17:48 start → 1h12m)"); near(r.ndPay, (4.8 * 1 + 1.2 * 1.25) * hr * 0.1, "ND incl. OT minutes");
 r = C([{ date: "2026-10-01", shift: "8-18", type: "rest" }], { daily: 718 }); near(r.premium, 718 * 0.3, "rest day 130%");
 r = C(cdays, { payType: "daily", daily: 718, allowancePerDay: 100 }); assert.equal(r.allowance, 1300);
 r = C(cdays, { payType: "monthly", monthly: 30000 }); assert.equal(r.basic, 15000); assert.equal(r.otPay, 0); assert.equal(r.gross, 15000);   // 08–18 = 8h + 1h built-in OT → nothing extra
@@ -98,7 +98,7 @@ const jd = 25945 / MONTHLY_FACTOR, jh = jd / 8; near(jd, 994.70, "daily 994.70")
 r = C(cdays, { payType: "monthly", monthly: 30000, monthlyBasic: 25945 });
 assert.equal(r.basic, 15000); assert.equal(r.otPay, 0); assert.equal(r.builtInOt, 2027.5); near(r.basicFor13th, 12972.5, "13th on basic 25,945");
 r = C([{ date: "2026-10-13", shift: "07:59-18:48", type: "regular" }], { payType: "monthly", monthly: 30000, monthlyBasic: 25945 });
-assert.equal(r.otHours, 1.5); near(r.otPay, 0.5 * jh * 1.25, "OT beyond the built-in hour");
+near(r.otHours, 1.82, "OT per minute (1h49m, shown 1.82h)"); near(r.otPay, 49 / 60 * jh * 1.25, "OT beyond the built-in hour, per minute");
 r = C([{ date: "2026-10-18", shift: "8-18", type: "rest" }], { payType: "monthly", monthly: 30000, monthlyBasic: 25945 });
 near(r.premium, 8 * jh * 1.3, "rest day worked: 130% in full"); near(r.otPay, 1 * jh * 1.69, "rest-day OT 169%, no built-in");
 r = C([{ date: "2026-10-01", shift: "8-18", type: "holiday" }], { payType: "monthly", monthly: 30000, monthlyBasic: 25945 }); near(r.premium, 8 * jh, "holiday +100%");

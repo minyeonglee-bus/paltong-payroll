@@ -60,17 +60,17 @@ export const dayTypesFor = (scheme, payType) => (DAY_TYPES_FOR[scheme] || DAY_TY
 
 const r2 = n => Math.round((+n || 0) * 100) / 100;
 
-/** shift "8-18" or time-card "21:58-08:20" → span, worked hours after the meal break, and (contract) regular ≤8h / OT in ½h steps / night hours 22–06 */
+/** shift "8-18" or time-card "21:58-08:20" → span, worked hours after the meal break, and (contract) regular ≤8h / OT per minute / night hours 22–06 per minute */
 export function shiftHours(shift, breakHrs = 1) {
   const p = parseShift(shift);
   if (!p) return { span: 0, worked: 0, hours: 0, reg: 0, ot: 0, nd: 0, ndOt: 0 };
   let a = p.start, b = p.end; if (b <= a) b += 1440;
   const otFrom = a + (8 + (+breakHrs || 0)) * 60;      // minutes after the first 8 worked hours (+ meal break) are overtime
-  let ndMin = 0, ndOtMin = 0; for (let m = a; m < b; m += 5) { const hh = (m % 1440) / 60; if (hh >= 22 || hh < 6) { ndMin += 5; if (m >= otFrom) ndOtMin += 5; } }
+  let ndMin = 0, ndOtMin = 0; for (let m = a; m < b; m++) { const hh = (m % 1440) / 60; if (hh >= 22 || hh < 6) { ndMin++; if (m >= otFrom) ndOtMin++; } }   // per minute
   const span = (b - a) / 60;
   const worked = Math.max(0, span - (+breakHrs || 0));
   const hours = Math.round(worked * 4) / 4;
-  return { span: Math.round(span * 100) / 100, worked: Math.round(worked * 100) / 100, hours, reg: Math.min(8, hours), ot: Math.max(0, Math.floor((worked - 8) * 2) / 2), nd: Math.round(ndMin / 60 * 2) / 2, ndOt: Math.round(ndOtMin / 60 * 2) / 2 };
+  return { span: Math.round(span * 100) / 100, worked: Math.round(worked * 100) / 100, hours, reg: Math.min(8, hours), ot: Math.max(0, Math.round((b - a - (+breakHrs || 0) * 60 - 480)) / 60), nd: ndMin / 60, ndOt: ndOtMin / 60 };   // OT and night hours counted per minute
 }
 
 // Government contributions (employee share) from monthly basic — reference values, check official tables yearly
@@ -139,7 +139,7 @@ export function computePayroll(days, opts) {
       if (d.type === "half") halfDays++; else daysWorked++;
       hoursWorked += paper ? sh.span : sh.reg; otHours += ot; ndHours += nd;
     }
-    rows.push({ date: d.date, shift: d.shift || "", ...(d.card ? { card: d.card } : {}), type: d.type || "regular", hours: paper ? sh.span : sh.reg, ot, nd, amount: r2(base + extra + otp + ndp - (t.absent && isMonthly ? daily : 0)) });
+    rows.push({ date: d.date, shift: d.shift || "", ...(d.card ? { card: d.card } : {}), type: d.type || "regular", hours: paper ? sh.span : r2(sh.reg), ot: r2(ot), nd: r2(nd), amount: r2(base + extra + otp + ndp - (t.absent && isMonthly ? daily : 0)) });
   }
   if (isMonthly) basic = monthlyRate / 2;                 // half-month fixed basic
   const dutyDays = daysWorked + halfDays;
@@ -164,7 +164,7 @@ export function computePayroll(days, opts) {
 
   return {
     scheme, payType, hourly: r2(hourly), dailyEquiv: r2(daily), perMinute: r2(perMin), monthly: r2(monthly), hoursPerDay: hpd,
-    daysWorked, halfDays, hoursWorked, otHours, ndHours, silDays, holidayOffDays, absentDays, lateMinutes, rows,
+    daysWorked, halfDays, hoursWorked: r2(hoursWorked), otHours: r2(otHours), ndHours: r2(ndHours), silDays, holidayOffDays, absentDays, lateMinutes, rows,
     basic: r2(basic), premium: r2(premium), otPay: r2(otPay), ndPay: r2(ndPay), silPay: r2(silPay), holidayOffPay: r2(holidayOffPay),
     allowance: r2(allowance), absentDed: r2(absentDed), late: r2(late), penalty: r2(penalty), incentive: r2(incentive), bonus: r2(bonus), gross: r2(gross),
     sss, philhealth, pagibig, advances: r2(advances), shortage: r2(shortage), otherDeduction: r2(otherDeduction),
