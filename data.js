@@ -101,6 +101,13 @@ export async function cashbookShifts(from, to) {
   return plan.concat(must(cb).filter(r => !has.has(key(r))));
 }
 
+// 한 스케줄 (pr_plan) — 캐시북 근무 스케줄과 같은 표. 로그인이 연결된 직원은 DB가 캐시북 shifts에도 똑같이 넣어요 (supabase/pr_roster_sync.sql)
+export async function savePlan(employeeId, day, shift) {
+  return must(await sb.from("pr_plan").upsert({ day, employee_id: employeeId, shift: shift || null, updated_at: new Date().toISOString() }).select().single());
+}
+// 캐시북 로그인 목록 (직원 ↔ 로그인 연결용)
+export async function listLogins() { return must(await sb.from("staff").select("user_id, name, role").neq("role", "owner").order("name")); }
+
 // ---------- 13th-month pay ----------
 export async function listThirteenth(year) { return must(await sb.from("pr_thirteenth").select("*").eq("year", year)); }
 export async function saveThirteenth(row) {
