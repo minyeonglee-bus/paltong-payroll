@@ -70,6 +70,30 @@ drop trigger if exists roster_to_shifts on public.pr_plan;
 create trigger roster_to_shifts after insert or update or delete on public.pr_plan
   for each row execute function public.roster_to_shifts();
 
+-- 4b) a Cash Book login gets its name (first-login setup, e.g. login "1" → "Arlyn" or "Arlyn D.")
+--     → link it to the payroll employee with that name (exact, else first word; only if exactly one match)
+--     → copy that employee's roster into the login's shifts
+create or replace function public.roster_autolink() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare emp uuid; n text := lower(trim(new.name)); f text := lower(split_part(trim(new.name), ' ', 1));
+begin
+  if new.role = 'owner' or n = '' or exists (select 1 from public.pr_employees where user_id = new.user_id) then return null; end if;
+  select id into emp from public.pr_employees where user_id is null and lower(trim(name)) = n;
+  if emp is null and (select count(*) from public.pr_employees where user_id is null and lower(trim(name)) = f) = 1 then
+    select id into emp from public.pr_employees where user_id is null and lower(trim(name)) = f;
+  end if;
+  if emp is null then return null; end if;
+  update public.pr_employees set user_id = new.user_id where id = emp;
+  insert into public.shifts (day, user_id, staff_name, shift, updated_at)
+  select p.day, new.user_id, e.name, p.shift, now() from public.pr_plan p join public.pr_employees e on e.id = p.employee_id
+  where p.employee_id = emp and p.shift is not null
+  on conflict (day, user_id) do update set shift = excluded.shift, staff_name = excluded.staff_name, updated_at = now();
+  return null;
+end $$;
+drop trigger if exists staff_roster_autolink on public.staff;
+create trigger staff_roster_autolink after insert or update of name on public.staff
+  for each row execute function public.roster_autolink();
+
 -- 5) one-time catch-up (pr_plan wins where both have a value, as before)
 --  a) Cash Book days missing from pr_plan → pr_plan (by login link, else by the same name — the rule payroll already used)
 insert into public.pr_plan (day, employee_id, shift, updated_at)
