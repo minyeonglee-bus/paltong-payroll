@@ -14,7 +14,7 @@ const I18N = {
     c13_basicApp: "앱 기본급", c13_basicBefore: "앱 이전", c13_total: "기본급 합계", c13_periods: "기간 수", c13_amount: "13월급 (÷12)", c13_avg: "월평균 (1년↑)", c13_proj: "연말 예상", c13_status: "지급", c13_pay: "지급 기록", c13_paid: "지급됨", c13_unpaid: "미지급", c13_unpay: "지급 취소",
     c13_projHelp: "연말 예상 = 지금까지 평균 반월 기본급 × 남은 반월 수를 더한 값 ÷ 12 (참고용)", c13_total_row: "합계", c13_draftNote: "작성중 급여 포함",
     emp_before: "앱 이전 올해 기본급 (13월급용)", emp_beforeHelp: "앱 쓰기 전 올해 1월~9월에 받은 기본급 합계 (초과·수당 제외). 모르면 0",
-    p13_title: "13월급 (12월까지 근무 기준 예상)", p13_help: "올해 확정·지급된 급여의 기본급과, 12월 31일까지 계속 근무한다고 가정한 남은 기간(평균 기본급)으로 계산했어요. 초과·야간·가산·인센티브는 빠져요.", p13_req: "11월 7일부터 요청 가능", p13_open: "13월급 명세서 보기", p13_ack: "확인했어요", p13_acked: "확인함 {d}", p13_period: "기간", p13_basic: "기본급", p13_estRow: "예상", p13_sum: "기본급 합계 (12월까지)", p13_by12: "합계 ÷ 12", p13_avgM: "한 달 평균 (1년 이상 근무)", p13_final: "예상 13월급", p13_note: "12월까지 근무했다고 가정한 예상 금액이에요. 실제 근무에 따라 달라질 수 있고, 확정 금액은 관리자가 지급 기록한 값이에요.", p13_due: "13월급 (12월까지 근무 기준)", p13_dueHelp: "직원 화면과 같은 계산이에요. 확정 급여의 기본급 + 남은 기간 평균. 직원이 명세서를 보고 확인을 누르면 표시돼요.", p13_notAck: "확인 전", p13_toDate: "지금까지", my13: "내 13월급", my13help: "올해 지급된 급여의 기본급(초과·야간·가산·정비비·인센티브 제외)으로 계산한 예상치예요. 1년 이상 근무면 한 달 평균, 1년 미만이면 합계 ÷ 12. 12월 24일 전 지급. 확정 금액은 관리자가 지급 기록한 값이에요.", my13_basic: "올해 기본급 합계 ({n}회 지급)", my13_by12: "÷ 12 (1년 미만)", my13_avg: "한 달 평균 (1년 이상)", my13_est: "예상 13월급", my13_1yr: "1년 이상", my13_under: "1년 미만",
+    sil_title: "유급휴가 (SIL)", sil_help: "기본 일수 + 개근 보너스(그 달 지각·결석이 없으면 다음 달에 +1일, 2026년 11월부터) − 사용한 날 = 남은 날. 스케줄에 SIL로 잡힌 날은 예정으로 따로 빼요.", sil_base: "기본", sil_before: "앱 이전 사용", sil_earned: "개근 +", sil_used: "사용", sil_planned: "예정", sil_left: "남음", sil_months: "개근 기록", sil_perfect: "개근 ✓ → {c}에 +1", sil_not: "지각·결석 있음", sil_none: "아직 없음", sil_dates: "사용한 날", sil_plDates: "예정된 날", p13_title: "13월급 (12월까지 근무 기준 예상)", p13_help: "올해 확정·지급된 급여의 기본급과, 12월 31일까지 계속 근무한다고 가정한 남은 기간(평균 기본급)으로 계산했어요. 초과·야간·가산·인센티브는 빠져요.", p13_req: "11월 7일부터 요청 가능", p13_open: "13월급 명세서 보기", p13_ack: "확인했어요", p13_acked: "확인함 {d}", p13_period: "기간", p13_basic: "기본급", p13_estRow: "예상", p13_sum: "기본급 합계 (12월까지)", p13_by12: "합계 ÷ 12", p13_avgM: "한 달 평균 (1년 이상 근무)", p13_final: "예상 13월급", p13_note: "12월까지 근무했다고 가정한 예상 금액이에요. 실제 근무에 따라 달라질 수 있고, 확정 금액은 관리자가 지급 기록한 값이에요.", p13_due: "13월급 (12월까지 근무 기준)", p13_dueHelp: "직원 화면과 같은 계산이에요. 확정 급여의 기본급 + 남은 기간 평균. 직원이 명세서를 보고 확인을 누르면 표시돼요.", p13_notAck: "확인 전", p13_toDate: "지금까지", my13: "내 13월급", my13help: "올해 지급된 급여의 기본급(초과·야간·가산·정비비·인센티브 제외)으로 계산한 예상치예요. 1년 이상 근무면 한 달 평균, 1년 미만이면 합계 ÷ 12. 12월 24일 전 지급. 확정 금액은 관리자가 지급 기록한 값이에요.", my13_basic: "올해 기본급 합계 ({n}회 지급)", my13_by12: "÷ 12 (1년 미만)", my13_avg: "한 달 평균 (1년 이상)", my13_est: "예상 13월급", my13_1yr: "1년 이상", my13_under: "1년 미만",
     employee: "직원", period: "급여 기간", first: "1 – 15일", second: "16 – 30일", month: "월",
     daily: "일급", monthlyRate: "월급 (초과근무 포함)", breakH: "식사 휴게 (시간/일)", allowDay: "정비비 (₱/근무일)",
     roster: "보름치 시프트 표", off: "휴무", wkend: "주말",
@@ -75,7 +75,7 @@ const I18N = {
     c13_basicApp: "Basic (app)", c13_basicBefore: "Before app", c13_total: "Total basic", c13_periods: "Periods", c13_amount: "13th (÷12)", c13_avg: "Monthly avg (1yr+)", c13_proj: "Year-end est.", c13_status: "Paid", c13_pay: "Record payment", c13_paid: "Paid", c13_unpaid: "Unpaid", c13_unpay: "Undo",
     c13_projHelp: "Year-end estimate = current average basic per half-month × remaining half-months, added, ÷ 12 (reference only)", c13_total_row: "Total", c13_draftNote: "includes draft payrolls",
     emp_before: "Basic earned this year before the app (for 13th month)", emp_beforeHelp: "Basic salary received Jan–Sep this year before the app (no OT / allowances). 0 if unknown",
-    p13_title: "13th month (estimate if you work until December)", p13_help: "Basic pay from this year's finalized/paid payrolls, plus the remaining periods up to December 31 at your average basic pay (as if you keep working). No OT, night diff, premiums or incentives.", p13_req: "You can request it from November 7", p13_open: "View 13th-month slip", p13_ack: "I confirm", p13_acked: "Confirmed {d}", p13_period: "Period", p13_basic: "Basic pay", p13_estRow: "estimate", p13_sum: "Total basic (to December)", p13_by12: "Total ÷ 12", p13_avgM: "One-month average (1 year+ of service)", p13_final: "Estimated 13th month", p13_note: "This is an estimate assuming you work until December. It may change with your actual work; the final amount is what the manager records when paying.", p13_due: "13th month (if working until December)", p13_dueHelp: "Same calculation as the staff screen: basic pay from finalized payrolls + remaining periods at the average. Shows when the employee viewed the slip and pressed confirm.", p13_notAck: "not yet", p13_toDate: "so far", my13: "My 13th-month pay", my13help: "Estimate from the basic pay (no OT, night diff, premiums, maintenance or incentives) of payrolls paid this year. 1 year+ of service = one month average; under a year = total ÷ 12. Paid by Dec 24. The final amount is what the admin records.", my13_basic: "Basic pay this year ({n} payrolls)", my13_by12: "÷ 12 (under 1 year)", my13_avg: "One-month average (1 year+)", my13_est: "Estimated 13th month", my13_1yr: "1 year+", my13_under: "under 1 year",
+    sil_title: "Paid leave (SIL)", sil_help: "Base days + perfect-attendance bonus (no late and no absence in a month → +1 day the next month, from November 2026) − days used = days left. Days set as SIL in the schedule are shown separately as planned.", sil_base: "Base", sil_before: "Used before the app", sil_earned: "Perfect +", sil_used: "Used", sil_planned: "Planned", sil_left: "Left", sil_months: "Perfect attendance", sil_perfect: "Perfect ✓ → +1 in {c}", sil_not: "late / absent", sil_none: "none yet", sil_dates: "Days used", sil_plDates: "Planned days", p13_title: "13th month (estimate if you work until December)", p13_help: "Basic pay from this year's finalized/paid payrolls, plus the remaining periods up to December 31 at your average basic pay (as if you keep working). No OT, night diff, premiums or incentives.", p13_req: "You can request it from November 7", p13_open: "View 13th-month slip", p13_ack: "I confirm", p13_acked: "Confirmed {d}", p13_period: "Period", p13_basic: "Basic pay", p13_estRow: "estimate", p13_sum: "Total basic (to December)", p13_by12: "Total ÷ 12", p13_avgM: "One-month average (1 year+ of service)", p13_final: "Estimated 13th month", p13_note: "This is an estimate assuming you work until December. It may change with your actual work; the final amount is what the manager records when paying.", p13_due: "13th month (if working until December)", p13_dueHelp: "Same calculation as the staff screen: basic pay from finalized payrolls + remaining periods at the average. Shows when the employee viewed the slip and pressed confirm.", p13_notAck: "not yet", p13_toDate: "so far", my13: "My 13th-month pay", my13help: "Estimate from the basic pay (no OT, night diff, premiums, maintenance or incentives) of payrolls paid this year. 1 year+ of service = one month average; under a year = total ÷ 12. Paid by Dec 24. The final amount is what the admin records.", my13_basic: "Basic pay this year ({n} payrolls)", my13_by12: "÷ 12 (under 1 year)", my13_avg: "One-month average (1 year+)", my13_est: "Estimated 13th month", my13_1yr: "1 year+", my13_under: "under 1 year",
     employee: "Employee", period: "Pay period", first: "1st – 15th", second: "16th – 30th", month: "Month",
     daily: "Daily rate", monthlyRate: "Monthly salary (OT-inclusive)", breakH: "Meal break (hrs/day)", allowDay: "Maintenance (₱/duty day)",
     roster: "Half-month shift roster", off: "Off", wkend: "Weekend",
@@ -297,6 +297,7 @@ function renderStaffHome() {
       h("div", { class: "card" }, h("h2", {}, t("myLedger")), ledList),
       h("div", { class: "card" }, h("h2", {}, t("myShifts")), shifts),
       mySchedCard(v, emp),
+      mySilCard(v),
       my13Card(v, emp),
       myInfoCard(emp)));
 }
@@ -364,6 +365,36 @@ function my13Card(v, emp) {
     h("div", { class: "row", style: "flex-wrap:wrap" }, h("button", { class: "btn primary", type: "button", id: "my13-open", onclick: () => { seen = true; slip13(emp, year, P); } }, t("p13_open")), ackEl),
     h("small", { class: "muted" }, t("p13_help")),
     paidList.length ? h("div", { class: "list" }, paidList) : null);
+}
+/* ---- SIL (paid leave) balance: base + perfect-attendance months − used ---- */
+const silNums = x => { const used = (x.used || []).length + (+x.used_before || 0), pl = (x.planned || []).length;
+  return { base: +x.allowance || 0, earned: +x.earned || 0, used, planned: pl, left: (+x.allowance || 0) + (+x.earned || 0) - used - pl }; };
+function mySilCard(v) {
+  const x = v.sil_sum; if (!x) return null; const n = silNums(x);
+  const box = (k, val, strong) => h("div", { style: "flex:1;min-width:70px;border:1px solid var(--line);border-radius:8px;padding:8px;text-align:center" }, h("small", { class: "muted" }, t(k)), h("div", { style: `font:700 ${strong ? 26 : 20}px var(--mono)` }, String(val)));
+  const months = (x.months || []).map(m => h("div", { class: "item" }, h("div", { class: "t" }, m.month), h("div", { class: "s" }, m.perfect ? tf("sil_perfect", { c: m.credit }) : t("sil_not"))));
+  return h("div", { class: "card", id: "my-sil" }, h("h2", {}, `${t("sil_title")} · ${x.year}`),
+    h("div", { class: "row", style: "gap:8px;flex-wrap:wrap" }, box("sil_base", n.base), box("sil_earned", n.earned), box("sil_used", n.used), box("sil_planned", n.planned), box("sil_left", n.left, true)),
+    (x.used || []).length ? h("p", { class: "muted", style: "margin:8px 0 0" }, t("sil_dates") + ": " + x.used.slice().sort().map(d => d.slice(5).replace("-", "/")).join(", ")) : null,
+    (x.planned || []).length ? h("p", { class: "muted", style: "margin:4px 0 0" }, t("sil_plDates") + ": " + x.planned.map(d => d.slice(5).replace("-", "/")).join(", ")) : null,
+    h("details", {}, h("summary", { class: "muted" }, t("sil_months")), months.length ? h("div", { class: "list" }, months) : h("p", { class: "muted" }, t("sil_none"))),
+    h("small", { class: "muted" }, t("sil_help")));
+}
+async function silAdminCard() {
+  const year = new Date().getFullYear(), owner = S.user?.role === "owner";
+  const card = h("div", { class: "card", id: "sil-admin" }, h("h2", {}, `${t("sil_title")} · ${year}`), h("small", { class: "muted" }, t("sil_help")));
+  let all = {}; try { all = await db.silAll(year); } catch (e) { card.append(h("p", { class: "muted" }, errMsg(e))); return card; }
+  const tb = h("table", {}, h("tr", {}, h("th", {}, t("employee")), h("th", { class: "r" }, t("sil_base")), h("th", { class: "r" }, t("sil_before")), h("th", { class: "r" }, t("sil_earned")), h("th", { class: "r" }, t("sil_used")), h("th", { class: "r" }, t("sil_planned")), h("th", { class: "r" }, t("sil_left"))));
+  for (const e of S.employees.filter(e => e.active && e.name !== "test")) {
+    const x = all[e.id]; if (!x) continue; const n = silNums(x);
+    const inp = (k, val) => h("input", { type: "number", step: 0.5, min: 0, value: val, disabled: !owner, style: "width:64px;text-align:right", onchange: async ev => {
+      try { await db.saveSil({ employee_id: e.id, year, allowance: k === "allowance" ? +ev.target.value : n.base, used_before: k === "used_before" ? +ev.target.value : +x.used_before || 0 }); toast(t("saved")); render(); } catch (er) { toast(errMsg(er)); } } });
+    const title = [(x.used || []).length ? t("sil_dates") + ": " + x.used.slice().sort().join(", ") : "", (x.planned || []).length ? t("sil_plDates") + ": " + x.planned.join(", ") : ""].filter(Boolean).join(" · ");
+    tb.append(h("tr", { title }, h("td", {}, e.name), h("td", { class: "r" }, inp("allowance", n.base)), h("td", { class: "r" }, inp("used_before", +x.used_before || 0)),
+      h("td", { class: "r" }, "+" + n.earned), h("td", { class: "r" }, String(n.used)), h("td", { class: "r" }, String(n.planned)), h("td", { class: "r" }, h("b", { style: n.left < 0 ? "color:var(--bad)" : "" }, String(n.left)))));
+  }
+  card.append(h("div", { class: "tbl" }, tb));
+  return card;
 }
 /* ---- owner: 13th month section in the due tab ---- */
 async function due13Card() {
@@ -999,6 +1030,7 @@ function punchDaySheet(emp, date, raw) {
 /* ================= EMPLOYEES ================= */
 function renderEmp() {
   const main = document.getElementById("main"); const owner = S.user?.role === "owner";
+  silAdminCard().then(c => main.append(c));
   const list = h("div", { class: "list" });
   const rateOf = e => e.pay_type === "monthly" ? `₱${money(e.monthly_rate)}/mo` : `₱${money(e.daily_rate)}/day`;
   for (const e of S.employees) list.append(h("div", { class: "item", onclick: () => owner && empForm(e) },
