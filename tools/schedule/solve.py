@@ -13,6 +13,7 @@ input.json
 
 Rules (owner, 2026-11-03):
   * every shift of the day covered exactly once, no duplicates
+  * max 2 days off per Sun–Sat week (SIL not counted)
   * max 6 working days in a row (history counted), rest >= 10h before the next shift
   * days off are single days: no back-to-back offs, and >= 2 working days between offs
   * keep the same shift through a run; change only on the first day after an off
@@ -140,10 +141,12 @@ def solve_team(team, people, days, hol, hist, fixed, overrides):
                     elif a != b:
                         c = m.NewBoolVar(""); m.AddBoolOr([X[p, i, a].Not(), X[p, i + 1, b].Not(), c])
                         soft(c, WT["change"], f"{p} shift change {days[i + 1]:%m/%d}")
-        # fairness: 4..6 working days per 7-day block
-        for a in range(0, len(days), 7):
-            blk = [W[p, i] for i in range(a, min(a + 7, len(days)))]
-            if len(blk) == 7: m.Add(sum(blk) >= 4)
+        # at most 2 days off per Sun–Sat week (SIL is not a day off)
+        for a in range(len(days)):
+            if days[a].weekday() != 6: continue
+            blk = [i for i in range(a, min(a + 7, len(days)))]
+            sil = sum(1 for i in blk if fixed.get(p, {}).get(days[i].isoformat()) == "sil")
+            m.Add(sum(W[p, i] for i in blk) + sil >= len(blk) - 2)
     # preferences
     for i, d in enumerate(days):
         if "Jonel" in people and "Archie" in people:
