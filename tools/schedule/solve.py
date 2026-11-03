@@ -18,12 +18,14 @@ Rules (owner, 2026-11-03):
   * keep the same shift through a run; change only on the first day after an off
   * kitchen: weekday 8-18 / 18-4 / 22-8; Fri, Sat and holiday eves add 10-20 and 20-6.
              Jonel always 8-18; Archie prefers 10-20 on big days.
+             Jonel and Archie are never off on the same day.
   * hall:    Fri, Sat and holiday eves 3 on duty 8-20 / 20-4 / 22-8, otherwise 2 on duty 8-20 / 20-8.
              Genifer prefers 8-20.
   * riders:  weekday 8-18 / 18-4 / 22-8; Fri, Sat add 20-6.
 Hard rules that cannot all be met are relaxed with large penalties and reported in "issues".
 """
 import json, sys, datetime as dt
+WT = {"offpair": 200, "oneday": 150, "change": 20}
 from ortools.sat.python import cp_model
 
 TEAMS = {
@@ -114,7 +116,7 @@ def solve_team(team, people, days, hol, hist, fixed, overrides):
             if given(a) and given(a + 1): continue
             b = m.NewBoolVar("")
             m.AddBoolOr([v for v in (x, y) if not isinstance(v, int)] + [b])
-            soft(b, 200, f"{p} 2 days off in a row from {(days[0] + dt.timedelta(days=a - n0)):%m/%d}")
+            soft(b, WT["offpair"], f"{p} 2 days off in a row from {(days[0] + dt.timedelta(days=a - n0)):%m/%d}")
         # 1-day work runs (off, work, off)
         for a in range(n0 - 1, len(seq) - 2):
             x, y, z = seq[a], seq[a + 1], seq[a + 2]
@@ -123,13 +125,13 @@ def solve_team(team, people, days, hol, hist, fixed, overrides):
             b = m.NewBoolVar("")
             lits = [v for v in (x, z) if not isinstance(v, int)]
             m.AddBoolOr(lits + ([y.Not()] if not isinstance(y, int) else []) + [b])
-            soft(b, 150, f"{p} works 1 day only on {(days[0] + dt.timedelta(days=a + 1 - n0)):%m/%d}")
+            soft(b, WT["oneday"], f"{p} works 1 day only on {(days[0] + dt.timedelta(days=a + 1 - n0)):%m/%d}")
         # rest >= 10h, shift change only after a day off
         last = prev[-1]
         for s in shifts:
             if is_work(last):
                 if span(s)[0] + 1440 - span(last)[1] < 600: m.Add(X[p, 0, s] == 0)
-                if s != last: soft(X[p, 0, s], 20, f"{p} shift change {days[0]:%m/%d}")
+                if s != last: soft(X[p, 0, s], WT["change"], f"{p} shift change {days[0]:%m/%d}")
         for i in list(D)[:-1]:
             for a in shifts:
                 for b in shifts:
@@ -137,13 +139,15 @@ def solve_team(team, people, days, hol, hist, fixed, overrides):
                         m.AddBoolOr([X[p, i, a].Not(), X[p, i + 1, b].Not()])
                     elif a != b:
                         c = m.NewBoolVar(""); m.AddBoolOr([X[p, i, a].Not(), X[p, i + 1, b].Not(), c])
-                        soft(c, 20, f"{p} shift change {days[i + 1]:%m/%d}")
+                        soft(c, WT["change"], f"{p} shift change {days[i + 1]:%m/%d}")
         # fairness: 4..6 working days per 7-day block
         for a in range(0, len(days), 7):
             blk = [W[p, i] for i in range(a, min(a + 7, len(days)))]
             if len(blk) == 7: m.Add(sum(blk) >= 4)
     # preferences
     for i, d in enumerate(days):
+        if "Jonel" in people and "Archie" in people:
+            m.AddBoolOr([W["Jonel", i], W["Archie", i]])
         if "Jonel" in people:
             m.Add(X["Jonel", i, "8-18"] == W["Jonel", i])
         if "Archie" in people and "10-20" in shifts and need[i] and "10-20" in need[i]:
@@ -168,7 +172,7 @@ def solve_team(team, people, days, hol, hist, fixed, overrides):
 
 
 def main():
-    inp = json.load(open(sys.argv[1]))
+    inp = json.load(open(sys.argv[1])); WT.update(inp.get("weights", {}))
     start = dt.date.fromisoformat(inp["start"]); n = inp.get("days", 7)
     days = [start + dt.timedelta(days=k) for k in range(n)]
     hol = set(inp.get("holidays", []))
