@@ -262,3 +262,17 @@ export function paidShift(planned, actual, minExtra = 60, earlyOk = false) {
   const f = m => { m = ((m % 1440) + 1440) % 1440; return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; };
   return st === s && en === e ? planned : `${f(st)}-${f(en)}`;
 }
+
+/** public holidays → day types: worked regular day → special (130%) / regular holiday (200%); rest day worked → 150% / 260%;
+ *  regular holiday not worked → paid day (holidayOff). hol = { "YYYY-MM-DD": { kind: "special" | "regular", name } } */
+export function applyHolidays(days, hol) {
+  for (const d of days || []) {
+    const h = hol && hol[d.date]; if (!h || d.prevPaid) continue;
+    const reg = h.kind === "regular";
+    if (d.type === "regular") d.type = reg ? "holiday" : "special";
+    else if (d.type === "rest") d.type = reg ? "holidayRest" : "specialRest";
+    else if (d.type === "off" && !d.shift && reg) d.type = "holidayOff";
+    d.hol = h.name;
+  }
+  return days;
+}

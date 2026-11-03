@@ -146,3 +146,9 @@ console.log("punch tests OK");
 import { paidShift as ps2 } from "../payroll-calc.js";
 if (ps2("18-4", "17:55-04:00", 60, true) !== "17:55-04:00" || ps2("18-4", "17:55-04:00") !== "18-4") throw new Error("early approved");
 console.log("early tests OK");
+
+import { applyHolidays } from "../payroll-calc.js";
+{ const H = { "2026-11-01": { kind: "special", name: "All Saints" }, "2026-11-30": { kind: "regular", name: "Bonifacio" } };
+  const d = applyHolidays([{ date: "2026-11-01", shift: "8-18", type: "regular" }, { date: "2026-11-30", shift: "", type: "off" }, { date: "2026-11-30", shift: "8-18", type: "regular" }, { date: "2026-11-02", shift: "8-18", type: "regular" }], H);
+  if (d[0].type !== "special" || d[1].type !== "holidayOff" || d[2].type !== "holiday" || d[3].type !== "regular") throw new Error("holidays");
+  console.log("holiday tests OK"); }

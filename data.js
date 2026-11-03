@@ -16,6 +16,9 @@ export async function init() {
   const { data } = await sb.auth.getSession();
   return !!data.session;
 }
+export async function listHolidays() { const { data, error } = await sb.from("pr_holidays").select("day, kind, name").order("day"); if (error) throw error; return data || []; }
+export async function saveHoliday(row) { return must(await sb.from("pr_holidays").upsert(row).select().single()); }
+export async function deleteHoliday(day) { must(await sb.from("pr_holidays").delete().eq("day", day)); }
 export async function signIn(id, password) {
   const { error } = await sb.auth.signInWithPassword({ email: idToEmail(id), password });
   if (error) throw new Error(error.message);

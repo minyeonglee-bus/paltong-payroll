@@ -1,5 +1,5 @@
 import * as db from "./data.js";
-import { computePayroll, shiftHours, paperOt, pairPunches, SHIFTS, SHIFT_LABEL, isPreset, parseShift, DAY_TYPES, dayTypesFor, periodOf, periodForDate, datesBetween, fmtDate, addDays, isNightShift, carriesOver, paidDays, paidShift } from "./payroll-calc.js";
+import { applyHolidays, computePayroll, shiftHours, paperOt, pairPunches, SHIFTS, SHIFT_LABEL, isPreset, parseShift, DAY_TYPES, dayTypesFor, periodOf, periodForDate, datesBetween, fmtDate, addDays, isNightShift, carriesOver, paidDays, paidShift } from "./payroll-calc.js";
 
 /* ---------- i18n ---------- */
 const I18N = {
@@ -39,7 +39,7 @@ const I18N = {
     bonusHint: "계약서 6조 최고매출일 보너스 = 보름 중 매출 최고일 총매출 × 2% ÷ 그날 근무한 직원 수 (아래 버튼으로 캐시북+출퇴근에서 자동) · 주방 신메뉴 ₱500 (5조) · 생일 인센티브 ₱500 (3.4조, 직전 3개월 개근) · 개근 → 다음 달 유급휴가 1일 (3.2조)는 날짜 종류 '유급휴가'로",
     topBonus: "최고매출일 보너스 계산", topTitle: "최고매출일 보너스 (계약서 6조)", topDay: "최고매출일", topSales: "총매출", topPool: "풀 (2%)", topEach: "1인당", topStaff: "그날 근무 (출퇴근 기록 기준) — 체크 해제하면 제외", topSave: "보너스로 저장", topNone: "이 기간 캐시북 매출이 없어요", topDone: "{n}명에게 ₱{a} 보너스 저장했어요 (10/16 이후 급여에 자동 반영)", topExists: "이미 이 기간 최고매출일 보너스가 저장돼 있어요",
     hist_empty: "저장된 급여가 없어요. 급여 계산 탭에서 저장하세요.", total: "합계",
-    carryIn: "↩ 이월", carryInNone: "제외", carryOut: "→ 다음 급여", carryHelp: "급여는 1–15일 · 16–30일. 31일이 있는 달의 16–30일 급여는 29일 야간 퇴근(30일 아침)까지예요. 30일 근무(주간·야간 모두)와 31일 근무는 다음 1–15일 급여에 자동으로 이월돼요 (↩ 표시 줄).",
+    holReg: "정규 공휴일", holSp: "특별 휴일", hol_title: "공휴일 달력", hol_help: "여기 있는 날은 급여에 자동으로 들어가요. 일하면 특별 휴일 130% · 정규 공휴일 200% (휴무일에 일하면 150% / 260%), 정규 공휴일에 안 일하면 100% 지급. 새 휴일(예: 이드 알피트르)은 발표되면 추가해 주세요.", hol_add: "추가", carryIn: "↩ 이월", carryInNone: "제외", carryOut: "→ 다음 급여", carryHelp: "급여는 1–15일 · 16–30일. 31일이 있는 달의 16–30일 급여는 29일 야간 퇴근(30일 아침)까지예요. 30일 근무(주간·야간 모두)와 31일 근무는 다음 1–15일 급여에 자동으로 이월돼요 (↩ 표시 줄).",
     tab_due: "지급 예정", due_help: "저장 안 해도 자동 계산: 캐시북 스케줄 + 앱 출퇴근(있는 날은 실제 시간) + 가불·보너스·부족분·법정공제. 급여 계산 탭에서 저장한 직원은 저장한 내용으로. 실수령 = 총급여 − 공제. 이름을 누르면 급여 계산 탭에서 열려요.",
     due_total: "지급 예정 합계", due_people: "{n}건", due_payday: "지급일 {d}", due_overdue: "지급일 지남", due_byVia: "지급 수단별",
     due_ppl: "{n}명", due_auto: "자동", due_saved: "저장됨", due_days: "근무", due_calc: "스케줄로 계산 중…", due_paidX: "지급 완료 {n}명 제외: {names}", due_prev: "이전 기간 미지급 (저장된 급여)", due_cnt: "인원", due_gross: "총급여", due_ded: "공제", due_net: "실수령", due_list: "직원별 명단", due_missingHelp: "저장해야 합계에 들어가요.",
@@ -100,7 +100,7 @@ const I18N = {
     bonusHint: "Contract §6 highest-sales-day bonus = the period's top sales day × 2% ÷ staff who worked that day (button below computes it from the cash book + clock-ins) · kitchen new menu ₱500 (§5) · birthday incentive ₱500 (§3.4, 3 perfect months) · perfect month → 1 paid leave day (§3.2) as day type 'Paid leave'",
     topBonus: "Compute highest-sales-day bonus", topTitle: "Highest-sales-day bonus (contract §6)", topDay: "Highest-sales day", topSales: "Total sales", topPool: "Pool (2%)", topEach: "Each", topStaff: "On duty that day (from clock-ins) — untick to exclude", topSave: "Save as bonuses", topNone: "No cash book sales in this period", topDone: "Saved ₱{a} bonus for {n} staff (applied to the payroll of that period)", topExists: "A highest-sales-day bonus is already saved for this period",
     hist_empty: "No saved payrolls yet. Save one from the Payroll tab.", total: "Total",
-    carryIn: "↩ carried", carryInNone: "excluded", carryOut: "→ next pay", carryHelp: "Pay periods are 1–15 and 16–30. In a 31-day month the 16–30 pay covers work up to the 29th's night shift (clock-out on the morning of the 30th). All work on the 30th (day or night) and the 31st is carried into the next 1–15 payroll automatically (rows marked ↩).",
+    holReg: "regular holiday", holSp: "special day", hol_title: "Holiday calendar", hol_help: "Days listed here are included in payroll automatically. Worked: special day 130% · regular holiday 200% (on a rest day 150% / 260%); a regular holiday not worked is paid 100%. Add new ones (e.g. Eid al-Fitr) when they are announced.", hol_add: "Add", carryIn: "↩ carried", carryInNone: "excluded", carryOut: "→ next pay", carryHelp: "Pay periods are 1–15 and 16–30. In a 31-day month the 16–30 pay covers work up to the 29th's night shift (clock-out on the morning of the 30th). All work on the 30th (day or night) and the 31st is carried into the next 1–15 payroll automatically (rows marked ↩).",
     tab_due: "To pay", due_help: "Calculated automatically, nothing to save: Cash Book schedule + app clock-ins (actual times where present) + advances, bonuses, shortages, gov deductions. Staff already saved in the Payroll tab use what was saved. Net = gross − deductions. Tap a name to open it.",
     due_total: "Total to pay", due_people: "{n} payslips", due_payday: "Pay day {d}", due_overdue: "Past pay day", due_byVia: "By payout method",
     due_ppl: "{n} staff", due_auto: "auto", due_saved: "saved", due_days: "Worked", due_calc: "Calculating from the schedule…", due_paidX: "{n} already paid, not included: {names}", due_prev: "Earlier periods not paid yet (saved)", due_cnt: "Staff", due_gross: "Gross", due_ded: "Deductions", due_net: "Net pay", due_list: "Per employee", due_missingHelp: "Save them to include them in the total.",
@@ -171,8 +171,10 @@ const payTypeOf = emp => emp?.pay_type || "daily";
 const S = { user: null, settings: null, employees: [], tab: "pay", pay: null };
 const root = document.getElementById("root");
 
+let HOL = {};
 async function boot() {
   const ok = await db.init();
+  try { HOL = Object.fromEntries((await db.listHolidays()).map(x => [x.day, x])); } catch {}
   if (!ok) return renderLogin();
   S.user = await db.me();
   S.settings = await db.getSettings().catch(() => ({ min_wage: 718, break_hours: 1, sss_on: false, philhealth_on: false, pagibig_on: false, gov_share: 0.5, rider_allowance: 100, kitchen_monthly: 30000 }));
@@ -564,6 +566,7 @@ function myEstCard(emp, v) {
   const planBy = Object.fromEntries((v.schedule || []).map(r => [r.day, r.shift]));
   const paidBefore = new Set((v.payrolls || []).flatMap(p => (p.result?.rows || []).filter(r => !r.carry && (DAY_TYPES[r.type]?.worked || r.type === "sil" || +r.amount > 0)).map(r => r.date)));
   const days = [...(per.carry || []).filter(d => !paidBefore.has(d)).map(d => ({ ...planDay(d, planBy[d]), date: d, carry: true })), ...datesBetween(per.start, per.end).map(d => planDay(d, planBy[d]))];
+  applyHolidays(days, HOL);
   const worked = paidDays(days).filter(d => DAY_TYPES[d.type]?.worked || d.type === "sil");
   if (!worked.length) return null;
   const st = EMP.data?.settings || {};
@@ -764,6 +767,7 @@ async function loadPay(P) {
       let plan = {}; try { plan = Object.fromEntries((await db.cashbookShifts(P.carry[0] || P.start, P.end)).filter(r => String(r.staff_name || "").trim().toLowerCase() === String(emp.name).trim().toLowerCase() && r.shift).map(r => [r.day, r.shift])); } catch { }
       P.days = [...await carryRows(P, emp, null, plan), ...dates.map(d => planDay(d, plan[d]))];
     }
+    if (P.status !== "paid" && !P.shared_at) applyHolidays(P.days, HOL);   // public holidays included from the start
     const led = await db.listLedger({ employeeId: P.employee_id });
     const inPeriod = l => periodForDate(l.biz_date).start === P.start;
     P.ledger = led.filter(l => (P.id && l.payroll_id === P.id) || (!l.payroll_id && inPeriod(l)));
@@ -820,10 +824,10 @@ async function renderPay() {
     for (const d of P.days) {
       const dt = new Date(d.date + "T00:00:00"); const dow = dt.getDay(); const wk = dow === 5 || dow === 6;   // 주말 = 금·토
       const toggle = () => { if (locked) return; if (d.type === "off") { d.shift = d.shift || P.fillShift; d.type = "regular"; } else { d.shift = ""; d.type = "off"; d.ot = null; } drawRoster(); refresh(); };
-      const tag = d.carry ? (paidDays([d]).length ? t("carryIn") : t("carryInNone")) : carriesOver(d.date, d.shift) ? t("carryOut") : "";
+      const tag = HOL[d.date] && !d.carry ? "🎌 " + (HOL[d.date].kind === "regular" ? t("holReg") : t("holSp")) : d.carry ? (paidDays([d]).length ? t("carryIn") : t("carryInNone")) : carriesOver(d.date, d.shift) ? t("carryOut") : "";
       const lbl = h("div", { class: "d", role: "button", title: t("off"), style: locked ? "" : "cursor:pointer", onclick: toggle }, t("dow")[dow], h("b", {}, (d.carry ? +d.date.slice(5, 7) + "/" : "") + +d.date.slice(8)), tag && h("small", { class: "carryTag" }, tag));
       const sh = DAY_TYPES[d.type]?.worked ? shiftHours(d.shift, P.break_hours) : null;
-      const cls = "day" + (d.carry ? " carry" : "") + (tag && !d.carry ? " carryOut" : "") + (d.type === "off" ? " off" : "") + (d.type === "sil" ? " sil" : "") + (/holiday|special|absent/.test(d.type) ? " hol" : "") + (wk ? " wknd" : "");
+      const cls = "day" + (d.carry ? " carry" : "") + (!d.carry && carriesOver(d.date, d.shift) ? " carryOut" : "") + (HOL[d.date] ? " hol" : "") + (d.type === "off" ? " off" : "") + (d.type === "sil" ? " sil" : "") + (/holiday|special|absent/.test(d.type) ? " hol" : "") + (wk ? " wknd" : "");
       const shiftCtl = shiftPicker(d, locked, (redraw = true) => { if (redraw || d.carry || +d.date.slice(8) === 30) drawRoster(); else { refreshHrs(d); const o = rosterEl.querySelector(`.otin[data-d="${d.date}"] input`); if (o) o.placeholder = String(paperOt(shiftHours(d.shift, 0), +S.settings.hours_per_day || 10, P.break_hours)); } refresh(); }, P.fillShift);
       const typeSel = sel(dayTypesFor(schemeOf(emp), P.pay_type).map(k => [k, t("type_" + k)]), d.type, { disabled: locked, "aria-label": "day type", onchange: e => { d.type = e.target.value; if (!DAY_TYPES[d.type].worked) d.shift = ""; else if (!d.shift) d.shift = P.fillShift; drawRoster(); refresh(); } });
       const hrsEl = h("div", { class: "hrs", "data-d": d.date }, hrsText(sh));
@@ -861,7 +865,7 @@ async function renderPay() {
         let n = 0, inc = 0;
         for (const d of P.days) { const x = by[d.date]; if (!x) continue;
           if (x.shift) { const plan = DAY_TYPES[d.type]?.worked && d.shift && !d.card ? d.shift : (d.plan || ""); d.plan = plan || undefined; d.card = x.shift.replace("-", "–"); d.shift = plan ? paidShift(plan, x.shift, minExtraFor(x), earlyOkFor(x)) : x.shift; if (!DAY_TYPES[d.type]?.worked) d.type = "regular"; n++; if (d.carry) carryNorm(d); } else { inc++; } }
-        drawRoster(); refresh(); toast(tf("punchLoaded", { n, x: inc ? tf("punchIncomplete", { n: inc }) : "" }));
+        applyHolidays(P.days, HOL); drawRoster(); refresh(); toast(tf("punchLoaded", { n, x: inc ? tf("punchIncomplete", { n: inc }) : "" }));
       } catch (e) { toast(errMsg(e)); } } }, t("fromPunch"));
     fillRow = h("div", { class: "row" }, punchBtn, fillSel, fillBtn, schedBtn, h("span", { class: "muted" }, t("weekendHelp")));
   }
@@ -1233,6 +1237,7 @@ async function autoPay(emp, month, half, punches) {
     const by = pairPunches(punches.map(q => ({ kind: q.kind, at: q.punched_at })));
     for (const d of P.days) { const x = by[d.date]; if (!x?.shift) continue; d.shift = x.shift; if (!DAY_TYPES[d.type]?.worked) d.type = "regular"; if (d.carry) carryNorm(d); }
   }
+  if (!P.shared_at) applyHolidays(P.days, HOL);
   // finalized (shared with the employee): use exactly the figures on the payslip, never a fresh recomputation
   const R = P.shared_at && P.result && P.result.net != null ? { ...P.result } : computePayroll(paidDays(P.days), payOpts(P));
   if (!R.payout) R.payout = payoutOf(P, R, emp);
@@ -1406,6 +1411,19 @@ function pay13(e, year, total, amount, monthAvg = 0) {
       await db.saveThirteenth({ employee_id: e.id, year, basic_total: total, amount: +aIn.value, paid_on: dIn.value, paid_via: vIn.value }); toast(t("saved")); close(); render(); } catch (er) { toast(errMsg(er)); } } }, t("c13_pay")))]);
 }
 
+function holidayCard() {
+  const card = h("div", { class: "card", id: "hol-card" });
+  const draw = () => { card.innerHTML = "";
+    const list = Object.values(HOL).sort((a, b) => a.day < b.day ? -1 : 1).filter(x => x.day >= today().slice(0, 4) + "-01-01");
+    const dIn = h("input", { type: "date", id: "holDay" }), kIn = sel([["special", t("holSp")], ["regular", t("holReg")]], "special", { id: "holKind" }), nIn = h("input", { type: "text", id: "holName", placeholder: "Name" });
+    card.append(h("h2", {}, "🎌 " + t("hol_title")), h("small", { class: "muted" }, t("hol_help")),
+      h("div", { class: "list" }, list.map(x => h("div", { class: "item" }, h("div", { class: "t" }, `${x.day} · ${x.name}`), h("div", { class: "s" }, x.kind === "regular" ? t("holReg") : t("holSp")),
+        h("button", { class: "btn sm danger m", type: "button", onclick: () => confirmSheet(t("confirmDel"), async () => { try { await db.deleteHoliday(x.day); delete HOL[x.day]; draw(); } catch (e) { toast(errMsg(e)); } }) }, "✕")))),
+      h("div", { class: "row", style: "flex-wrap:wrap;gap:6px" }, dIn, kIn, nIn, h("button", { class: "btn sm", type: "button", onclick: async () => { if (!dIn.value || !nIn.value.trim()) return;
+        try { const r = await db.saveHoliday({ day: dIn.value, kind: kIn.value, name: nIn.value.trim() }); HOL[r.day] = r; draw(); toast(t("saved")); } catch (e) { toast(errMsg(e)); } } }, "+ " + t("hol_add"))));
+  };
+  draw(); return card;
+}
 function storeGuardCard() {
   const s = S.settings, card = h("div", { class: "card", id: "store-guard" });
   const draw = () => { const s = S.settings; card.innerHTML = "";
@@ -1443,6 +1461,7 @@ function renderSet() {
     owner && h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn primary", onclick: async () => { try {
       S.settings = await db.saveSettings({ min_wage: +wage.value, break_hours: +brk.value, rider_allowance: +rider.value, kitchen_monthly: +kit.value, hours_per_day: +hpd.value || 10, late_penalty: penSel.value === "1", monthly_basic: +mBasic.value || 25945, monthly_ot_incl: +mOt.value || 0, sss_on: sss.firstChild.checked, philhealth_on: ph.firstChild.checked, pagibig_on: pag.firstChild.checked, gov_share: +share.value });
       toast(t("saved")); } catch (e) { toast(errMsg(e)); } } }, t("save")))),
+    owner && holidayCard(),
     owner && storeGuardCard(),
     h("div", { class: "card" }, h("h2", {}, t("contract")), h("ul", { style: "margin:0;padding-left:18px;display:grid;gap:8px;font-size:14px" }, t("contractText").map(x => h("li", {}, x)))));
 }
