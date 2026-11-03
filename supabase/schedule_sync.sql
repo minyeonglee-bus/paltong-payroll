@@ -1,0 +1,6 @@
+-- Cash Book schedule (public.shifts) <-> payroll plan (public.pr_plan), two-way, matched by name.
+-- Applied as migration schedule_two_way_sync (2026-11-03).
+--  • shifts insert/update  → upsert pr_plan for the employee with the same name (a payroll SIL is not overwritten by Cash Book "off")
+--  • pr_plan insert/update → upsert shifts for the Cash Book staff account with the same name (SIL shown as "off" in the Cash Book)
+--  • pg_trigger_depth() guard prevents ping-pong. Kitchen/riders have no Cash Book account → payroll plan only.
+-- 2026-11-03: Arlyn's rows moved from the shared "Staff" account to her own Cash Book account.
