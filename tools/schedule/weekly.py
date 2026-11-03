@@ -5,7 +5,8 @@ usage: python3 weekly.py db.json START_SUNDAY > save.sql
 db.json is the single row returned by the query in README.md:
   {"plan": [{"day": "2026-11-08", "name": "Jonel", "shift": "8-18"}, ...],   # 7 days before START .. START+6
    "holidays": ["2026-11-16", ...]}
-Days off / SIL already entered for the target week (requests) are kept fixed.
+Anything already saved for the target week (day-off requests, owner edits) is kept as is;
+only the empty days are planned.
 overrides.json (same folder) holds owner one-off changes of daily demand.
 """
 import json, sys, os, datetime as dt, subprocess, tempfile
@@ -18,7 +19,7 @@ hist, fixed = {}, {}
 for r in db["plan"]:
     d = dt.date.fromisoformat(r["day"])
     if d < start: hist.setdefault(r["name"], {})[r["day"]] = r["shift"]
-    elif d <= end and r["shift"] in ("off", "sil"): fixed.setdefault(r["name"], {})[r["day"]] = r["shift"]
+    elif d <= end: fixed.setdefault(r["name"], {})[r["day"]] = r["shift"]
 ov = json.load(open(os.path.join(here, "overrides.json"))) if os.path.exists(os.path.join(here, "overrides.json")) else {}
 inp = {"start": start.isoformat(), "days": 7, "holidays": db.get("holidays", []), "history": hist, "fixed": fixed, "overrides": ov}
 tmp = tempfile.mkdtemp()

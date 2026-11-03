@@ -18,5 +18,5 @@ select json_build_object(
 3. Save that JSON as `db.json`, run `python3 weekly.py db.json START > save.sql`, check the printed table and issues.
 4. Run `save.sql` against the database.
 
-Day-off requests: enter `off` / `sil` for the day in the Payroll app before Wednesday; they are kept.
+Anything already saved for the target week is kept (day-off requests `off` / `sil`, owner edits); only empty days are planned.
 One-off demand changes go in `overrides.json`.
