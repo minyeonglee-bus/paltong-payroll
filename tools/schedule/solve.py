@@ -24,9 +24,16 @@ Rules (owner, 2026-11-03):
              Genifer prefers 8-20.
   * riders:  weekday 8-18 / 18-4 / 22-8; Fri, Sat add 20-6.
 Hard rules that cannot all be met are relaxed with large penalties and reported in "issues".
+
+Re-plan mode (owner 2026-11-04 — approved leave fills itself; see replan.py):
+  "replan": true, "current": {name: {day: shift}}, "exempt": {name: {day: true}}
+  * approved leave days (exempt) do not count toward the 2-offs-per-week cap and may sit next to other offs
+  * everyone except Jonel may move between day and night shifts (shift-change penalty almost 0)
+  * keep the current plan where possible (penalty per changed day), cover every shift if at all possible
+    (an uncovered shift is allowed only with a very large penalty and is reported)
 """
 import json, sys, datetime as dt
-WT = {"offpair": 200, "oneday": 150, "change": 20}
+WT = {"offpair": 200, "oneday": 150, "change": 20, "keep": 15, "uncovered": 5000}
 from ortools.sat.python import cp_model
 
 TEAMS = {
@@ -62,8 +69,10 @@ def demand(team, day, hol, overrides):
     return None, (big or eve)
 
 
-def solve_team(team, people, days, hol, hist, fixed, overrides):
+def solve_team(team, people, days, hol, hist, fixed, overrides, current=None, exempt=None, replan=False, week_before=None):
     m = cp_model.CpModel(); pen = []; tags = []
+    current = current or {}; exempt = exempt or {}; week_before = week_before or {}
+    def ex(p, d): return bool(exempt.get(p, {}).get(d.isoformat()))
     D = range(len(days))
     hall = team == "hall"
     H3, H2 = ["8-20", "20-4", "22-8"], ["8-20", "20-8"]
@@ -89,11 +98,15 @@ def solve_team(team, people, days, hol, hist, fixed, overrides):
         for s in shifts:
             tot = sum(X[p, i, s] for p in people)
             if hall:
-                if s == "8-20": m.Add(tot == 1)
-                elif s in ("20-4", "22-8"): m.Add(tot == Y[i])
-                elif s == "20-8": m.Add(tot == 1 - Y[i])
+                req = {"8-20": 1, "20-4": Y[i], "22-8": Y[i], "20-8": 1 - Y[i]}[s]
             else:
-                m.Add(tot == (1 if s in need[i] else 0))
+                req = 1 if s in need[i] else 0
+            if not (isinstance(req, int) and req == 0):
+                miss = m.NewBoolVar("")          # a shift may stay empty only as a last resort (reported)
+                m.Add(tot + miss == req); m.Add(tot <= 1)
+                soft(miss, WT["uncovered"], f"{team} {s} not covered {days[i]:%m/%d}")
+            else:
+                m.Add(tot == req)
         if hall and want3[i]: soft(Y[i].Not(), 300, f"hall 2 on duty {days[i]:%m/%d} (3 wanted)")
         if hall and not want3[i]: m.Add(Y[i] == 0)
 
@@ -112,8 +125,8 @@ def solve_team(team, people, days, hol, hist, fixed, overrides):
         for a in range(n0 - 1, len(seq) - 1):
             x, y = seq[a], seq[a + 1]
             if (isinstance(x, int) and x == 1) or (isinstance(y, int) and y == 1): continue
-            def given(j):  # history day or a fixed day off/SIL
-                return j < n0 or fixed.get(p, {}).get(days[j - n0].isoformat()) is not None
+            def given(j):  # history day or a fixed day off/SIL (or approved leave in re-plan mode)
+                return j < n0 or fixed.get(p, {}).get(days[j - n0].isoformat()) is not None or ex(p, days[j - n0])
             if given(a) and given(a + 1): continue
             b = m.NewBoolVar("")
             m.AddBoolOr([v for v in (x, y) if not isinstance(v, int)] + [b])
@@ -145,8 +158,21 @@ def solve_team(team, people, days, hol, hist, fixed, overrides):
         for a in range(len(days)):
             if days[a].weekday() != 6: continue
             blk = [i for i in range(a, min(a + 7, len(days)))]
-            sil = sum(1 for i in blk if fixed.get(p, {}).get(days[i].isoformat()) == "sil")
+            sil = sum(1 for i in blk if fixed.get(p, {}).get(days[i].isoformat()) == "sil" or ex(p, days[i]))
             m.Add(sum(W[p, i] for i in blk) + sil >= len(blk) - 2)
+        # re-plan starting mid-week: offs already taken earlier that week count toward the cap
+        if replan and days[0].weekday() != 6:
+            blk = [i for i in D if (days[i] - days[0]).days < (5 - days[0].weekday()) % 7 + 1]
+            sil = sum(1 for i in blk if fixed.get(p, {}).get(days[i].isoformat()) == "sil" or ex(p, days[i]))
+            m.Add(sum(W[p, i] for i in blk) + sil >= len(blk) - max(2 - week_before.get(p, 0), 0))
+    # re-plan: stay close to the current plan
+    if replan:
+        for p in people:
+            for i, d in enumerate(days):
+                cur = current.get(p, {}).get(d.isoformat())
+                if fixed.get(p, {}).get(d.isoformat()) is not None or cur is None: continue
+                if is_work(cur) and cur in shifts: soft(X[p, i, cur].Not(), WT["keep"], "")
+                elif not is_work(cur): soft(W[p, i], WT["keep"], "")
     # preferences
     for i, d in enumerate(days):
         if "Jonel" in people and "Archie" in people:
@@ -179,7 +205,8 @@ def main():
     start = dt.date.fromisoformat(inp["start"]); n = inp.get("days", 7)
     days = [start + dt.timedelta(days=k) for k in range(n)]
     hol = set(inp.get("holidays", []))
-    res = {t: solve_team(t, ppl, days, hol, inp.get("history", {}), inp.get("fixed", {}), inp.get("overrides", {}))
+    res = {t: solve_team(t, ppl, days, hol, inp.get("history", {}), inp.get("fixed", {}), inp.get("overrides", {}),
+                         inp.get("current"), inp.get("exempt"), bool(inp.get("replan")), inp.get("week_offs_before"))
            for t, ppl in inp.get("teams", TEAMS).items()}
     s = json.dumps(res, indent=1, ensure_ascii=False)
     if len(sys.argv) > 2: open(sys.argv[2], "w").write(s)

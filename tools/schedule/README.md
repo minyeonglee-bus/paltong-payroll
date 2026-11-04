@@ -12,6 +12,9 @@ select json_build_object(
            from pr_plan q join pr_employees e on e.id = q.employee_id
            where e.resigned_on is null and q.shift is not null
              and q.day between date 'START' - 7 and date 'START' + 6),
+  'leave', (select json_agg(json_build_object('day', r.day, 'name', e.name, 'kind', r.kind))
+            from pr_sil_req r join pr_employees e on e.id = r.employee_id
+            where r.status = 'approved' and r.day between date 'START' - 7 and date 'START' + 6),
   'holidays', (select json_agg(day) from pr_holidays));
 ```
 
@@ -20,3 +23,30 @@ select json_build_object(
 
 Anything already saved for the target week is kept (day-off requests `off` / `sil`, owner edits); only empty days are planned.
 One-off demand changes go in `overrides.json`.
+
+# Re-plan after approved leave (auto, every day 09:40)
+
+Approved leave (휴가 신청 — Day off / SIL / monthly paid vacation, auto-approved or approved by the owner) goes into
+`pr_plan` right away. The daily scheduled task then re-plans the rest of that Sun–Sat week so the gap is covered:
+days up to today, approved leave and Jonel (always 8-18) stay; everyone else may switch between day and night shifts;
+the current plan is kept where possible. Details in `replan.py` and the "Re-plan mode" note in `solve.py`.
+
+Re-plan query (save the single value as `db.json`, then `python3 replan.py db.json > save.sql` and run `save.sql`):
+
+```sql
+with t as (select (now() at time zone 'Asia/Manila')::date d, (select max(day) from pr_plan) last)
+select json_build_object(
+  'today', (select d from t),
+  'todo', (select json_agg(json_build_object('id', r.id, 'name', e.name, 'day', r.day, 'kind', r.kind))
+           from pr_sil_req r join pr_employees e on e.id = r.employee_id
+           where r.status = 'approved' and r.replanned_at is null and r.day > (select d from t)),
+  'plan', (select json_agg(json_build_object('day', q.day, 'name', e.name, 'shift', q.shift))
+           from pr_plan q join pr_employees e on e.id = q.employee_id
+           where e.resigned_on is null and q.shift is not null and q.day between (select d from t) - 14 and (select last from t)),
+  'leave', (select json_agg(json_build_object('day', r.day, 'name', e.name, 'kind', r.kind))
+            from pr_sil_req r join pr_employees e on e.id = r.employee_id
+            where r.status = 'approved' and r.day between (select d from t) - 14 and (select last from t)),
+  'holidays', (select json_agg(day) from pr_holidays));
+```
+
+`save.sql` only touches days after today: changed `pr_plan` rows, `pr_sil_req.replanned_at`, and one owner push (`pr_notify`).

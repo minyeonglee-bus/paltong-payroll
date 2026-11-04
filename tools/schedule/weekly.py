@@ -21,7 +21,9 @@ for r in db["plan"]:
     if d < start: hist.setdefault(r["name"], {})[r["day"]] = r["shift"]
     elif d <= end: fixed.setdefault(r["name"], {})[r["day"]] = r["shift"]
 ov = json.load(open(os.path.join(here, "overrides.json"))) if os.path.exists(os.path.join(here, "overrides.json")) else {}
-inp = {"start": start.isoformat(), "days": 7, "holidays": db.get("holidays", []), "history": hist, "fixed": fixed, "overrides": ov}
+exempt = {}   # approved leave (휴가 신청) does not count toward the 2-offs-per-week cap
+for r in db.get("leave") or []: exempt.setdefault(r["name"], {})[r["day"]] = True
+inp = {"start": start.isoformat(), "days": 7, "holidays": db.get("holidays", []), "history": hist, "fixed": fixed, "overrides": ov, "exempt": exempt}
 tmp = tempfile.mkdtemp()
 json.dump(inp, open(f"{tmp}/in.json", "w"))
 log = subprocess.run([sys.executable, os.path.join(here, "solve.py"), f"{tmp}/in.json", f"{tmp}/out.json"], capture_output=True, text=True)
