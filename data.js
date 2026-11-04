@@ -116,7 +116,7 @@ export async function empToken(no, pin) { return must(await sb.rpc("pr_emp_token
 export async function empLogout(no, token) { return must(await sb.rpc("pr_emp_logout", { p_no: String(no).trim(), p_token: String(token) })); }
 export async function empIntroDone(no, pin) { return must(await sb.rpc("pr_emp_intro_done", { p_no: String(no).trim(), p_pin: String(pin) })); }
 export async function empSetSignature(no, pin, image) { return must(await sb.rpc("pr_emp_set_signature", { p_no: String(no).trim(), p_pin: String(pin), p_image: image })); }
-export async function empAdvance(no, pin, amount, reason) { return must(await sb.rpc("pr_emp_advance", { p_no: String(no).trim(), p_pin: String(pin), p_amount: amount, p_reason: reason || null })); }
+export async function empAdvance(no, pin, amount, reason, via) { return must(await sb.rpc("pr_emp_advance", { p_no: String(no).trim(), p_pin: String(pin), p_amount: amount, p_reason: reason || null, p_via: via })); }
 export async function listSignatures() { return Object.fromEntries(must(await sb.from("pr_signatures").select("employee_id, image, signed_at")).map(x => [x.employee_id, x])); }
 export async function resetSignature(id) { must(await sb.from("pr_signatures").delete().eq("employee_id", id)); }
 export async function bdayList() { return must(await sb.rpc("pr_bday_list")); }
