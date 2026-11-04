@@ -152,3 +152,5 @@ import { applyHolidays } from "../payroll-calc.js";
   const d = applyHolidays([{ date: "2026-11-01", shift: "8-18", type: "regular" }, { date: "2026-11-30", shift: "", type: "off" }, { date: "2026-11-30", shift: "8-18", type: "regular" }, { date: "2026-11-02", shift: "8-18", type: "regular" }], H);
   if (d[0].type !== "special" || d[1].type !== "holidayOff" || d[2].type !== "holiday" || d[3].type !== "regular") throw new Error("holidays");
   console.log("holiday tests OK"); }
+// approved late clock-in = reason accepted → paid from the scheduled start; not approved → cut at the actual time
+if (ps2("18-4", "18:12-04:00", 60, true) !== "18-4" || ps2("18-4", "18:12-04:00") !== "18:12-04:00") throw new Error("late approved");

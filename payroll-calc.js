@@ -247,17 +247,19 @@ export function pairPunches(punches) {
 /**
  * paidShift(planned, actual) — the part of a time-card shift that is paid.
  * Early clock-in is not paid (pay starts at the scheduled start; a late arrival starts later).
+ * inOk = the clock-in was approved by the manager: an approved early clock-in is paid from the actual time,
+ * an approved late clock-in is paid from the scheduled start (reason accepted → no late cut).
  * Staying past the scheduled end counts only when it is 60 minutes or more (otherwise pay stops at the scheduled end).
  * planned "18-4", actual "17:54-07:06" → "18:00-07:06"; actual "17:54-04:22" → "18-4".
  */
-export function paidShift(planned, actual, minExtra = 60, earlyOk = false) {
+export function paidShift(planned, actual, minExtra = 60, inOk = false) {
   const P = parseShift(planned), A = parseShift(actual);
   if (!P || !A) return actual || planned || "";
   const toM = x => x;   // parseShift already gives minutes
   const s = toM(P.start); let e = toM(P.end); if (e <= s) e += 1440;
   let i = toM(A.start); if (i < s - 720) i += 1440; if (i > s + 720) i -= 1440;
   let o = toM(A.end); while (o <= i) o += 1440;
-  const st = earlyOk ? i : Math.max(s, i), en = o - e >= minExtra ? o : Math.min(e, o);
+  const st = inOk ? Math.min(s, i) : Math.max(s, i), en = o - e >= minExtra ? o : Math.min(e, o);
   if (en <= st) return actual;
   const f = m => { m = ((m % 1440) + 1440) % 1440; return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; };
   return st === s && en === e ? planned : `${f(st)}-${f(en)}`;

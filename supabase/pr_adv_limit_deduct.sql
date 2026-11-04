@@ -28,7 +28,7 @@ begin
     into adv, shortage, other
     from public.pr_ledger where employee_id = p_emp and biz_date between w0 and f;
   select coalesce(sum(greatest(x.dev_min, 0)), 0) into late_min from public.pr_punches x
-   where x.employee_id = p_emp and x.kind = 'in' and x.status <> 'void' and coalesce(x.dev_min, 0) > 0
+   where x.employee_id = p_emp and x.kind = 'in' and x.status not in ('void', 'approved') and coalesce(x.dev_min, 0) > 0
      and (x.punched_at at time zone 'Asia/Manila')::date between s and f;
   per_min := case when e.pay_type = 'monthly' then coalesce(st.monthly_basic, 25945) * 12 / 313 / 8 / 60
                   when e.scheme = 'paper' then coalesce(e.daily_rate, 0) / 600
