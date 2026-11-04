@@ -161,6 +161,7 @@ table.sched td.off{background:var(--bg);color:var(--muted)}
 table.sched td.inc{background:var(--warn-soft);color:var(--fg);box-shadow:inset 0 0 0 2px var(--warn)}
 table.sched td.inc .act{color:var(--warn)}
 table.sched .act{font-family:var(--mono);font-weight:600}
+table.sched .real{font-family:var(--mono);font-size:10px;color:var(--muted);text-decoration:line-through}
 table.sched .pl{color:var(--muted);font-size:10px}
 
 /* 스케줄: 부서별 묶음 */
