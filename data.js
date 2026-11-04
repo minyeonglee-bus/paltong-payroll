@@ -125,6 +125,10 @@ export async function empSilCancel(no, pin, id) { return must(await sb.rpc("pr_e
 export async function empLeaveRequest(no, pin, kind, from, to, reason) { return must(await sb.rpc("pr_emp_leave_request", { p_no: String(no).trim(), p_pin: String(pin), p_kind: kind, p_from: from, p_to: to, p_reason: reason || null })); }
 export async function empLeaveCancel(no, pin, grp) { return must(await sb.rpc("pr_emp_leave_cancel", { p_no: String(no).trim(), p_pin: String(pin), p_grp: grp })); }
 export async function leaveDecide(grp, ok, note) { return must(await sb.rpc("pr_leave_decide", { p_grp: grp, p_ok: ok, p_note: note || null })); }
+export async function pushInfo() { return must(await sb.rpc("pr_push_info")); }
+export async function pushSubscribe(endpoint, p256dh, auth, label) { return must(await sb.rpc("pr_push_subscribe", { p_endpoint: endpoint, p_p256dh: p256dh, p_auth: auth, p_label: label })); }
+export async function pushUnsubscribe(endpoint) { return must(await sb.rpc("pr_push_unsubscribe", { p_endpoint: endpoint })); }
+export async function pushTest() { return must(await sb.rpc("pr_push_test")); }
 export async function pendingCounts() { return must(await sb.rpc("pr_pending_counts")); }
 export async function silReqList() { return must(await sb.rpc("pr_sil_req_list", { p_days: 30 })); }
 export async function silDecide(id, ok, note) { return must(await sb.rpc("pr_sil_decide", { p_id: id, p_ok: ok, p_note: note || null })); }
