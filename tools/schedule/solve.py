@@ -8,7 +8,7 @@ input.json
   "holidays": ["2026-11-16", "2026-11-17", "2026-11-18", "2026-11-30"],
   "history": {"Jonel": {"2026-11-01": "8-18", ...}, ...},   # at least the 7 days before start
   "fixed":   {"Jonel": {"2026-11-08": "sil"}, "June": {"2026-11-08": "off"}},
-  "overrides": {"kitchen": {"2026-11-15": ["8-18","10-20","18-4","22-8"]}}   # optional demand per day
+  "overrides": {"kitchen": {"2026-11-15": ["8-18","18-4","20-6","22-8"]}}   # optional demand per day
 }
 
 Rules (owner, 2026-11-03):
