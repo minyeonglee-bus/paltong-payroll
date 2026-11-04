@@ -14,7 +14,7 @@ const I18N = {
     c13_basicApp: "앱 기본급", c13_basicBefore: "앱 이전", c13_total: "기본급 합계", c13_periods: "기간 수", c13_amount: "13월급 (÷12)", c13_avg: "월평균 (1년↑)", c13_proj: "연말 예상", c13_status: "지급", c13_pay: "지급 기록", c13_paid: "지급됨", c13_unpaid: "미지급", c13_unpay: "지급 취소",
     c13_projHelp: "연말 예상 = 지금까지 평균 반월 기본급 × 남은 반월 수를 더한 값 ÷ 12 (참고용)", c13_total_row: "합계", c13_draftNote: "작성중 급여 포함",
     emp_before: "앱 이전 올해 기본급 (13월급용)", emp_beforeHelp: "앱 쓰기 전 올해 1월~9월에 받은 기본급 합계 (초과·수당 제외). 모르면 0",
-    sil_title: "유급휴가 (SIL)", sil_selfT: "올해 이미 쓴 유급휴가 (SIL)", sil_selfHelp: "앱 사용 전에 올해 이미 쓴 SIL 일수를 적어 주세요 (반일은 0.5). ⚠️ 한 번 저장하면 직접 고칠 수 없어요. 틀렸으면 관리자에게 말해 주세요.", sil_selfQ: "올해 이미 쓴 SIL을 {n}일로 저장할까요? 저장하면 다시 고칠 수 없어요.", sil_selfDone: "저장됨 · {n}일 ({d}) · 수정은 관리자에게", sil_locked: "이미 저장해서 고칠 수 없어요. 관리자에게 말해 주세요.", sil_bad: "0~30 사이 숫자로 적어 주세요 (0.5 단위)", sil_selfAdm: "직원 입력 {d}", sil_help: "기본 일수 + 개근 보너스(그 달 지각·결석이 없으면 다음 달에 +1일, 2026년 11월부터) − 사용한 날 = 남은 날. 스케줄에 SIL로 잡힌 날은 예정으로 따로 빼요.", sil_base: "기본", sil_before: "앱 이전 사용", sil_earned: "개근 +", sil_used: "사용", sil_planned: "예정", sil_left: "남음", sil_months: "개근 기록", sil_perfect: "개근 ✓ → {c}에 +1", sil_not: "지각·결석 있음", sil_none: "아직 없음", sil_dates: "사용한 날", sil_plDates: "예정된 날", p13_title: "13월급 (12월까지 근무 기준 예상)", p13_help: "올해 확정·지급된 급여의 기본급과, 12월 31일까지 계속 근무한다고 가정한 남은 기간(평균 기본급)으로 계산했어요. 초과·야간·가산·인센티브는 빠져요.", p13_req: "11월 7일부터 요청 가능", p13_open: "13월급 명세서 보기", p13_ack: "확인했어요", p13_acked: "확인함 {d}", p13_period: "기간", p13_basic: "기본급", p13_estRow: "예상", p13_sum: "기본급 합계 (12월까지)", p13_by12: "합계 ÷ 12", p13_avgM: "한 달 평균 (1년 이상 근무)", p13_final: "예상 13월급", p13_note: "12월까지 근무했다고 가정한 예상 금액이에요. 실제 근무에 따라 달라질 수 있고, 확정 금액은 관리자가 지급 기록한 값이에요.", p13_due: "13월급 (12월까지 근무 기준)", p13_dueHelp: "직원 화면과 같은 계산이에요. 확정 급여의 기본급 + 남은 기간 평균. 직원이 명세서를 보고 확인을 누르면 표시돼요.", p13_notAck: "확인 전", p13_toDate: "지금까지", my13: "내 13월급", my13help: "올해 지급된 급여의 기본급(초과·야간·가산·정비비·인센티브 제외)으로 계산한 예상치예요. 1년 이상 근무면 한 달 평균, 1년 미만이면 합계 ÷ 12. 12월 24일 전 지급. 확정 금액은 관리자가 지급 기록한 값이에요.", my13_basic: "올해 기본급 합계 ({n}회 지급)", my13_by12: "÷ 12 (1년 미만)", my13_avg: "한 달 평균 (1년 이상)", my13_est: "예상 13월급", my13_1yr: "1년 이상", my13_under: "1년 미만",
+    sil_title: "유급휴가 (SIL)", sig_title: "최초로 사인 해 주세요", sig_help: "아래 칸에 손가락으로 사인해 주세요. 이 사인은 사유서·확인서·가불 확인서·급여명세서(확인한 것)에 들어가요. 한 번 저장하면 직접 바꿀 수 없어요 (관리자만 초기화).", sig_clear: "다시 쓰기", sig_save: "사인 저장", sig_empty: "사인을 해 주세요", sig_saved: "사인을 저장했어요", sig_mine: "내 사인", sig_on: "사인 등록됨 {d}", sig_off: "사인 미등록", sig_reset: "사인 초기화", sig_resetDone: "사인을 지웠어요. 다음 로그인 때 다시 사인해요.", stab_home: "홈", stab_adv: "가불", adv_title: "가불 신청", adv_help: "신청하면 바로 자동 승인돼요. 신청한 날짜가 들어가는 급여에서 공제돼요. 돈은 매장에서 받으세요.", adv_amount: "금액 (₱)", adv_reason: "사유 (선택)", adv_send: "가불 신청", adv_q: "₱{a} 가불을 신청할까요? 자동 승인되고 {p} 급여에서 공제돼요.", adv_done: "가불 신청 완료 · 자동 승인", adv_bad: "1 ~ 100,000 사이 금액을 적어 주세요", adv_list: "내 가불 내역", adv_print: "가불 확인서", adv_app: "📱 앱 신청", adv_needSig: "먼저 사인을 등록해 주세요", sil_selfT: "올해 이미 쓴 유급휴가 (SIL)", sil_selfHelp: "앱 사용 전에 올해 이미 쓴 SIL 일수를 적어 주세요 (반일은 0.5). ⚠️ 한 번 저장하면 직접 고칠 수 없어요. 틀렸으면 관리자에게 말해 주세요.", sil_selfQ: "올해 이미 쓴 SIL을 {n}일로 저장할까요? 저장하면 다시 고칠 수 없어요.", sil_selfDone: "저장됨 · {n}일 ({d}) · 수정은 관리자에게", sil_locked: "이미 저장해서 고칠 수 없어요. 관리자에게 말해 주세요.", sil_bad: "0~30 사이 숫자로 적어 주세요 (0.5 단위)", sil_selfAdm: "직원 입력 {d}", sil_help: "기본 일수 + 개근 보너스(그 달 지각·결석이 없으면 다음 달에 +1일, 2026년 11월부터) − 사용한 날 = 남은 날. 스케줄에 SIL로 잡힌 날은 예정으로 따로 빼요.", sil_base: "기본", sil_before: "앱 이전 사용", sil_earned: "개근 +", sil_used: "사용", sil_planned: "예정", sil_left: "남음", sil_months: "개근 기록", sil_perfect: "개근 ✓ → {c}에 +1", sil_not: "지각·결석 있음", sil_none: "아직 없음", sil_dates: "사용한 날", sil_plDates: "예정된 날", p13_title: "13월급 (12월까지 근무 기준 예상)", p13_help: "올해 확정·지급된 급여의 기본급과, 12월 31일까지 계속 근무한다고 가정한 남은 기간(평균 기본급)으로 계산했어요. 초과·야간·가산·인센티브는 빠져요.", p13_req: "11월 7일부터 요청 가능", p13_open: "13월급 명세서 보기", p13_ack: "확인했어요", p13_acked: "확인함 {d}", p13_period: "기간", p13_basic: "기본급", p13_estRow: "예상", p13_sum: "기본급 합계 (12월까지)", p13_by12: "합계 ÷ 12", p13_avgM: "한 달 평균 (1년 이상 근무)", p13_final: "예상 13월급", p13_note: "12월까지 근무했다고 가정한 예상 금액이에요. 실제 근무에 따라 달라질 수 있고, 확정 금액은 관리자가 지급 기록한 값이에요.", p13_due: "13월급 (12월까지 근무 기준)", p13_dueHelp: "직원 화면과 같은 계산이에요. 확정 급여의 기본급 + 남은 기간 평균. 직원이 명세서를 보고 확인을 누르면 표시돼요.", p13_notAck: "확인 전", p13_toDate: "지금까지", my13: "내 13월급", my13help: "올해 지급된 급여의 기본급(초과·야간·가산·정비비·인센티브 제외)으로 계산한 예상치예요. 1년 이상 근무면 한 달 평균, 1년 미만이면 합계 ÷ 12. 12월 24일 전 지급. 확정 금액은 관리자가 지급 기록한 값이에요.", my13_basic: "올해 기본급 합계 ({n}회 지급)", my13_by12: "÷ 12 (1년 미만)", my13_avg: "한 달 평균 (1년 이상)", my13_est: "예상 13월급", my13_1yr: "1년 이상", my13_under: "1년 미만",
     employee: "직원", period: "급여 기간", first: "1 – 15일", second: "16 – 30일", month: "월",
     daily: "일급", monthlyRate: "월급 (초과근무 포함)", breakH: "식사 휴게 (시간/일)", allowDay: "정비비 (₱/근무일)",
     roster: "보름치 시프트 표", off: "휴무", wkend: "주말",
@@ -75,7 +75,7 @@ const I18N = {
     c13_basicApp: "Basic (app)", c13_basicBefore: "Before app", c13_total: "Total basic", c13_periods: "Periods", c13_amount: "13th (÷12)", c13_avg: "Monthly avg (1yr+)", c13_proj: "Year-end est.", c13_status: "Paid", c13_pay: "Record payment", c13_paid: "Paid", c13_unpaid: "Unpaid", c13_unpay: "Undo",
     c13_projHelp: "Year-end estimate = current average basic per half-month × remaining half-months, added, ÷ 12 (reference only)", c13_total_row: "Total", c13_draftNote: "includes draft payrolls",
     emp_before: "Basic earned this year before the app (for 13th month)", emp_beforeHelp: "Basic salary received Jan–Sep this year before the app (no OT / allowances). 0 if unknown",
-    sil_title: "Paid leave (SIL)", sil_selfT: "SIL already used this year", sil_selfHelp: "Enter how many SIL days you already used this year before the app (half day = 0.5). ⚠️ Once saved you cannot change it. If it is wrong, tell the admin.", sil_selfQ: "Save {n} SIL days already used this year? You cannot change it after saving.", sil_selfDone: "Saved · {n} days ({d}) · ask the admin to change it", sil_locked: "Already saved, so you cannot change it. Please tell the admin.", sil_bad: "Enter a number from 0 to 30 (steps of 0.5)", sil_selfAdm: "entered by staff {d}", sil_help: "Base days + perfect-attendance bonus (no late and no absence in a month → +1 day the next month, from November 2026) − days used = days left. Days set as SIL in the schedule are shown separately as planned.", sil_base: "Base", sil_before: "Used before the app", sil_earned: "Perfect +", sil_used: "Used", sil_planned: "Planned", sil_left: "Left", sil_months: "Perfect attendance", sil_perfect: "Perfect ✓ → +1 in {c}", sil_not: "late / absent", sil_none: "none yet", sil_dates: "Days used", sil_plDates: "Planned days", p13_title: "13th month (estimate if you work until December)", p13_help: "Basic pay from this year's finalized/paid payrolls, plus the remaining periods up to December 31 at your average basic pay (as if you keep working). No OT, night diff, premiums or incentives.", p13_req: "You can request it from November 7", p13_open: "View 13th-month slip", p13_ack: "I confirm", p13_acked: "Confirmed {d}", p13_period: "Period", p13_basic: "Basic pay", p13_estRow: "estimate", p13_sum: "Total basic (to December)", p13_by12: "Total ÷ 12", p13_avgM: "One-month average (1 year+ of service)", p13_final: "Estimated 13th month", p13_note: "This is an estimate assuming you work until December. It may change with your actual work; the final amount is what the manager records when paying.", p13_due: "13th month (if working until December)", p13_dueHelp: "Same calculation as the staff screen: basic pay from finalized payrolls + remaining periods at the average. Shows when the employee viewed the slip and pressed confirm.", p13_notAck: "not yet", p13_toDate: "so far", my13: "My 13th-month pay", my13help: "Estimate from the basic pay (no OT, night diff, premiums, maintenance or incentives) of payrolls paid this year. 1 year+ of service = one month average; under a year = total ÷ 12. Paid by Dec 24. The final amount is what the admin records.", my13_basic: "Basic pay this year ({n} payrolls)", my13_by12: "÷ 12 (under 1 year)", my13_avg: "One-month average (1 year+)", my13_est: "Estimated 13th month", my13_1yr: "1 year+", my13_under: "under 1 year",
+    sil_title: "Paid leave (SIL)", sig_title: "Please sign first", sig_help: "Sign with your finger in the box below. This signature goes on explanation letters, confirmations, cash-advance slips and payslips you confirmed. Once saved you cannot change it yourself (only the admin can reset it).", sig_clear: "Clear", sig_save: "Save signature", sig_empty: "Please sign", sig_saved: "Signature saved", sig_mine: "My signature", sig_on: "Signature on file {d}", sig_off: "No signature", sig_reset: "Reset signature", sig_resetDone: "Signature removed. They sign again at next sign-in.", stab_home: "Home", stab_adv: "Advance", adv_title: "Request a cash advance", adv_help: "Requests are approved automatically. It is deducted from the payroll that includes the request date. Get the cash at the restaurant.", adv_amount: "Amount (₱)", adv_reason: "Reason (optional)", adv_send: "Request advance", adv_q: "Request a ₱{a} advance? It is approved automatically and deducted from the {p} payroll.", adv_done: "Advance requested · auto-approved", adv_bad: "Enter an amount from 1 to 100,000", adv_list: "My advances", adv_print: "Advance slip", adv_app: "📱 app request", adv_needSig: "Please register your signature first", sil_selfT: "SIL already used this year", sil_selfHelp: "Enter how many SIL days you already used this year before the app (half day = 0.5). ⚠️ Once saved you cannot change it. If it is wrong, tell the admin.", sil_selfQ: "Save {n} SIL days already used this year? You cannot change it after saving.", sil_selfDone: "Saved · {n} days ({d}) · ask the admin to change it", sil_locked: "Already saved, so you cannot change it. Please tell the admin.", sil_bad: "Enter a number from 0 to 30 (steps of 0.5)", sil_selfAdm: "entered by staff {d}", sil_help: "Base days + perfect-attendance bonus (no late and no absence in a month → +1 day the next month, from November 2026) − days used = days left. Days set as SIL in the schedule are shown separately as planned.", sil_base: "Base", sil_before: "Used before the app", sil_earned: "Perfect +", sil_used: "Used", sil_planned: "Planned", sil_left: "Left", sil_months: "Perfect attendance", sil_perfect: "Perfect ✓ → +1 in {c}", sil_not: "late / absent", sil_none: "none yet", sil_dates: "Days used", sil_plDates: "Planned days", p13_title: "13th month (estimate if you work until December)", p13_help: "Basic pay from this year's finalized/paid payrolls, plus the remaining periods up to December 31 at your average basic pay (as if you keep working). No OT, night diff, premiums or incentives.", p13_req: "You can request it from November 7", p13_open: "View 13th-month slip", p13_ack: "I confirm", p13_acked: "Confirmed {d}", p13_period: "Period", p13_basic: "Basic pay", p13_estRow: "estimate", p13_sum: "Total basic (to December)", p13_by12: "Total ÷ 12", p13_avgM: "One-month average (1 year+ of service)", p13_final: "Estimated 13th month", p13_note: "This is an estimate assuming you work until December. It may change with your actual work; the final amount is what the manager records when paying.", p13_due: "13th month (if working until December)", p13_dueHelp: "Same calculation as the staff screen: basic pay from finalized payrolls + remaining periods at the average. Shows when the employee viewed the slip and pressed confirm.", p13_notAck: "not yet", p13_toDate: "so far", my13: "My 13th-month pay", my13help: "Estimate from the basic pay (no OT, night diff, premiums, maintenance or incentives) of payrolls paid this year. 1 year+ of service = one month average; under a year = total ÷ 12. Paid by Dec 24. The final amount is what the admin records.", my13_basic: "Basic pay this year ({n} payrolls)", my13_by12: "÷ 12 (under 1 year)", my13_avg: "One-month average (1 year+)", my13_est: "Estimated 13th month", my13_1yr: "1 year+", my13_under: "under 1 year",
     employee: "Employee", period: "Pay period", first: "1st – 15th", second: "16th – 30th", month: "Month",
     daily: "Daily rate", monthlyRate: "Monthly salary (OT-inclusive)", breakH: "Meal break (hrs/day)", allowDay: "Maintenance (₱/duty day)",
     roster: "Half-month shift roster", off: "Off", wkend: "Weekend",
@@ -179,6 +179,7 @@ async function boot() {
   S.user = await db.me();
   S.settings = await db.getSettings().catch(() => ({ min_wage: 718, break_hours: 1, sss_on: false, philhealth_on: false, pagibig_on: false, gov_share: 0.5, rider_allowance: 100, kitchen_monthly: 30000 }));
   S.employees = await db.listEmployees(true);
+  try { S.sigs = await db.listSignatures(); } catch { S.sigs = {}; }
   render();
 }
 
@@ -199,7 +200,7 @@ function modeSwitch() {
     h("button", { type: "button", class: "btn sm", id: "mode-admin", "aria-pressed": loginMode === "admin", onclick: () => set("admin") }, t("asAdmin")));
 }
 /* ================= 직원 본인 보기 (번호 + PIN) ================= */
-const EMP = { no: "", pin: "", data: null };
+const EMP = { no: "", pin: "", data: null, tab: "home" };
 function renderStaffLogin(err, typedNo) {
   let last = typedNo || ""; if (!last) try { last = localStorage.getItem("pp-empno") || ""; } catch {}
   const no = h("input", { type: "text", id: "eno", inputmode: "numeric", autocomplete: "username", placeholder: "00001", value: last });
@@ -217,7 +218,7 @@ async function staffSignIn(no, pin) {
     EMP.no = String(no).trim(); EMP.pin = String(pin);
     try { localStorage.setItem("pp-empno", EMP.no); } catch {}
     if (v.must_change) return renderSetPin(v.name);
-    EMP.data = v; renderStaffHome();
+    EMP.data = v; EMP.tab = "home"; renderStaffHome();
   } catch (e) { renderStaffLogin(String(e.message || e), no); }
 }
 function renderSetPin(name, err) {
@@ -238,9 +239,94 @@ const breakFor = (emp, base) => emp?.position === "rider" ? 0 : (base == null ||
 // payslip note: text after "[[ACK]]" is a separate statement the employee signs (e.g. "computation requested by the employee")
 // several "[[ACK]]" parts = several statements, each with its own employee signature line
 const noteParts = note => { const [main, ...acks] = String(note || "").split("[[ACK]]"); return { main: main.trim(), acks: acks.map(a => a.trim()).filter(Boolean) }; };
-const ackBlock = (acks, name) => acks.length ? acks.map(a => h("div", { class: "slipAck" }, h("div", { class: "slipNote" }, a), h("div", { class: "sig one" }, h("div", {}, "Employee / " + name, h("br"), "Signature · Date")))) : null;
+const ackBlock = (acks, name, sig, ackAt) => acks.length ? acks.map(a => h("div", { class: "slipAck" }, h("div", { class: "slipNote" }, a), h("div", { class: "sig one" }, h("div", {}, sig ? sigImg(sig, "") : null, "Employee / " + name, h("br"), "Signature · Date" + (sig ? " · " + fmtD(ackAt) : ""))))) : null;
+// employee signature on a payslip: only once the employee has confirmed (ack) that payslip
+const empSig = emp => emp?.signature || sigOf(emp?.id);
+const slipSig = (emp, ackAt) => ackAt && empSig(emp) ? sigImg(empSig(emp), "") : null; // positioned above the signature line by CSS (.slip .sig .sigImg)
 const INFO_KEYS = ["phone", "address", "gcash", "bank_name", "bank_acct", "sss", "philhealth", "pagibig", "tin", "emergency_name", "emergency_phone"];
 const infoInputs = (info, idp) => Object.fromEntries(INFO_KEYS.map(k => [k, h("input", { type: k === "address" ? "text" : /phone|gcash|acct/.test(k) ? "tel" : "text", id: idp + k, value: (info || {})[k] || "", maxlength: 200 })]));
+/* ---- signature: drawn once by the employee, printed on letters, advance slips and confirmed payslips ---- */
+const sigOf = id => (S.sigs || {})[id] || null;
+const sigImg = (sig, style = "") => sig?.image ? h("img", { src: sig.image, alt: "signature", class: "sigImg", style }) : null;
+const fmtD = d => d ? new Date(d).toLocaleDateString("en-PH", { timeZone: "Asia/Manila", year: "numeric", month: "short", day: "numeric" }) : "";
+function sigPad() {
+  const W = 600, H = 220, c = h("canvas", { width: W, height: H, id: "sig-pad", style: "width:100%;max-width:600px;aspect-ratio:600/220;background:#fff;border:2px dashed var(--line2);border-radius:10px;touch-action:none;display:block" });
+  const g = c.getContext("2d"); g.lineWidth = 3.2; g.lineCap = "round"; g.lineJoin = "round"; g.strokeStyle = "#111";
+  let down = false, last = null, inked = 0;
+  const pt = e => { const r = c.getBoundingClientRect(); return [(e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height]; };
+  c.addEventListener("pointerdown", e => { down = true; last = pt(e); c.setPointerCapture?.(e.pointerId); e.preventDefault(); });
+  c.addEventListener("pointermove", e => { if (!down) return; const p = pt(e); g.beginPath(); g.moveTo(...last); g.lineTo(...p); g.stroke(); inked += Math.hypot(p[0] - last[0], p[1] - last[1]); last = p; e.preventDefault(); });
+  const up = () => { down = false; }; c.addEventListener("pointerup", up); c.addEventListener("pointercancel", up); c.addEventListener("pointerleave", up);
+  return { el: c, empty: () => inked < 40, clear: () => { g.clearRect(0, 0, W, H); inked = 0; },
+    // crop to the ink so the saved image is small and fills the signature line
+    data: () => { const d = g.getImageData(0, 0, W, H).data; let x0 = W, y0 = H, x1 = 0, y1 = 0;
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (d[(y * W + x) * 4 + 3] > 20) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      const m = 8; x0 = Math.max(0, x0 - m); y0 = Math.max(0, y0 - m); x1 = Math.min(W - 1, x1 + m); y1 = Math.min(H - 1, y1 + m);
+      const o = document.createElement("canvas"); o.width = x1 - x0 + 1; o.height = y1 - y0 + 1; o.getContext("2d").drawImage(c, x0, y0, o.width, o.height, 0, 0, o.width, o.height);
+      return o.toDataURL("image/png"); } };
+}
+function renderSignFirst(err) {
+  const pad = sigPad(), save = h("button", { class: "btn primary", type: "button", id: "sig-save" }, t("sig_save"));
+  save.onclick = async () => { if (pad.empty()) return toast(t("sig_empty")); save.disabled = true;
+    try { const r = await db.empSetSignature(EMP.no, EMP.pin, pad.data());
+      if (!r.ok && r.err !== "sig_locked") throw new Error(r.err === "bad_value" ? t("sig_empty") : pinErr(r.err));
+      toast(t("sig_saved")); EMP.data = await db.empView(EMP.no, EMP.pin); renderStaffHome();
+    } catch (e) { save.disabled = false; renderSignFirst(errMsg(e)); } };
+  root.innerHTML = "";
+  root.append(h("div", { class: "login" }, h("div", { class: "card", style: "max-width:640px" }, h("h1", {}, "✍️ " + t("sig_title")),
+    h("p", { class: "muted" }, (EMP.data?.employee?.name ? EMP.data.employee.name + " · " : "") + t("sig_help")), pad.el,
+    err && h("div", { class: "err" }, err),
+    h("div", { class: "row", style: "margin-top:10px" }, h("button", { class: "btn", type: "button", onclick: () => pad.clear() }, t("sig_clear")), h("span", { class: "sp" }), save),
+    h("div", { class: "row", style: "margin-top:6px" }, langSwitch()))));
+}
+/* print one document on its own page (letters, advance slips) */
+function printOneDoc(inner) {
+  const box = h("div", { id: "printOne" }, inner);
+  document.getElementById("printOne")?.remove(); document.body.append(box); document.body.classList.add("print-one");
+  const done = () => { box.remove(); document.body.classList.remove("print-one"); window.removeEventListener("afterprint", done); };
+  window.addEventListener("afterprint", done); window.print(); setTimeout(() => { if (document.body.contains(box)) done(); }, 60000);
+}
+// signature line used on printed letters: signature image above the line, name/date below
+const sigLine = (label, sig, date) => h("div", { style: "flex:1;font-size:13px" }, h("div", { style: "height:64px;display:flex;align-items:flex-end;justify-content:center" }, sigImg(sig, "max-height:60px;max-width:100%")),
+  h("div", { style: "border-top:1px solid #000;padding-top:4px" }, label + (date ? " · " + date : "")));
+function printAdvance(l, emp, sig) {
+  const name = fullName(emp), p = periodForDate(l.biz_date);
+  const reason = String(l.note || "").replace(/^📱 가불 신청 \(자동 승인\)( · )?/, "") || "";
+  const row = (a, b) => h("tr", {}, h("th", { style: "text-align:left;width:38%;padding:6px;border:1px solid #999;background:#f3f3f3" }, a), h("td", { style: "padding:6px;border:1px solid #999" }, b));
+  printOneDoc(h("div", { class: "slip", style: "font-family:Arial,sans-serif;color:#000;background:#fff;padding:24px;max-width:720px" },
+    h("h2", { style: "text-align:center;margin:0 0 4px" }, "CASH ADVANCE / 가불 확인서"), h("div", { style: "text-align:center;margin-bottom:16px" }, "Paltong Restaurant"),
+    h("table", { style: "width:100%;border-collapse:collapse;font-size:14px" },
+      row("Employee name", name), row("Position", emp?.position || ""), row("Date", fmtD(l.biz_date + "T12:00:00+08:00")),
+      row("Amount", "₱" + money(l.amount)), row("Deducted from payroll", `${p.start} ~ ${p.end}`),
+      row("Requested", l.self_req_at ? "In the app · auto-approved · " + new Date(l.self_req_at).toLocaleString("en-PH", { timeZone: "Asia/Manila" }) : "Recorded by the manager"),
+      reason ? row("Reason", reason) : null),
+    h("p", { style: "font-size:13px;margin:14px 0 0" }, `I received a cash advance of ₱${money(l.amount)} and I authorize Paltong Restaurant to deduct this amount from my salary for the payroll period ${p.start} ~ ${p.end}.`),
+    h("div", { style: "display:flex;gap:40px;margin-top:36px" }, sigLine("Employee signature", sig, fmtD(l.self_req_at || l.created_at)), sigLine("Manager signature", null, ""))));
+}
+/* ---- staff: cash advance tab ---- */
+function myAdvTab(v, emp) {
+  const amt = h("input", { type: "number", id: "adv-amt", min: 1, max: 100000, step: 1, inputmode: "numeric", placeholder: "500" });
+  const rsn = h("input", { type: "text", id: "adv-rsn", maxlength: 200 });
+  const send = h("button", { class: "btn primary", type: "submit", id: "adv-send" }, t("adv_send"));
+  const td = today(), per = periodForDate(td);
+  const form = h("form", { class: "card", id: "adv-form", onsubmit: e => { e.preventDefault();
+      const a = +amt.value; if (!(a >= 1 && a <= 100000)) return toast(t("adv_bad"));
+      confirmSheet(tf("adv_q", { a: money(a), p: periodLabel(per.start, per.end) }), async () => { send.disabled = true;
+        try { const r = await db.empAdvance(EMP.no, EMP.pin, a, rsn.value.trim());
+          if (!r.ok) { if (r.err === "need_sig") { toast(t("adv_needSig")); return renderSignFirst(); } throw new Error(r.err === "bad_value" ? t("adv_bad") : pinErr(r.err)); }
+          toast(t("adv_done")); EMP.data = await db.empView(EMP.no, EMP.pin); EMP.tab = "adv"; renderStaffHome();
+        } catch (er) { toast(errMsg(er)); send.disabled = false; } }, { ask: true }); } },
+    h("h2", {}, t("adv_title")), h("small", { class: "muted" }, t("adv_help")),
+    h("div", { class: "grid2", style: "margin-top:8px" }, field(t("adv_amount"), amt), field(t("adv_reason"), rsn)), send);
+  const advs = (v.ledger || []).filter(l => l.kind === "advance");
+  const list = h("div", { class: "card", id: "adv-list" }, h("h2", {}, t("adv_list")), advs.length ? h("div", { class: "list" }, advs.map(l => { const p = periodForDate(l.biz_date);
+    const why = noteOf(l).replace(/^📱 (가불 신청 \(자동 승인\)|Advance request \(auto-approved\))( · )?/, "");
+    return h("div", { class: "item" }, h("div", { class: "t" }, l.biz_date, " ", h("span", { class: "pill " + (l.deducted ? "paid" : "draft") }, l.deducted ? t("led_deducted") : t("led_pending")), l.self_req_at ? " " + t("adv_app") : ""),
+      h("div", { class: "s" }, tf("led_applies", { p: periodLabel(p.start, p.end) }), why ? ` · ${why}` : "",
+        h("div", {}, h("button", { class: "btn sm", type: "button", style: "margin-top:6px", onclick: () => printAdvance(l, emp, v.signature) }, "🖨 " + t("adv_print")))),
+      h("div", { class: "m money neg" }, "−" + money(l.amount))); })) : h("span", { class: "muted" }, t("noData")));
+  return [form, list];
+}
 /* ---- staff: own info (contact, payout, gov numbers) — pay fields are admin-only ---- */
 function myInfoCard(emp) {
   const inp = infoInputs(emp.info, "mi-");
@@ -256,7 +342,8 @@ function myInfoCard(emp) {
         } catch (er) { toast(errMsg(er)); } save.disabled = false; } },
       h("div", { class: "grid2" }, field(t("emp_name"), h("div", { style: "padding:9px 0" }, emp.name)), field(t("emp_bday"), bday), ...INFO_KEYS.map(k => field(t("i_" + k), inp[k]))),
       save),
-    mySilSelf(EMP.data?.sil_sum));
+    mySilSelf(EMP.data?.sil_sum),
+    EMP.data?.signature ? h("div", { id: "mi-sig", style: "margin-top:14px;padding-top:12px;border-top:1px solid var(--line)" }, h("b", {}, t("sig_mine")), h("div", {}, sigImg(EMP.data.signature, "max-height:70px;background:#fff;border-radius:6px;padding:4px")), h("small", { class: "muted" }, tf("sig_on", { d: fmtD(EMP.data.signature.signed_at) }))) : null);
 }
 /* ---- staff: SIL already used this year — entered once, then locked (owner can still change it) ---- */
 function mySilSelf(x) {
@@ -277,11 +364,12 @@ function mySilSelf(x) {
 }
 function renderStaffHome() {
   const v = EMP.data, emp = v.employee;
+  if (!v.signature) return renderSignFirst();
   root.innerHTML = "";
   const paid = v.payrolls.filter(p => (p.status === "paid" || p.shared) && p.result);
   const payList = h("div", { class: "list", id: "my-pay" }, paid.length ? paid.map(p => h("div", { class: "item", onclick: () => {
       const P = { start: p.period_start, end: p.period_end, daily_rate: p.daily_rate, status: p.status, paid_on: p.paid_on, paid_via: p.paid_via, note: p.note || "" };
-      payslip({ ...P, pay_type: p.pay_type || 'daily', monthly_rate: p.monthly_rate }, { name: emp.name, position: emp.position, info: emp.info }, p.result); } },
+      payslip({ ...P, ack_at: p.ack_at, pay_type: p.pay_type || 'daily', monthly_rate: p.monthly_rate }, { name: emp.name, position: emp.position, info: emp.info, signature: v.signature }, p.result); } },
     h("div", { class: "t" }, periodLabel(p.period_start, p.period_end)), h("div", { class: "s" }, p.status === "paid" ? `${t("paid")} ${p.paid_on || ""} · ${viaLabel(slipVia(p.paid_via || ""))}` : t("sharedStaff")), h("div", { class: "m money" }, "₱" + money(p.result.net))))
     : h("span", { class: "muted" }, t("noData")));
   const ledList = h("div", { class: "list", id: "my-ledger" }, v.ledger.length ? v.ledger.map(l => { const p = periodForDate(l.biz_date);
@@ -292,7 +380,7 @@ function renderStaffHome() {
       h("summary", {}, h("b", {}, periodLabel(p.period_start, p.period_end)), " ", h("span", { class: "pill " + (p.status === "paid" || p.shared ? "paid" : "draft") }, p.status === "paid" ? t("paid") : p.shared ? t("sharedStaff") : t("notPaidYet"))),
       h("div", { class: "tbl" }, h("table", {}, (p.days || []).filter(d => d.type !== "off" || d.shift).map(d => h("tr", {}, h("td", {}, d.date.slice(5) + " " + t("dow")[new Date(d.date + "T00:00:00").getDay()]),
         h("td", {}, d.card || (d.shift ? SHIFT_LABEL(d.shift) : "—")), h("td", {}, t("type_" + d.type)))))))) : h("span", { class: "muted" }, t("noData")));
-  const openSlip = p => payslip({ start: p.period_start, end: p.period_end, daily_rate: p.daily_rate, status: p.status, paid_on: p.paid_on, paid_via: p.paid_via, note: p.note || "", pay_type: p.pay_type || "daily", monthly_rate: p.monthly_rate }, { name: emp.name, position: emp.position, info: emp.info }, p.result);
+  const openSlip = p => payslip({ start: p.period_start, end: p.period_end, daily_rate: p.daily_rate, status: p.status, paid_on: p.paid_on, paid_via: p.paid_via, note: p.note || "", ack_at: p.ack_at, pay_type: p.pay_type || "daily", monthly_rate: p.monthly_rate }, { name: emp.name, position: emp.position, info: emp.info, signature: v.signature }, p.result);
   const finals = v.payrolls.filter(p => p.shared && p.status !== "paid" && p.result);
   const finalCard = finals.length ? h("div", { class: "card", id: "my-final", style: "border:2px solid var(--gold)" }, h("h2", {}, t("myFinal")),
     ...finals.map(p => { let seen = false;
@@ -309,7 +397,8 @@ function renderStaffHome() {
       h("span", { style: "opacity:.85;font-size:13px" }, `${emp.name} · ${t("empNoLbl")} ${emp.emp_no}`),
       h("button", { onclick: () => { setLangOnly(lang === "ko" ? "en" : "ko"); renderStaffHome(); } }, lang === "ko" ? "EN" : "한"),
       h("button", { id: "e-logout", onclick: () => { EMP.pin = ""; EMP.data = null; renderStaffLogin(); } }, t("logout"))),
-    h("main", { id: "main" },
+    h("div", { class: "tabs", role: "tablist", id: "staff-tabs" }, [["home", t("stab_home")], ["adv", t("stab_adv")]].map(([k, l]) => h("button", { role: "tab", id: "stab-" + k, "aria-selected": String((EMP.tab || "home") === k), onclick: () => { EMP.tab = k; renderStaffHome(); } }, l))),
+    h("main", { id: "main" }, ...(EMP.tab === "adv" ? myAdvTab(v, emp) : [
       finalCard,
       mentionsCard(v),
       myEstCard(emp, v),
@@ -320,7 +409,7 @@ function renderStaffHome() {
       mySchedCard(v, emp),
       mySilCard(v),
       my13Card(v, emp),
-      myInfoCard(emp)));
+      myInfoCard(emp)])));
 }
 const addD = (d, n) => { const x = new Date(d + "T00:00:00"); x.setDate(x.getDate() + n); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
 const planLabel = v => v === "off" ? t("off") : v === "sil" ? "SIL" : SHIFT_LABEL(v);
@@ -528,11 +617,8 @@ function printLetter(p) {
       : p.mode === "personal" && p.kind === "in" ? "I came in before my scheduled time for a personal reason (to avoid being late). I confirm this time is not work time and is not paid."
       : p.mode === "cashbook" ? "The Cash Book must be closed before the end of the shift; this time is not overtime."
       : "I confirm that the information above is true and correct. This time is for a personal reason and is not overtime."),
-    h("div", { style: "display:flex;gap:40px;margin-top:48px;font-size:13px" },
-      h("div", { style: "flex:1;border-top:1px solid #000;padding-top:4px" }, "Employee signature / Date"), h("div", { style: "flex:1;border-top:1px solid #000;padding-top:4px" }, "Manager signature / Date"))));
-  document.getElementById("printOne")?.remove(); document.body.append(box); document.body.classList.add("print-one");
-  const done = () => { box.remove(); document.body.classList.remove("print-one"); window.removeEventListener("afterprint", done); };
-  window.addEventListener("afterprint", done); window.print(); setTimeout(() => { if (document.body.contains(box)) done(); }, 60000);
+    h("div", { style: "display:flex;gap:40px;margin-top:36px" }, sigLine("Employee signature / Date", sigOf(p.employee_id), fmtD(p.punched_at)), sigLine("Manager signature / Date", null, ""))));
+  box.remove(); printOneDoc(box.firstChild);
 }
 function clockCard() {
   const punches = (EMP.data?.punches || []).slice().sort((a, b) => new Date(b.at) - new Date(a.at));
@@ -1002,8 +1088,8 @@ function payslip(P, emp, R) {
     h("div", { class: "grid2" }, h("div", {}, h("b", {}, fullName(emp)), h("div", { class: "muted" }, t("pos_" + (emp?.position || "other")))), h("div", {}, rate, h("div", { class: "muted" }, summaryText(R)))),
     h("table", {}, resultRows(R, P)), h("br"), days,
     h("p", { class: "muted" }, `${t("payLine")}: ${payoutText(slipPayout(R.payout || payoutOf(P, R, emp)), emp)}` + (P.status === "paid" ? ` · ${P.paid_on}` : "")), noteParts(P.note).main && h("div", { class: "slipNote" }, noteParts(P.note).main),
-    h("div", { class: "sig" + (noteParts(P.note).acks.length ? " one" : "") }, h("div", {}, "Employer / Paltong Restaurant", h("br"), "Signature · Date"), noteParts(P.note).acks.length ? null : h("div", {}, "Employee / " + fullName(emp), h("br"), "Signature · Date")),
-    ackBlock(noteParts(P.note).acks, fullName(emp)),
+    h("div", { class: "sig" + (noteParts(P.note).acks.length ? " one" : "") }, h("div", {}, "Employer / Paltong Restaurant", h("br"), "Signature · Date"), noteParts(P.note).acks.length ? null : h("div", {}, slipSig(emp, P.ack_at), "Employee / " + fullName(emp), h("br"), "Signature · Date" + (P.ack_at && empSig(emp) ? " · " + fmtD(P.ack_at) : ""))),
+    ackBlock(noteParts(P.note).acks, fullName(emp), P.ack_at && empSig(emp), P.ack_at),
     h("div", { class: "row noprint", style: "margin-top:14px" }, h("span", { class: "sp" }), h("button", { class: "btn", onclick: () => close() }, t("close")),
       h("button", { class: "btn", onclick: () => printSlip("detail") }, t("printA4")), h("button", { class: "btn primary", onclick: () => printSlip("simple") }, t("printSimple")))));
 }
@@ -1121,6 +1207,9 @@ function empForm(e) {
     E.id && E.resigned_on ? resign13Box(E) : null,
     E.id && h("div", { class: "row" }, h("span", { class: "muted" }, e.pin_hash ? t("pinSet") : t("pinNotSet")), h("span", { class: "sp" }),
       h("button", { class: "btn sm", type: "button", id: "e-reset-pin", onclick: async () => { try { await db.resetEmpPin(E.id); S.employees = await db.listEmployees(true); toast(t("pinReset")); close(); render(); } catch (er) { toast(errMsg(er)); } } }, t("resetPin"))),
+    E.id && h("div", { class: "row", style: "align-items:center" }, sigOf(E.id) ? sigImg(sigOf(E.id), "max-height:44px;background:#fff;border-radius:6px;padding:2px") : null,
+      h("span", { class: "muted" }, sigOf(E.id) ? tf("sig_on", { d: fmtD(sigOf(E.id).signed_at) }) : t("sig_off")), h("span", { class: "sp" }),
+      sigOf(E.id) ? h("button", { class: "btn sm", type: "button", id: "e-reset-sig", onclick: () => confirmSheet(t("sig_reset") + "?", async () => { try { await db.resetSignature(E.id); S.sigs = await db.listSignatures(); toast(t("sig_resetDone")); close(); render(); } catch (er) { toast(errMsg(er)); } }, { ask: true }) }, t("sig_reset")) : null),
     h("div", { class: "row" }, E.id && h("button", { class: "btn danger sm", type: "button", onclick: () => confirmSheet(t("confirmDel"), async () => { await db.deleteEmployee(E.id); S.employees = await db.listEmployees(true); close(); render(); }) }, t("delete")),
       h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => close() }, t("cancel")), h("button", { class: "btn primary", type: "submit" }, t("save")))));
 }
@@ -1178,7 +1267,8 @@ async function renderLedger() {
   for (const l of rows) {
     const p = periodForDate(l.biz_date);
     list.append(h("div", { class: "item", onclick: () => owner && ledgerForm(l, () => render()) },
-      h("div", { class: "t" }, l.employees?.name, " · ", t("k_" + l.kind), " ", h("span", { class: "pill " + (l.payroll_id ? "paid" : "draft") }, l.payroll_id ? t("led_deducted") : t("led_pending"))),
+      h("div", { class: "t" }, l.employees?.name, " · ", t("k_" + l.kind), " ", h("span", { class: "pill " + (l.payroll_id ? "paid" : "draft") }, l.payroll_id ? t("led_deducted") : t("led_pending")), l.self_req_at ? " " + t("adv_app") : "",
+        l.kind === "advance" ? h("button", { class: "btn sm", type: "button", style: "margin-left:6px", onclick: ev => { ev.stopPropagation(); printAdvance(l, S.employees.find(e => e.id === l.employee_id) || { name: l.employees?.name }, sigOf(l.employee_id)); } }, "🖨 " + t("adv_print")) : null),
       h("div", { class: "s" }, l.biz_date, " ", tf("led_applies", { p: periodLabel(p.start, p.end) }), noteOf(l) ? ` · ${noteOf(l)}` : "", l.kind === "shortage" && !(l.verified && l.authorized) ? " · ⚠ " + t("notDeducted") : ""),
       h("div", { class: "m money " + (l.kind === "bonus" ? "pos" : "neg") }, (l.kind === "bonus" ? "+" : "−") + money(l.amount))));
   }
@@ -1368,8 +1458,8 @@ function slipCompact(r) {
     R.net != null ? h("table", {}, resultRows(R, P)) : h("p", { class: "muted" }, t("draft")),
     h("p", { class: "muted" }, `${t("payLine")}: ${R.payout ? payoutText(slipPayout(R.payout), emp) : (r.paid_via ? viaLabel(slipVia(r.paid_via)) + " ₱" + money(R.net) : "")}` + (r.status === "paid" ? ` · ${r.paid_on || ""}` : ` · ${t("notPaidYet")}`)),
     noteParts(r.note).main && h("div", { class: "slipNote" }, noteParts(r.note).main),
-    h("div", { class: "sig" + (noteParts(r.note).acks.length ? " one" : "") }, h("div", {}, "Employer · Date"), noteParts(r.note).acks.length ? null : h("div", {}, "Employee / " + fullName(emp) + " · Date")),
-    ackBlock(noteParts(r.note).acks, fullName(emp)));
+    h("div", { class: "sig" + (noteParts(r.note).acks.length ? " one" : "") }, h("div", {}, "Employer · Date"), noteParts(r.note).acks.length ? null : h("div", {}, slipSig({ id: r.employee_id }, r.ack_at), "Employee / " + fullName(emp) + " · Date" + (r.ack_at && sigOf(r.employee_id) ? " " + fmtD(r.ack_at) : ""))),
+    ackBlock(noteParts(r.note).acks, fullName(emp), r.ack_at && sigOf(r.employee_id), r.ack_at));
 }
 function batchPrint(rows, s, e) {
   const sorted = rows.slice().sort((a, b) => String(a.employees?.name).localeCompare(String(b.employees?.name)));

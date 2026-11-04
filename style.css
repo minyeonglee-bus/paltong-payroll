@@ -221,3 +221,10 @@ tr.sum.neg td{border-bottom:2px solid var(--fg)}
 #clock .clockToday div{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--bg);color:var(--fg)}
 #clock .clockToday small{display:block;color:var(--muted);font-size:12px}
 #clock .clockToday b{font:700 22px var(--mono);color:var(--fg)}
+/* employee signature image (letters, advance slips, confirmed payslips) */
+.sigImg{display:inline-block;object-fit:contain}
+.slip .sig div{position:relative}
+.slip .sig .sigImg{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);max-height:46px;max-width:90%;margin-bottom:2px}
+.slip .sig:has(.sigImg){margin-top:60px}
+#batchPrint .slip.mini .sig .sigImg{max-height:20px}
+#batchPrint .slip.mini .sig:has(.sigImg){margin-top:24px}
