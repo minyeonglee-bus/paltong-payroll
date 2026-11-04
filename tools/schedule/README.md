@@ -11,7 +11,7 @@ select json_build_object(
   'plan', (select json_agg(json_build_object('day', q.day, 'name', e.name, 'shift', q.shift))
            from pr_plan q join pr_employees e on e.id = q.employee_id
            where e.resigned_on is null and q.shift is not null
-             and q.day between date 'START' - 7 and date 'START' + 6),
+             and q.day between date 'START' - 14 and date 'START' + 6),
   'leave', (select json_agg(json_build_object('day', r.day, 'name', e.name, 'kind', r.kind))
             from pr_sil_req r join pr_employees e on e.id = r.employee_id
             where r.status = 'approved' and r.day between date 'START' - 7 and date 'START' + 6),
