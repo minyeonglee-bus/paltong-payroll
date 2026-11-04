@@ -175,7 +175,12 @@ let HOL = {};
 async function boot() {
   const ok = await db.init();
   try { HOL = Object.fromEntries((await db.listHolidays()).map(x => [x.day, x])); } catch {}
-  if (!ok) return renderLogin();
+  if (!ok) {
+    // staff phone that signed in before → straight in, until Sign out
+    let no = ""; try { no = localStorage.getItem("pp-empno") || ""; } catch {}
+    if (loginMode === "staff" && no && savedTok()) return staffSignIn(no, "tok:" + savedTok());
+    return renderLogin();
+  }
   S.user = await db.me();
   S.settings = await db.getSettings().catch(() => ({ min_wage: 718, break_hours: 1, sss_on: false, philhealth_on: false, pagibig_on: false, gov_share: 0.5, rider_allowance: 100, kitchen_monthly: 30000 }));
   S.employees = await db.listEmployees(true);
@@ -210,16 +215,27 @@ function renderStaffLogin(err, typedNo) {
       h("button", { class: "btn primary", type: "submit", id: "elogin" }, t("login")), langSwitch()));
   root.innerHTML = ""; root.append(h("div", { class: "login" }, form));
 }
+/* staying signed in: after a PIN sign-in the phone keeps a device token (never the PIN) until Sign out */
+const TOK_KEY = "pp-emp-tok";
+const savedTok = () => { try { return localStorage.getItem(TOK_KEY) || ""; } catch { return ""; } };
+const saveTok = tok => { try { tok ? localStorage.setItem(TOK_KEY, tok) : localStorage.removeItem(TOK_KEY); } catch {} };
 async function staffSignIn(no, pin) {
+  const auto = String(pin).startsWith("tok:");
   try {
     await db.init();
     const v = await db.empView(no, pin);
-    if (!v.ok) return renderStaffLogin(pinErr(v.err), no);
+    if (!v.ok) { if (auto) { saveTok(""); return renderStaffLogin(null, no); } return renderStaffLogin(pinErr(v.err), no); }
     EMP.no = String(no).trim(); EMP.pin = String(pin);
     try { localStorage.setItem("pp-empno", EMP.no); } catch {}
     if (v.must_change) return renderSetPin(v.name);
+    if (!auto) try { const r = await db.empToken(EMP.no, pin); if (r.ok && r.token) { saveTok(r.token); EMP.pin = "tok:" + r.token; } } catch {}
     EMP.data = v; EMP.tab = "home"; renderStaffHome();
-  } catch (e) { renderStaffLogin(String(e.message || e), no); }
+  } catch (e) { if (auto) return renderStaffLogin(null, no); renderStaffLogin(String(e.message || e), no); }
+}
+async function staffLogout() {
+  const pin = EMP.pin; EMP.pin = ""; EMP.data = null; saveTok("");
+  if (pin.startsWith("tok:")) try { await db.empLogout(EMP.no, pin); } catch {}
+  renderStaffLogin();
 }
 function renderSetPin(name, err) {
   const a = h("input", { type: "password", id: "np1", inputmode: "numeric", maxlength: 6 }), b = h("input", { type: "password", id: "np2", inputmode: "numeric", maxlength: 6 });
@@ -463,7 +479,7 @@ function renderStaffHome() {
     h("div", { class: "top" }, h("span", { class: "brand" }, t("app")), h("span", { class: "sp" }),
       h("span", { style: "opacity:.85;font-size:13px" }, `${emp.name} · ${t("empNoLbl")} ${emp.emp_no}`),
       h("button", { onclick: () => { setLangOnly(lang === "ko" ? "en" : "ko"); renderStaffHome(); } }, lang === "ko" ? "EN" : "한"),
-      h("button", { id: "e-logout", onclick: () => { EMP.pin = ""; EMP.data = null; renderStaffLogin(); } }, t("logout"))),
+      h("button", { id: "e-logout", onclick: staffLogout }, t("logout"))),
     h("div", { class: "tabs", role: "tablist", id: "staff-tabs" }, [["home", t("stab_home")], ["adv", t("stab_adv")]].map(([k, l]) => h("button", { role: "tab", id: "stab-" + k, "aria-selected": String((EMP.tab || "home") === k), onclick: () => { EMP.tab = k; renderStaffHome(); } }, l))),
     h("main", { id: "main" }, ...(EMP.tab === "adv" ? myAdvTab(v, emp) : [
       finalCard,

@@ -112,6 +112,8 @@ export async function saveThirteenth(row) {
 export async function empAck13(no, pin, year, amount) { return must(await sb.rpc("pr_emp_ack13", { p_no: String(no).trim(), p_pin: String(pin), p_year: year, p_amount: amount })); }
 export async function listAck13(year) { return must(await sb.from("pr_13_ack").select("*").eq("year", year)); }
 export async function empSetSil(no, pin, used) { return must(await sb.rpc("pr_emp_set_sil", { p_no: String(no).trim(), p_pin: String(pin), p_used: used })); }
+export async function empToken(no, pin) { return must(await sb.rpc("pr_emp_token", { p_no: String(no).trim(), p_pin: String(pin) })); }
+export async function empLogout(no, token) { return must(await sb.rpc("pr_emp_logout", { p_no: String(no).trim(), p_token: String(token) })); }
 export async function empIntroDone(no, pin) { return must(await sb.rpc("pr_emp_intro_done", { p_no: String(no).trim(), p_pin: String(pin) })); }
 export async function empSetSignature(no, pin, image) { return must(await sb.rpc("pr_emp_set_signature", { p_no: String(no).trim(), p_pin: String(pin), p_image: image })); }
 export async function empAdvance(no, pin, amount, reason) { return must(await sb.rpc("pr_emp_advance", { p_no: String(no).trim(), p_pin: String(pin), p_amount: amount, p_reason: reason || null })); }
