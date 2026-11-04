@@ -119,6 +119,7 @@ export async function empSetSignature(no, pin, image) { return must(await sb.rpc
 export async function empAdvance(no, pin, amount, reason) { return must(await sb.rpc("pr_emp_advance", { p_no: String(no).trim(), p_pin: String(pin), p_amount: amount, p_reason: reason || null })); }
 export async function listSignatures() { return Object.fromEntries(must(await sb.from("pr_signatures").select("employee_id, image, signed_at")).map(x => [x.employee_id, x])); }
 export async function resetSignature(id) { must(await sb.from("pr_signatures").delete().eq("employee_id", id)); }
+export async function bdayList() { return must(await sb.rpc("pr_bday_list")); }
 export async function silAll(year) { return must(await sb.rpc("pr_sil_all", { p_year: year })); }
 export async function saveSil(row) { return must(await sb.from("pr_sil").upsert({ ...row, updated_at: new Date().toISOString() }, { onConflict: "employee_id,year" }).select().single()); }
 export async function deleteThirteenth(id) { must(await sb.from("pr_thirteenth").delete().eq("id", id)); }
