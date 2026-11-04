@@ -23,6 +23,8 @@ Rules (owner, 2026-11-03):
   * hall:    Fri, Sat and holiday eves 3 on duty 8-20 / 20-4 / 22-8, otherwise 2 on duty 8-20 / 20-8.
              Genifer prefers 8-20.
   * riders:  weekday 8-18 / 18-4 / 22-8; Fri, Sat add 20-6.
+  * day shifts (8-18 / 8-20 / 10-20) are shared fairly in each team over the last 2 weeks + the plan
+    (Jonel and Genifer excluded — owner 2026-11-04)
 Hard rules that cannot all be met are relaxed with large penalties and reported in "issues".
 
 Re-plan mode (owner 2026-11-04 — approved leave fills itself; see replan.py):
@@ -33,7 +35,8 @@ Re-plan mode (owner 2026-11-04 — approved leave fills itself; see replan.py):
     (an uncovered shift is allowed only with a very large penalty and is reported)
 """
 import json, sys, datetime as dt
-WT = {"offpair": 200, "oneday": 150, "change": 20, "keep": 15, "uncovered": 5000}
+WT = {"offpair": 200, "oneday": 150, "change": 20, "keep": 15, "uncovered": 5000, "fair": 25}
+FAIR_SKIP = {"Jonel", "Genifer"}   # fixed 8-18 / prefers 8-20 — not part of the day-shift share
 from ortools.sat.python import cp_model
 
 TEAMS = {
@@ -54,6 +57,9 @@ def span(sh):
 
 
 def is_work(sh): return bool(sh) and sh not in ("off", "sil")
+
+
+def is_day(sh): return is_work(sh) and "-" in sh and hm(sh.split("-")[0]) < 720   # 8-18, 8-20, 10-20
 
 
 def demand(team, day, hol, overrides):
@@ -173,6 +179,18 @@ def solve_team(team, people, days, hol, hist, fixed, overrides, current=None, ex
                 if fixed.get(p, {}).get(d.isoformat()) is not None or cur is None: continue
                 if is_work(cur) and cur in shifts: soft(X[p, i, cur].Not(), WT["keep"], "")
                 elif not is_work(cur): soft(W[p, i], WT["keep"], "")
+    # fair share of day shifts (owner 2026-11-04: "Wilbert takes all the day shifts — spread them"):
+    # day shifts in the last 14 days of history + this plan; penalise the gap between the most and the fewest in the team
+    share = [p for p in people if p not in FAIR_SKIP]
+    if len(share) > 1 and any(is_day(s) for s in shifts):
+        cnt = {}
+        for p in share:
+            h = hist.get(p, {})
+            past = sum(1 for k in range(1, 15) if is_day(h.get((days[0] - dt.timedelta(days=k)).isoformat()) or ""))
+            cnt[p] = past + sum(X[p, i, s] for i in D for s in shifts if is_day(s))
+        hi = m.NewIntVar(0, 60, ""); lo = m.NewIntVar(0, 60, "")
+        for p in share: m.Add(hi >= cnt[p]); m.Add(lo <= cnt[p])
+        pen.append(WT["fair"] * (hi - lo))
     # preferences
     for i, d in enumerate(days):
         if "Jonel" in people and "Archie" in people:
