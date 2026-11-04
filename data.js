@@ -120,6 +120,10 @@ export async function empAdvance(no, pin, amount, reason) { return must(await sb
 export async function listSignatures() { return Object.fromEntries(must(await sb.from("pr_signatures").select("employee_id, image, signed_at")).map(x => [x.employee_id, x])); }
 export async function resetSignature(id) { must(await sb.from("pr_signatures").delete().eq("employee_id", id)); }
 export async function bdayList() { return must(await sb.rpc("pr_bday_list")); }
+export async function empSilRequest(no, pin, days, reason) { return must(await sb.rpc("pr_emp_sil_request", { p_no: String(no).trim(), p_pin: String(pin), p_days: days, p_reason: reason || null })); }
+export async function empSilCancel(no, pin, id) { return must(await sb.rpc("pr_emp_sil_cancel", { p_no: String(no).trim(), p_pin: String(pin), p_id: id })); }
+export async function silReqList() { return must(await sb.rpc("pr_sil_req_list", { p_days: 30 })); }
+export async function silDecide(id, ok, note) { return must(await sb.rpc("pr_sil_decide", { p_id: id, p_ok: ok, p_note: note || null })); }
 export async function silAll(year) { return must(await sb.rpc("pr_sil_all", { p_year: year })); }
 export async function saveSil(row) { return must(await sb.from("pr_sil").upsert({ ...row, updated_at: new Date().toISOString() }, { onConflict: "employee_id,year" }).select().single()); }
 export async function deleteThirteenth(id) { must(await sb.from("pr_thirteenth").delete().eq("id", id)); }
