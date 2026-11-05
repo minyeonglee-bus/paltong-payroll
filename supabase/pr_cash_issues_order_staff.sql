@@ -76,3 +76,21 @@ begin
 end $$;
 revoke all on function public.pr_cash_issue_refresh(uuid) from public;
 grant execute on function public.pr_cash_issue_refresh(uuid) to authenticated;
+
+-- push text names the account (cash / GCash / Maya) and the suggested employee (who completed the order), not the closer.
+-- pr_cash_issue_fill_trg fires first (trigger names run in alphabetical order), so the row already has `suggested`.
+create or replace function public.pr_cash_issue_notify()
+returns trigger language plpgsql security definer set search_path to 'public' as $function$
+declare sug text; codes text;
+begin
+  if new.status <> 'open' then return null; end if;
+  select suggested, (select string_agg(x->>'code', ', ') from jsonb_array_elements(coalesce(suspects, '[]'::jsonb)) x where x->>'staff' = suggested and abs((x->>'amount')::numeric - amount) < 0.01)
+    into sug, codes from public.pr_cash_issues where id = new.id;
+  perform public.pr_notify('🧾 캐시북 ' || case new.acct when 'GCASH' then 'GCash' when 'MAYA' then 'Maya' else '현금' end || ' 부족 · '
+    || public.pr_md(new.biz_date) || ' ' || case new.stage when 'mid' then '중간마감' else '마감' end || E'\n₱'
+    || to_char(abs(new.amount), 'FM999,999.00')
+    || coalesce(E'\n🙋 주문 완료: ' || sug || coalesce(' (' || codes || ')', ''), '')
+    || coalesce(E'\n사유: ' || nullif(new.reason, ''), '')
+    || E'\n👉 급여 앱 → 가불·부족분·보너스');
+  return null;
+end $function$;
