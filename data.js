@@ -119,6 +119,11 @@ export async function empSetSignature(no, pin, image) { return must(await sb.rpc
 export async function empAdvance(no, pin, amount, reason, via) { return must(await sb.rpc("pr_emp_advance", { p_no: String(no).trim(), p_pin: String(pin), p_amount: amount, p_reason: reason || null, p_via: via })); }
 export async function listSignatures() { return Object.fromEntries(must(await sb.from("pr_signatures").select("employee_id, image, signed_at")).map(x => [x.employee_id, x])); }
 export async function resetSignature(id) { must(await sb.from("pr_signatures").delete().eq("employee_id", id)); }
+// 직원 서류 (pr_docs.sql) — 목록엔 파일 내용 빼고, 열 때만 가져옴
+export async function listDocs(empId) { return must(await sb.from("pr_docs").select("id, title, file_name, mime, size, created_at").eq("employee_id", empId).order("created_at", { ascending: false })); }
+export async function getDoc(id) { return must(await sb.from("pr_docs").select("id, title, file_name, mime, data").eq("id", id).single()); }
+export async function addDoc(row) { return must(await sb.from("pr_docs").insert(row).select("id").single()); }
+export async function deleteDoc(id) { must(await sb.from("pr_docs").delete().eq("id", id)); }
 export async function bdayList() { return must(await sb.rpc("pr_bday_list")); }
 export async function empSilRequest(no, pin, days, reason) { return must(await sb.rpc("pr_emp_sil_request", { p_no: String(no).trim(), p_pin: String(pin), p_days: days, p_reason: reason || null })); }
 export async function empSilCancel(no, pin, id) { return must(await sb.rpc("pr_emp_sil_cancel", { p_no: String(no).trim(), p_pin: String(pin), p_id: id })); }
