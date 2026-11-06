@@ -26,6 +26,9 @@ One-off demand changes go in `overrides.json`.
 
 # Re-plan after approved leave (auto, every day 09:40)
 
+**Confirmed weeks are locked** (owner 2026-11-06): `locked.json` `{"through": "YYYY-MM-DD"}`. Days up to that date are never
+re-planned; a leave approved there only sends the owner a "🔒 확정된 주" push. Move the date forward when the owner confirms a week.
+
 Approved leave (휴가 신청 — Day off / SIL / monthly paid vacation, auto-approved or approved by the owner) goes into
 `pr_plan` right away. The daily scheduled task then re-plans the rest of that Sun–Sat week so the gap is covered:
 days up to today, approved leave and Jonel (always 8-18) stay; everyone else may switch between day and night shifts;

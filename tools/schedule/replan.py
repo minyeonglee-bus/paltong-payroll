@@ -7,6 +7,8 @@ range) the rest of that Sun–Sat week (from tomorrow) is re-solved per team wit
   * days up to today, approved leave days and Jonel (always 8-18) stay as they are
   * everyone else may move between day and night shifts; the current plan is kept where possible
   * approved leave does not count toward the 2-offs-per-week cap
+  * confirmed weeks (locked.json "through" date, owner 2026-11-06) are never re-planned; leave approved there only
+    sends the owner a "🔒 확정된 주" push
 save.sql upserts only the changed pr_plan rows, marks the leave rows re-planned and sends the owner a push.
 A team the solver cannot plan is not saved (its leave rows stay unmarked and are retried tomorrow).
 """
@@ -39,9 +41,14 @@ for r in todo:
     d = dt.date.fromisoformat(r["day"]); sun = d - dt.timedelta(days=(d.weekday() + 1) % 7)
     if r["name"] in team_of: weeks.setdefault(sun, set()).add(team_of[r["name"]])
 
+# confirmed (확정) weeks are never re-planned (owner 2026-11-06): locked.json {"through": "YYYY-MM-DD"}
+lockf = os.path.join(here, "locked.json")
+locked = dt.date.fromisoformat(json.load(open(lockf))["through"]) if os.path.exists(lockf) else dt.date.min
+locked_todo = [r for r in todo if dt.date.fromisoformat(r["day"]) <= locked]
+
 changes, issues, failed, done_teams = [], [], [], set()
 for sun in sorted(weeks):
-    a = max(sun, today + dt.timedelta(days=1)); b = min(sun + dt.timedelta(days=6), last_planned)
+    a = max(sun, today + dt.timedelta(days=1), locked + dt.timedelta(days=1)); b = min(sun + dt.timedelta(days=6), last_planned)
     if a > b: continue
     days = [a + dt.timedelta(days=k) for k in range((b - a).days + 1)]
     teams = {t: TEAMS[t] for t in sorted(weeks[sun])}
@@ -80,6 +87,8 @@ for sun in sorted(weeks):
 ids = [r["id"] for r in todo if r["name"] in team_of and (dt.date.fromisoformat(r["day"]) - dt.timedelta(days=(dt.date.fromisoformat(r["day"]).weekday() + 1) % 7), team_of[r["name"]]) in done_teams]
 ids += [r["id"] for r in todo if r["name"] not in team_of]
 ids += [r["id"] for r in todo if dt.date.fromisoformat(r["day"]) > last_planned]   # week not planned yet: weekly.py keeps the leave
+ids += [r["id"] for r in locked_todo]   # confirmed week: leave stays as approved, no automatic re-plan
+ids = list(dict.fromkeys(ids))
 q = lambda s: "'" + str(s).replace("'", "''") + "'"
 out = []
 if changes:
@@ -101,6 +110,11 @@ for x in issues:   # "kitchen 22-8 not covered 11/13"
     if "not covered" in x:
         t, sh, *_ , d = x.split(); gaps.setdefault(f"{TEAM_KO.get(t, t)} {sh}", []).append(d)
 gap_txt = [f"{k} 빈자리 {', '.join(v)}" for k, v in gaps.items()]
+if locked_todo:   # tell the owner: leave approved inside a confirmed week, nothing moved automatically
+    lk = {}
+    for r in sorted(locked_todo, key=lambda r: (r["name"], r["day"])): lk.setdefault(r["name"], []).append(md(r["day"]))
+    out.append("select public.pr_notify(" + q(("🔒 확정된 주에 휴가 승인 — 자동 수정 안 함, 빈자리 직접 확인\n" + " / ".join(f"{n} {'·'.join(v)}" for n, v in lk.items()))[:600]) + ");")
+    lines.append("locked week leave: " + ", ".join(f"{r['name']} {r['day']}" for r in locked_todo))
 if changes or failed or gaps:
     msg = "🔄 스케줄 자동 수정 (휴가 반영)"
     if gap_txt: msg += "\n⚠️ " + " / ".join(gap_txt)
