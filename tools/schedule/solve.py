@@ -13,7 +13,8 @@ input.json
 
 Rules (owner, 2026-11-03):
   * every shift of the day covered exactly once, no duplicates
-  * max 2 days off per Sun–Sat week (SIL not counted)
+  * approved leave first (fixed); at least 1 regular day off per Sun–Sat week, paid leave (SIL/MPV) does not
+    count as that day off (owner 2026-11-06); more than 2 days off only as a last resort
   * max 6 working days in a row (history counted), rest >= 10h before the next shift
   * days off are single days: no back-to-back offs, and >= 2 working days between offs
   * keep the same shift through a run; change only on the first day after an off
@@ -122,6 +123,9 @@ def solve_team(team, people, days, hol, hist, fixed, overrides, current=None, ex
         pw = [1 if is_work(x) else 0 for x in prev]
         seq = pw + [W[p, i] for i in D]
         n0 = len(pw)
+        # paid leave (SIL/MPV) is neutral for the off-day pattern rules (owner 2026-11-06): treat it like a work day there
+        pseq = [1 if (j < n0 and prev[j] == "sil") or (j >= n0 and fixed.get(p, {}).get(days[j - n0].isoformat()) == "sil")
+                else v for j, v in enumerate(seq)]
         # max 6 in a row
         for a in range(len(seq) - 6):
             win = seq[a:a + 7]
@@ -129,7 +133,7 @@ def solve_team(team, people, days, hol, hist, fixed, overrides, current=None, ex
             m.Add(sum(win) <= 6)
         # back-to-back offs (fixed SIL/off pairs exempt)
         for a in range(n0 - 1, len(seq) - 1):
-            x, y = seq[a], seq[a + 1]
+            x, y = pseq[a], pseq[a + 1]
             if (isinstance(x, int) and x == 1) or (isinstance(y, int) and y == 1): continue
             def given(j):  # history day or a fixed day off/SIL (or approved leave in re-plan mode)
                 return j < n0 or fixed.get(p, {}).get(days[j - n0].isoformat()) is not None or ex(p, days[j - n0])
@@ -139,7 +143,7 @@ def solve_team(team, people, days, hol, hist, fixed, overrides, current=None, ex
             soft(b, WT["offpair"], f"{p} 2 days off in a row from {(days[0] + dt.timedelta(days=a - n0)):%m/%d}")
         # 1-day work runs (off, work, off)
         for a in range(n0 - 1, len(seq) - 2):
-            x, y, z = seq[a], seq[a + 1], seq[a + 2]
+            x, y, z = pseq[a], pseq[a + 1], pseq[a + 2]
             if isinstance(y, int) and y == 0: continue
             if (isinstance(x, int) and x == 1) or (isinstance(z, int) and z == 1): continue
             b = m.NewBoolVar("")
@@ -160,17 +164,26 @@ def solve_team(team, people, days, hol, hist, fixed, overrides, current=None, ex
                     elif a != b:
                         c = m.NewBoolVar(""); m.AddBoolOr([X[p, i, a].Not(), X[p, i + 1, b].Not(), c])
                         soft(c, WT["change"], f"{p} shift change {days[i + 1]:%m/%d}")
-        # at most 2 days off per Sun–Sat week (SIL is not a day off)
+        # weekly days off (owner 2026-11-06): at least 1 regular day off every Sun–Sat week; paid leave (SIL/MPV)
+        # is NOT that day off. An approved unpaid "off" request counts as the day off. More than 2 offs is discouraged.
+        def regular_offs(blk):
+            paid = sum(1 for i in blk if fixed.get(p, {}).get(days[i].isoformat()) == "sil"
+                       or (ex(p, days[i]) and fixed.get(p, {}).get(days[i].isoformat()) != "off"))
+            return len(blk) - sum(W[p, i] for i in blk) - paid
+        def week_rule(blk, before):
+            offs = regular_offs(blk)
+            if len(blk) + (7 - len(blk) if before is not None else 0) >= 7:   # whole week visible
+                m.Add(offs + (before or 0) >= 1)
+            over = m.NewBoolVar("")
+            m.Add(offs + (before or 0) <= 2 + 5 * over)
+            soft(over, 100, f"{p} more than 2 days off in week of {days[blk[0]] - dt.timedelta(days=(days[blk[0]].weekday() + 1) % 7):%m/%d}")
         for a in range(len(days)):
-            if days[a].weekday() != 6: continue
-            blk = [i for i in range(a, min(a + 7, len(days)))]
-            sil = sum(1 for i in blk if fixed.get(p, {}).get(days[i].isoformat()) == "sil" or ex(p, days[i]))
-            m.Add(sum(W[p, i] for i in blk) + sil >= len(blk) - 2)
-        # re-plan starting mid-week: offs already taken earlier that week count toward the cap
+            if days[a].weekday() != 6 or a + 7 > len(days): continue
+            week_rule(list(range(a, a + 7)), None)
+        # re-plan starting mid-week: offs already taken earlier that week count
         if replan and days[0].weekday() != 6:
             blk = [i for i in D if (days[i] - days[0]).days < (5 - days[0].weekday()) % 7 + 1]
-            sil = sum(1 for i in blk if fixed.get(p, {}).get(days[i].isoformat()) == "sil" or ex(p, days[i]))
-            m.Add(sum(W[p, i] for i in blk) + sil >= len(blk) - max(2 - week_before.get(p, 0), 0))
+            week_rule(blk, week_before.get(p, 0))
     # re-plan: stay close to the current plan
     if replan:
         for p in people:
@@ -200,7 +213,7 @@ def solve_team(team, people, days, hol, hist, fixed, overrides, current=None, ex
         if "Archie" in people and "10-20" in shifts and need[i] and "10-20" in need[i]:
             soft(X["Archie", i, "10-20"].Not(), 3, "")
         if "Genifer" in people:
-            soft(W["Genifer", i] - X["Genifer", i, "8-20"], 30, f"Genifer not on 8-20 {d:%m/%d}")
+            soft(W["Genifer", i] - X["Genifer", i, "8-20"], 200, f"Genifer not on 8-20 {d:%m/%d}")
     m.Minimize(sum(pen))
     sv = cp_model.CpSolver(); sv.parameters.max_time_in_seconds = 120; sv.parameters.num_workers = 8
     st = sv.Solve(m)
