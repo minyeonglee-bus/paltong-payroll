@@ -258,11 +258,16 @@ const noteParts = note => { const [main, ...acks] = String(note || "").split("[[
 const ackBlock = (acks, name, sig, ackAt) => acks.length ? acks.map(a => h("div", { class: "slipAck" }, h("div", { class: "slipNote" }, a), h("div", { class: "sig one" }, h("div", {}, sig ? sigImg(sig, "") : null, "Employee / " + name, h("br"), "Signature · Date" + (sig ? " · " + fmtD(ackAt) : ""))))) : null;
 // employee signature on a payslip: only once the employee has confirmed (ack) that payslip
 const empSig = emp => emp?.signature || sigOf(emp?.id);
+// employer signature goes on a payslip once it is final (shared with the employee or paid); staff only ever see final payslips
+const slipFinal = P => !S.user || P.status === "paid" || !!P.shared_at || !!P.shared;
 const slipSig = (emp, ackAt) => ackAt && empSig(emp) ? sigImg(empSig(emp), "") : null; // positioned above the signature line by CSS (.slip .sig .sigImg)
 const INFO_KEYS = ["phone", "address", "gcash", "bank_name", "bank_acct", "sss", "philhealth", "pagibig", "tin", "emergency_name", "emergency_phone"];
 const infoInputs = (info, idp) => Object.fromEntries(INFO_KEYS.map(k => [k, h("input", { type: k === "address" ? "text" : /phone|gcash|acct/.test(k) ? "tel" : "text", id: idp + k, value: (info || {})[k] || "", maxlength: 200 })]));
 /* ---- signature: drawn once by the employee, printed on letters, advance slips and confirmed payslips ---- */
 const sigOf = id => (S.sigs || {})[id] || null;
+// manager signature (Jonel, pr_settings.manager_id) — signed automatically on every document that needs a manager / employer signature
+const mgrSig = () => (S.user ? sigOf(S.settings?.manager_id) : EMP.data?.mgr_sig) || null;
+const mgrName = () => S.user ? (S.employees || []).find(e => e.id === S.settings?.manager_id)?.name || "" : EMP.data?.mgr_sig?.name || "";
 const sigImg = (sig, style = "") => sig?.image ? h("img", { src: sig.image, alt: "signature", class: "sigImg", style }) : null;
 const fmtD = d => d ? new Date(d).toLocaleDateString("en-PH", { timeZone: "Asia/Manila", year: "numeric", month: "short", day: "numeric" }) : "";
 function sigPad() {
@@ -371,7 +376,7 @@ function printAdvance(l, emp, sig) {
       row("Requested", l.self_req_at ? "In the app · auto-approved · " + new Date(l.self_req_at).toLocaleString("en-PH", { timeZone: "Asia/Manila" }) : "Recorded by the manager"),
       reason ? row("Reason", reason) : null),
     h("p", { style: "font-size:13px;margin:14px 0 0" }, `I received a cash advance of ₱${money(l.amount)} and I authorize Paltong Restaurant to deduct this amount from my salary for the payroll period ${p.start} ~ ${p.end}.`),
-    h("div", { style: "display:flex;gap:40px;margin-top:36px" }, sigLine("Employee signature", sig, fmtD(l.self_req_at || l.created_at)), sigLine("Manager signature", null, ""))));
+    h("div", { style: "display:flex;gap:40px;margin-top:36px" }, sigLine("Employee signature", sig, fmtD(l.self_req_at || l.created_at)), sigLine("Manager signature" + (mgrName() ? " / " + mgrName() : ""), mgrSig(), fmtD(l.created_at)))));
 }
 /* ---- staff: cash advance tab ---- */
 function myAdvTab(v, emp) {
@@ -800,7 +805,7 @@ function printLetter(p) {
       : p.mode === "personal" && p.kind === "in" ? "I came in before my scheduled time for a personal reason (to avoid being late). I confirm this time is not work time and is not paid."
       : p.mode === "cashbook" ? "The Cash Book must be closed before the end of the shift; this time is not overtime."
       : "I confirm that the information above is true and correct. This time is for a personal reason and is not overtime."),
-    h("div", { style: "display:flex;gap:40px;margin-top:36px" }, sigLine("Employee signature / Date", sigOf(p.employee_id), fmtD(p.punched_at)), sigLine("Manager signature / Date", null, ""))));
+    h("div", { style: "display:flex;gap:40px;margin-top:36px" }, sigLine("Employee signature / Date", sigOf(p.employee_id), fmtD(p.punched_at)), sigLine("Manager signature" + (mgrName() ? " / " + mgrName() : "") + " / Date", p.status === "approved" || p.status === "rejected" ? mgrSig() : null, p.decided_at && p.status !== "pending" ? fmtD(p.decided_at) : ""))));
   box.remove(); printOneDoc(box.firstChild);
 }
 function clockCard() {
@@ -1317,7 +1322,7 @@ function payslip(P, emp, R) {
     h("div", { class: "grid2" }, h("div", {}, h("b", {}, fullName(emp)), h("div", { class: "muted" }, t("pos_" + (emp?.position || "other")))), h("div", {}, rate, h("div", { class: "muted" }, summaryText(R)))),
     h("table", {}, resultRows(R, P)), h("br"), days,
     h("p", { class: "muted" }, `${t("payLine")}: ${payoutText(slipPayout(R.payout || payoutOf(P, R, emp)), emp)}` + (P.status === "paid" ? ` · ${P.paid_on}` : "")), noteParts(P.note).main && h("div", { class: "slipNote" }, noteParts(P.note).main),
-    h("div", { class: "sig" + (noteParts(P.note).acks.length ? " one" : "") }, h("div", {}, "Employer / Paltong Restaurant", h("br"), "Signature · Date"), noteParts(P.note).acks.length ? null : h("div", {}, slipSig(emp, P.ack_at), "Employee / " + fullName(emp), h("br"), "Signature · Date" + (P.ack_at && empSig(emp) ? " · " + fmtD(P.ack_at) : ""))),
+    h("div", { class: "sig" + (noteParts(P.note).acks.length ? " one" : "") }, h("div", {}, slipFinal(P) ? sigImg(mgrSig(), "") : null, "Employer / Paltong Restaurant" + (slipFinal(P) && mgrName() ? " · " + mgrName() : ""), h("br"), "Signature · Date"), noteParts(P.note).acks.length ? null : h("div", {}, slipSig(emp, P.ack_at), "Employee / " + fullName(emp), h("br"), "Signature · Date" + (P.ack_at && empSig(emp) ? " · " + fmtD(P.ack_at) : ""))),
     ackBlock(noteParts(P.note).acks, fullName(emp), P.ack_at && empSig(emp), P.ack_at),
     h("div", { class: "row noprint", style: "margin-top:14px" }, h("span", { class: "sp" }), h("button", { class: "btn", onclick: () => close() }, t("close")),
       h("button", { class: "btn", onclick: () => printSlip("detail") }, t("printA4")), h("button", { class: "btn primary", onclick: () => printSlip("simple") }, t("printSimple")))));
@@ -1713,7 +1718,7 @@ function slipCompact(r) {
     R.net != null ? h("table", {}, resultRows(R, P)) : h("p", { class: "muted" }, t("draft")),
     h("p", { class: "muted" }, `${t("payLine")}: ${R.payout ? payoutText(slipPayout(R.payout), emp) : (r.paid_via ? viaLabel(slipVia(r.paid_via)) + " ₱" + money(R.net) : "")}` + (r.status === "paid" ? ` · ${r.paid_on || ""}` : ` · ${t("notPaidYet")}`)),
     noteParts(r.note).main && h("div", { class: "slipNote" }, noteParts(r.note).main),
-    h("div", { class: "sig" + (noteParts(r.note).acks.length ? " one" : "") }, h("div", {}, "Employer · Date"), noteParts(r.note).acks.length ? null : h("div", {}, slipSig({ id: r.employee_id }, r.ack_at), "Employee / " + fullName(emp) + " · Date" + (r.ack_at && sigOf(r.employee_id) ? " " + fmtD(r.ack_at) : ""))),
+    h("div", { class: "sig" + (noteParts(r.note).acks.length ? " one" : "") }, h("div", {}, slipFinal(r) ? sigImg(mgrSig(), "") : null, "Employer · Date"), noteParts(r.note).acks.length ? null : h("div", {}, slipSig({ id: r.employee_id }, r.ack_at), "Employee / " + fullName(emp) + " · Date" + (r.ack_at && sigOf(r.employee_id) ? " " + fmtD(r.ack_at) : ""))),
     ackBlock(noteParts(r.note).acks, fullName(emp), r.ack_at && sigOf(r.employee_id), r.ack_at));
 }
 function batchPrint(rows, s, e) {
