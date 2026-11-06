@@ -44,6 +44,7 @@ for r in todo:
 # confirmed (확정) weeks are never re-planned (owner 2026-11-06): locked.json {"through": "YYYY-MM-DD"}
 lockf = os.path.join(here, "locked.json")
 locked = dt.date.fromisoformat(json.load(open(lockf))["through"]) if os.path.exists(lockf) else dt.date.min
+if db.get("locked_through"): locked = max(locked, dt.date.fromisoformat(str(db["locked_through"])[:10]))   # pr_settings.sched_locked_through
 locked_todo = [r for r in todo if dt.date.fromisoformat(r["day"]) <= locked]
 
 changes, issues, failed, done_teams = [], [], [], set()

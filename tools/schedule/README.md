@@ -15,7 +15,8 @@ select json_build_object(
   'leave', (select json_agg(json_build_object('day', r.day, 'name', e.name, 'kind', r.kind))
             from pr_sil_req r join pr_employees e on e.id = r.employee_id
             where r.status = 'approved' and r.day between date 'START' - 7 and date 'START' + 6),
-  'holidays', (select json_agg(day) from pr_holidays));
+  'holidays', (select json_agg(day) from pr_holidays),
+  'locked_through', (select sched_locked_through from pr_settings where id = 1));
 ```
 
 3. Save that JSON as `db.json`, run `python3 weekly.py db.json START > save.sql`, check the printed table and issues.
@@ -26,8 +27,10 @@ One-off demand changes go in `overrides.json`.
 
 # Re-plan after approved leave (auto, every day 09:40)
 
-**Confirmed weeks are locked** (owner 2026-11-06): `locked.json` `{"through": "YYYY-MM-DD"}`. Days up to that date are never
-re-planned; a leave approved there only sends the owner a "🔒 확정된 주" push. Move the date forward when the owner confirms a week.
+**Confirmed weeks are locked** (owner 2026-11-06): `pr_settings.sched_locked_through` (database, the source of truth;
+`locked.json` is only a fallback — the later of the two wins). Days up to that date are never re-planned; a leave approved there
+only sends the owner a "🔒 확정된 주" push, and staff cannot request leave for those days in the app ("관리자에게 문의하세요").
+When the owner confirms a week: `update pr_settings set sched_locked_through = '<Saturday>' where id = 1;`
 
 Approved leave (휴가 신청 — Day off / SIL / monthly paid vacation, auto-approved or approved by the owner) goes into
 `pr_plan` right away. The daily scheduled task then re-plans the rest of that Sun–Sat week so the gap is covered:
