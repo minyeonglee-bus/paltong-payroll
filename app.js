@@ -506,15 +506,16 @@ function renderStaffHome() {
       myInfoCard(emp)])));
 }
 const addD = (d, n) => { const x = new Date(d + "T00:00:00"); x.setDate(x.getDate() + n); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
-const planLabel = v => v === "off" ? t("off") : v === "sil" ? "SIL" : SHIFT_LABEL(v);
+const planLabel = (v, req) => v === "off" ? (req ? "Off(R)" : t("off")) : v === "sil" ? "SIL" : SHIFT_LABEL(v);   // req = approved day-off request (owner 11/6)
 /* ---- staff: Cash Book plan for the next two weeks + own clock-ins ---- */
 function mySchedCard(v, emp) {
   const lo = addD(today(), -1), hi = addD(today(), 14);
   const plan = (v.schedule || []).filter(r => r.day >= lo && r.day <= hi).sort((a, b) => a.day < b.day ? -1 : 1);
   const by = pairPunches((v.punches || []).map(q => ({ kind: q.kind, at: q.at })));
   const todayS = today();
+  const reqOff = new Set((v.sil_reqs || []).filter(r => r.status === "approved" && r.kind === "off").map(r => String(r.day)));
   const rows = plan.map(r => h("tr", { class: r.day === todayS ? "today" : "" }, h("td", {}, r.day.slice(5) + " " + t("dow")[new Date(r.day + "T00:00:00").getDay()] + (r.day === todayS ? " · " + t("sched_today") : "")),
-    h("td", {}, planLabel(r.shift)), h("td", { class: "muted" }, by[r.day]?.shift ? by[r.day].shift.replace("-", "–") : by[r.day]?.in ? fmtT(by[r.day].in) + "–?" : "")));
+    h("td", { class: r.shift === "off" && reqOff.has(r.day) ? "reqoff" : "" }, planLabel(r.shift, reqOff.has(r.day))), h("td", { class: "muted" }, by[r.day]?.shift ? by[r.day].shift.replace("-", "–") : by[r.day]?.in ? fmtT(by[r.day].in) + "–?" : "")));
   return h("div", { class: "card" }, h("h2", {}, t("mySched")), h("small", { class: "muted" }, t("mySchedHelp")),
     rows.length ? h("div", { class: "tbl" }, h("table", {}, h("tr", {}, h("th", {}, t("month")), h("th", {}, t("roster")), h("th", {}, t("clock"))), ...rows)) : h("span", { class: "muted" }, t("noData")));
 }
@@ -1347,7 +1348,8 @@ async function renderSched() {
   const card = h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_sched")), h("span", { class: "sp" }), monthIn, halfSel), h("small", { class: "muted" }, t("sched_help")));
   main.append(card);
   try {
-    const [punches, plan] = await Promise.all([db.listPunchesAll(p.start, p.end), db.cashbookShifts(p.start, p.end)]);
+    const [punches, plan, reqKeys] = await Promise.all([db.listPunchesAll(p.start, p.end), db.cashbookShifts(p.start, p.end), db.reqOffDays(p.start, p.end)]);
+    const reqOff = new Set(reqKeys);
     const dates = datesBetween(p.start, p.end); const todayS = today();
     const byEmp = {}; for (const q of punches) (byEmp[q.employee_id] = byEmp[q.employee_id] || []).push({ id: q.id, kind: q.kind, at: q.punched_at, source: q.source, status: q.status, mode: q.mode });
     const owner = S.user?.role === "owner";
@@ -1365,7 +1367,7 @@ async function renderSched() {
           const act = a ? (a.shift ? paid.replace("-", "–") + (a.pending ? " ⏳" : "") : (a.in ? fmtT(a.in) + "–?" : "?–" + fmtT(a.out))) : "";
           const real = a?.shift && paid !== a.shift ? t("sched_real") + " " + a.shift.replace("-", "–") : "";
           const raw = (byEmp[e.id] || []).filter(q => { const dt = new Date(q.at); const ds = fmtDate(dt); return ds === d || (ds === addDays(d, 1) && dt.getHours() < 12); });
-          return h("td", { class: (a && a.incomplete ? "inc " : "") + (!a && (!pl || pl === "off" || pl === "sil") ? "off" : "") + (owner ? " edit" : ""), title: owner ? t("sched_tap") : "", onclick: owner ? () => punchDaySheet(e, d, raw) : null }, h("div", { class: "act" }, act || (pl && pl !== "off" && pl !== "sil" ? "" : t("sched_none"))), real ? h("div", { class: "real" }, real) : null, pl ? h("div", { class: "pl" }, planLabel(pl)) : null);
+          return h("td", { class: (a && a.incomplete ? "inc " : "") + (!a && (!pl || pl === "off" || pl === "sil") ? "off" : "") + (owner ? " edit" : ""), title: owner ? t("sched_tap") : "", onclick: owner ? () => punchDaySheet(e, d, raw) : null }, h("div", { class: "act" }, act || (pl && pl !== "off" && pl !== "sil" ? "" : t("sched_none"))), real ? h("div", { class: "real" }, real) : null, pl ? (() => { const rq = pl === "off" && reqOff.has(e.name.trim().toLowerCase() + "|" + d); return h("div", { class: "pl" + (rq ? " reqoff" : "") }, planLabel(pl, rq)); })() : null);
         }))]; }));
     card.append(h("div", { class: "tbl" }, tbl));
   } catch (e) { card.append(h("p", { class: "err" }, errMsg(e))); }

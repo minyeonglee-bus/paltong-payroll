@@ -158,6 +158,7 @@ table.sched th.today,table.sched tr.today td{background:var(--warn-soft);color:v
 table.sched td.nm{text-align:left;font-weight:800;font-size:13px;color:var(--fg);position:sticky;left:0;z-index:1;background:var(--paper)}
 table.sched td.nm small{display:block;font-weight:400}
 table.sched td.off{background:var(--bg);color:var(--muted)}
+.reqoff{color:#6A3FB5!important;font-weight:800}
 table.sched td.inc{background:var(--warn-soft);color:var(--fg);box-shadow:inset 0 0 0 2px var(--warn)}
 table.sched td.inc .act{color:var(--warn)}
 table.sched .act{font-family:var(--mono);font-weight:600}

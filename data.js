@@ -104,6 +104,13 @@ export async function cashbookShifts(from, to) {
   return plan.concat(must(cb).filter(r => !has.has(key(r))));
 }
 
+// 승인된 "휴무" 신청 (사장님 11/6: 신청 휴무는 Off(R)로 따로 표시) — 관리자만 읽힘(RLS), 아니면 빈 목록
+export async function reqOffDays(from, to) {
+  const r = await sb.from("pr_sil_req").select("day, pr_employees(name)").eq("status", "approved").eq("kind", "off").gte("day", from).lte("day", to);
+  if (r.error) return [];
+  return (r.data || []).filter(x => x.pr_employees).map(x => String(x.pr_employees.name).trim().toLowerCase() + "|" + x.day);
+}
+
 // ---------- 13th-month pay ----------
 export async function listThirteenth(year) { return must(await sb.from("pr_thirteenth").select("*").eq("year", year)); }
 export async function saveThirteenth(row) {
