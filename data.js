@@ -14,7 +14,7 @@ export const idToEmail = id => { id = String(id || "").trim().toLowerCase(); ret
 // Phones on weak mobile data often drop a request before it reaches the server ("TypeError: Failed to fetch").
 // Retry those automatically — but only for reads and for staff writes the server already guards against doubling
 // (one-time / locked values), so a retried request can never create a second punch, advance, etc.
-const RETRY_RPC = new Set(["pr_emp_view", "pr_emp_token", "pr_emp_set_hired", "pr_emp_set_sil", "pr_emp_intro_done", "pr_emp_ack", "pr_emp_ack13", "pr_emp_set_signature"]);
+const RETRY_RPC = new Set(["pr_emp_view", "pr_emp_token", "pr_emp_set_hired", "pr_emp_set_sil", "pr_emp_intro_done", "pr_emp_ack", "pr_emp_ack13", "pr_emp_req13", "pr_emp_set_signature"]);
 async function retryFetch(input, init = {}) {
   const url = typeof input === "string" ? input : input.url, method = String(init.method || "GET").toUpperCase();
   const rpc = (url.match(/\/rest\/v1\/rpc\/([a-z0-9_]+)/) || [])[1];
@@ -131,6 +131,7 @@ export async function saveThirteenth(row) {
   return must(await sb.from("pr_thirteenth").upsert(row, { onConflict: "employee_id,year" }).select().single());
 }
 export async function empAck13(no, pin, year, amount) { return must(await sb.rpc("pr_emp_ack13", { p_no: String(no).trim(), p_pin: String(pin), p_year: year, p_amount: amount })); }
+export async function empReq13(no, pin, year, amount, ok, note) { return must(await sb.rpc("pr_emp_req13", { p_no: String(no).trim(), p_pin: String(pin), p_year: year, p_amount: amount, p_ok: !!ok, p_note: note || null })); }
 export async function listAck13(year) { return must(await sb.from("pr_13_ack").select("*").eq("year", year)); }
 export async function empCoe(no, pin, purpose, salary) { return must(await sb.rpc("pr_emp_coe", { p_no: String(no).trim(), p_pin: String(pin), p_purpose: purpose, p_salary: !!salary })); }
 export async function coeIssue(empId, purpose, salary) { return must(await sb.rpc("pr_coe_issue", { p_emp: empId, p_purpose: purpose, p_salary: !!salary })); }
