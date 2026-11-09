@@ -32,7 +32,7 @@ const I18N = {
     for13: "13월급 산정용 기본급", riderNote: "배달비·유류비는 당일 현금 지급 (캐시북 직원 탭) · 급여에 포함 안 됨", monthlyNote: "월급 ₱30,000 = 기본 25,945 + 포함 OT 4,055 (08~18시 중 1h/일) · 일급 994.70 · 시급 124.34 · 그 밖의 초과근무(18시 이후)·휴무일 130%·공휴일·야간은 별도 · 결근·지각은 일급/시급 기준 공제 · 13월급은 기본 25,945 기준",
     save: "저장", saved: "저장됨", markPaid: "지급 완료로 기록", paid: "지급됨", draft: "작성중", unpay: "지급 취소", paidOn: "지급일", paidVia: "지급 계좌", slip: "급여명세서", print: "인쇄", printSimple: "간단 인쇄 (58mm)", printA4: "상세 인쇄 (A4)", printBatch: "일괄 인쇄 (A4 한 장에 6명)", delete: "삭제", confirmDel: "정말 삭제할까요?", yes: "삭제", cancel: "취소", no: "아니요", ok: "네", close: "닫기",
     emp_add: "직원 추가", emp_name: "이름", emp_pos: "직위", pos_waiter: "웨이터/서버", pos_kitchen: "주방", pos_rider: "라이더", pos_other: "기타",
-    emp_status: "고용 형태", st_regular: "정규직", st_probationary: "수습", st_fixed: "계약직", st_other: "기타", emp_hired: "입사일", emp_bday: "생일", emp_active: "재직 중", emp_note: "메모",
+    emp_status: "고용 형태", st_regular: "정규직", st_probationary: "수습", st_fixed: "계약직", st_other: "기타", emp_hired: "입사일", hired_title: "입사일 (Date hired)", hired_help: "빨통에서 처음 일한 날을 계약서대로 정확히 적어 주세요. 13th month 계산에 써요.", hired_save: "저장", hired_need: "날짜를 골라 주세요", hired_bad: "오늘 이전 날짜를 골라 주세요", hired_q: "입사일 {d} 맞나요? 저장하면 직접 고칠 수 없어요.", hired_locked: "이미 저장했어요. 틀렸으면 관리자에게 말해 주세요.", hired_selfTag: "🔒 직원 입력 {d}", hired_prevTag: "이전 {d}", emp_bday: "생일", emp_active: "재직 중", emp_note: "메모",
     emp_payType: "급여 형태", pt_daily: "일급", pt_monthly: "월급 (OT 포함)",
     led_add: "기록 추가", led_kind: "종류", k_advance: "가불", k_shortage: "현금 부족분", k_bonus: "보너스 (+)", k_other: "기타 공제", led_date: "날짜", led_amount: "금액", led_note: "메모", led_noteKo: "메모 (한국어)", led_noteEn: "메모 (영어)", led_noteHelp: "영어 화면·영어 명세서엔 영어 메모가 나와요 (비우면 한국어 메모)",
     led_verified: "조사 완료 · 본인 책임 확인", led_auth: "서면 동의 받음", led_applies: "→ {p} 급여에 반영", led_deducted: "반영됨", led_pending: "미반영", led_filter_all: "전체",
@@ -93,7 +93,7 @@ const I18N = {
     for13: "Basic for 13th-month pay", riderNote: "Delivery fee & fuel are paid same day in cash (cash book Staff tab) · not part of payroll", monthlyNote: "₱30,000 = basic 25,945 + built-in OT 4,055 (1h/day within 08–18) · daily 994.70 · hourly 124.34 · other OT (after 18:00), rest day 130%, holidays and night diff paid on top · absence & tardiness at the daily/hourly rate · 13th month on the basic 25,945",
     save: "Save", saved: "Saved", markPaid: "Record as paid", paid: "Paid", draft: "Draft", unpay: "Undo paid", paidOn: "Paid on", paidVia: "Paid via", slip: "Payslip", print: "Print", printSimple: "Print simple (58mm)", printA4: "Print detail (A4)", printBatch: "Print all (6 per A4)", delete: "Delete", confirmDel: "Delete this?", yes: "Delete", cancel: "Cancel", no: "No", ok: "Yes", close: "Close",
     emp_add: "Add employee", emp_name: "Name", emp_pos: "Position", pos_waiter: "Waiter / Server", pos_kitchen: "Kitchen", pos_rider: "Rider", pos_other: "Other",
-    emp_status: "Employment status", st_regular: "Regular", st_probationary: "Probationary", st_fixed: "Fixed-term", st_other: "Other", emp_hired: "Date hired", emp_bday: "Birthday", emp_active: "Active", emp_note: "Note",
+    emp_status: "Employment status", st_regular: "Regular", st_probationary: "Probationary", st_fixed: "Fixed-term", st_other: "Other", emp_hired: "Date hired", hired_title: "Date hired", hired_help: "Enter your first working day at Paltong exactly as in your contract. It is used for the 13th month pay.", hired_save: "Save", hired_need: "Pick a date", hired_bad: "Pick a date up to today", hired_q: "Is your date hired {d}? You cannot change it after saving.", hired_locked: "Already saved. If it is wrong, tell the manager.", hired_selfTag: "🔒 entered by staff {d}", hired_prevTag: "before {d}", emp_bday: "Birthday", emp_active: "Active", emp_note: "Note",
     emp_payType: "Pay type", pt_daily: "Daily", pt_monthly: "Monthly (OT-inclusive)",
     led_add: "Add record", led_kind: "Kind", k_advance: "Advance", k_shortage: "Cash shortage", k_bonus: "Bonus (+)", k_other: "Other deduction", led_date: "Date", led_amount: "Amount", led_note: "Note", led_noteKo: "Note (Korean)", led_noteEn: "Note (English)", led_noteHelp: "Shown when the app or payslip is in English (falls back to the Korean note)",
     led_verified: "Investigated · responsibility established", led_auth: "Written authorization on file", led_applies: "→ applied to {p} payroll", led_deducted: "applied", led_pending: "pending", led_filter_all: "All",
@@ -297,6 +297,13 @@ const TL = {
   sigContract: "Dapat KAPAREHO ng pirma mo sa KONTRATA.",
   sigLocked: "Hindi na ito mababago pagkatapos i-save.",
   sigQ: "Kapareho ba ito ng pirma mo sa kontrata?",
+  hiredTitle: "Petsa ng pagpasok sa trabaho",
+  hiredSub: "Isulat nang TAMA ang unang araw mo sa Paltong (ayon sa kontrata). Ginagamit ito sa 13th month pay.",
+  hiredLocked: "Hindi mo na ito mababago pagkatapos i-save. Kung mali, sabihin sa manager.",
+  hiredQ: "Tama ba ang petsang ito? {d}",
+  hiredSave: "I-save",
+  hiredNow: "Nakatala ngayon: {d}",
+  hiredNone: "Wala pang nakatala",
 };
 const INTRO_SRC = "intro-tl.mp4";
 // plays the intro without letting the viewer skip ahead or speed it up; onEnd fires once it has played to the end
@@ -352,6 +359,25 @@ function renderSignFirst(err) {
     h("p", { class: "muted" }, (EMP.data?.employee?.name ? EMP.data.employee.name + " · " : "") + t("sig_help")), pad.el,
     err && h("div", { class: "err" }, err),
     h("div", { class: "row", style: "margin-top:10px" }, h("button", { class: "btn", type: "button", onclick: () => pad.clear() }, t("sig_clear")), h("span", { class: "sp" }), save),
+    h("div", { class: "row", style: "margin-top:6px" }, langSwitch()))));
+}
+/* one-time screen: staff re-enter their date hired (owner 2026-11-09 · locked after saving · supabase/pr_hired_self.sql) */
+function renderHiredFirst(err) {
+  const emp = EMP.data.employee;
+  const inp = h("input", { type: "date", id: "hired-self", max: today(), min: "2000-01-01", style: "font-size:20px;padding:10px;width:100%" });
+  const save = h("button", { class: "btn primary", type: "button", id: "hired-save", style: "font-size:17px" }, "✓ " + TL.hiredSave + " · " + t("hired_save"));
+  save.onclick = () => { const d = inp.value; if (!d) return toast(t("hired_need")); if (d > today() || d < "2000-01-01") return toast(t("hired_bad"));
+    confirmSheet(TL.hiredQ.replace("{d}", d) + " · " + tf("hired_q", { d }), async () => {
+      try { save.disabled = true; const r = await db.empSetHired(EMP.no, EMP.pin, d); if (!r.ok) throw new Error(r.err === "hired_locked" ? t("hired_locked") : pinErr(r.err, "noData"));
+        toast(t("saved")); EMP.data = await db.empView(EMP.no, EMP.pin); renderStaffHome(); } catch (e) { save.disabled = false; renderHiredFirst(errMsg(e)); } }, { ask: true }); };
+  root.innerHTML = "";
+  root.append(h("div", { class: "login" }, h("div", { class: "card", style: "max-width:520px" }, h("h1", {}, "📅 " + TL.hiredTitle),
+    h("div", { class: "muted", style: "margin:-6px 0 10px" }, t("hired_title")),
+    h("div", { style: "background:#FFF4D6;border:1px solid var(--gold);border-radius:8px;padding:10px;margin-bottom:10px" },
+      h("b", { style: "font-size:16px" }, TL.hiredSub), h("div", {}, t("hired_help")), h("div", { style: "margin-top:4px;color:var(--bad);font-weight:700" }, "⚠️ " + TL.hiredLocked)),
+    h("p", { class: "muted", style: "margin:0 0 6px" }, (emp.name ? emp.name + " · " : "") + (emp.hired_on ? TL.hiredNow.replace("{d}", emp.hired_on) : TL.hiredNone)),
+    inp, err && h("div", { class: "err" }, err),
+    h("div", { class: "row", style: "margin-top:12px" }, h("span", { class: "sp" }), save),
     h("div", { class: "row", style: "margin-top:6px" }, langSwitch()))));
 }
 /* print one document on its own page (letters, advance slips) */
@@ -464,6 +490,7 @@ function renderStaffHome() {
   const v = EMP.data, emp = v.employee;
   if (!emp.intro_seen_at) return renderIntro();
   if (!v.signature) return renderSignFirst();
+  if (!emp.hired_self_at) return renderHiredFirst();
   root.innerHTML = "";
   const paid = v.payrolls.filter(p => (p.status === "paid" || p.shared) && p.result);
   const payList = h("div", { class: "list", id: "my-pay" }, paid.length ? paid.map(p => h("div", { class: "item", onclick: () => {
@@ -1434,7 +1461,7 @@ function empForm(e) {
       await db.saveEmployee({ ...E, info: { ...(E.info || {}), ...Object.fromEntries(INFO_KEYS.map(k => [k, infoIn[k].value.trim()])), full_name: fullIn.value.trim() }, gov_fixed: Object.fromEntries(GOV_KEYS.map(k => [k, +govIn[k].value || 0]).filter(([, v]) => v > 0)), emp_no: eno.value.trim() || null, name: name.value.trim(), position: pos.value, pay_type: pt.value, scheme: sch.value, daily_rate: +rate.value, monthly_rate: +mrate.value, allowance_per_day: pos.value === "rider" ? +allow.value : 0, status: st.value, hired_on: hired.value || null, birthday: bday.value || null, active: active.checked, resigned_on: resigned.value || null, note: note.value || null, basic_before_app: +before.value || 0, basic_before_year: new Date().getFullYear() });
       S.employees = await db.listEmployees(true); if (S.pay) S.pay.loaded = false; toast(t("saved")); close(); render(); } catch (er) { toast(errMsg(er)); } } },
     h("h3", {}, E.id ? E.name : t("emp_add")),
-    h("div", { class: "grid2" }, field(t("empNo"), eno), field(t("emp_name"), name), field(t("emp_full"), fullIn, t("emp_fullHelp")), field(t("emp_pos"), pos), field(t("emp_payType"), pt), field(t("emp_scheme"), sch), fDaily, fMonthly, fAllow, field(t("emp_status"), st), field(t("emp_hired"), hired), field(t("emp_bday"), bday), field(t("emp_note"), note), field(t("emp_before"), before, t("emp_beforeHelp"))),
+    h("div", { class: "grid2" }, field(t("empNo"), eno), field(t("emp_name"), name), field(t("emp_full"), fullIn, t("emp_fullHelp")), field(t("emp_pos"), pos), field(t("emp_payType"), pt), field(t("emp_scheme"), sch), fDaily, fMonthly, fAllow, field(t("emp_status"), st), field(t("emp_hired"), hired, E.hired_self_at ? tf("hired_selfTag", { d: new Date(E.hired_self_at).toLocaleDateString() }) + (E.hired_prev && E.hired_prev !== E.hired_on ? " · " + tf("hired_prevTag", { d: E.hired_prev }) : "") : null), field(t("emp_bday"), bday), field(t("emp_note"), note), field(t("emp_before"), before, t("emp_beforeHelp"))),
     h("div", {}, h("b", {}, t("govFixed")), h("div", { class: "grid2" }, field("SSS", govIn.sss), field("PhilHealth", govIn.philhealth), field("Pag-IBIG", govIn.pagibig)), h("small", { class: "muted" }, t("govFixedHelp"))),
     h("details", { id: "e-info" }, h("summary", {}, t("empInfo")), h("div", { class: "grid2" }, ...INFO_KEYS.map(k => field(t("i_" + k), infoIn[k])))),
     h("label", { class: "check" }, active, t("emp_active")),
