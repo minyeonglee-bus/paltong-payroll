@@ -132,6 +132,8 @@ export async function saveThirteenth(row) {
 }
 export async function empAck13(no, pin, year, amount) { return must(await sb.rpc("pr_emp_ack13", { p_no: String(no).trim(), p_pin: String(pin), p_year: year, p_amount: amount })); }
 export async function listAck13(year) { return must(await sb.from("pr_13_ack").select("*").eq("year", year)); }
+export async function empCoe(no, pin, purpose, salary) { return must(await sb.rpc("pr_emp_coe", { p_no: String(no).trim(), p_pin: String(pin), p_purpose: purpose, p_salary: !!salary })); }
+export async function coeIssue(empId, purpose, salary) { return must(await sb.rpc("pr_coe_issue", { p_emp: empId, p_purpose: purpose, p_salary: !!salary })); }
 export async function empSetHired(no, pin, date) { return must(await sb.rpc("pr_emp_set_hired", { p_no: String(no).trim(), p_pin: String(pin), p_date: date })); }
 export async function empSetSil(no, pin, used) { return must(await sb.rpc("pr_emp_set_sil", { p_no: String(no).trim(), p_pin: String(pin), p_used: used })); }
 export async function empToken(no, pin) { return must(await sb.rpc("pr_emp_token", { p_no: String(no).trim(), p_pin: String(pin) })); }
