@@ -11,8 +11,22 @@ function friendly(error) {
 }
 export const idToEmail = id => { id = String(id || "").trim().toLowerCase(); return id.includes("@") ? id : `${id}@paltong.app`; };
 
+// Phones on weak mobile data often drop a request before it reaches the server ("TypeError: Failed to fetch").
+// Retry those automatically — but only for reads and for staff writes the server already guards against doubling
+// (one-time / locked values), so a retried request can never create a second punch, advance, etc.
+const RETRY_RPC = new Set(["pr_emp_view", "pr_emp_token", "pr_emp_set_hired", "pr_emp_set_sil", "pr_emp_intro_done", "pr_emp_ack", "pr_emp_ack13", "pr_emp_set_signature"]);
+async function retryFetch(input, init = {}) {
+  const url = typeof input === "string" ? input : input.url, method = String(init.method || "GET").toUpperCase();
+  const rpc = (url.match(/\/rest\/v1\/rpc\/([a-z0-9_]+)/) || [])[1];
+  const safe = method === "GET" || method === "HEAD" || (method === "POST" && RETRY_RPC.has(rpc));
+  for (let i = 0; ; i++) {
+    try { return await fetch(input, init); }
+    catch (e) { if (!safe || i >= 2 || !(e instanceof TypeError) || init.signal?.aborted) throw e; await new Promise(r => setTimeout(r, i ? 2500 : 1000)); }
+  }
+}
+
 export async function init() {
-  sb = createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } });
+  sb = createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true }, global: { fetch: retryFetch } });
   const { data } = await sb.auth.getSession();
   return !!data.session;
 }
