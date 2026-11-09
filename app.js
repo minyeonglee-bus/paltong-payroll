@@ -611,6 +611,10 @@ function mySilSelf(x) {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-09b", ko: [
+      "🛵 기사님: 이 앱에서 출근(IN)을 누르면 기사앱 근무가 자동으로 시작되고, 퇴근(OUT)하면 자동으로 끝나요. 기사앱 화면은 켜 두어야 위치가 전송돼요."],
+    en: [
+      "🛵 Riders: tap IN here and your rider app shift starts automatically; tap OUT and it ends. Keep the rider app screen open so your location is shared."] },
   { id: "2026-11-09", ko: [
       "📄 새 '서류' 탭: 내 급여명세서 · 사유서/확인서 · 가불 확인서 · 13월급 명세서를 직접 인쇄(PDF 저장)하거나 사진으로 공유할 수 있어요.",
       "📄 재직증명서(COE)를 직접 발행할 수 있어요 — 서류 탭 맨 위. 용도를 고르면 사장님 사인이 들어간 COE가 나와요.",
