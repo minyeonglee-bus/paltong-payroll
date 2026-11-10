@@ -166,8 +166,11 @@ def solve_team(team, people, days, hol, hist, fixed, overrides, current=None, ex
                 if span(s)[0] + 1440 - span(last)[1] < 600: m.Add(X[p, 0, s] == 0)
                 if s != last: soft(X[p, 0, s], WT["change"], f"{p} shift change {days[0]:%m/%d}")
         for i in list(D)[:-1]:
+            fx = lambda j: fixed.get(p, {}).get(days[j].isoformat())
+            both = is_work(fx(i) or "") and is_work(fx(i + 1) or "")   # two saved shifts (e.g. 12/31 event + 1/1 duty): owner's choice
             for a in shifts:
                 for b in shifts:
+                    if both: continue
                     if span(b)[0] + 1440 - span(a)[1] < 600:
                         m.AddBoolOr([X[p, i, a].Not(), X[p, i + 1, b].Not()])
                     elif a != b:

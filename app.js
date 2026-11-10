@@ -623,7 +623,9 @@ const EVENT = { id: "ny2027", until: "2027-01-01",
     "Thank you!"],
   days: [
     { day: "2026-12-31", shift: "17-5", ko: "12/31 (목) 17:00–05:00 특근 · ₱5,000", en: "Dec 31 (Thu) 5:00 PM – 5:00 AM shift · ₱5,000" },
-    { day: "2027-01-01", shift: "5-17", ko: "1/1 (금) 매장 지키기 · 식사 + 일당 별도", en: "Jan 1 (Fri) stay at the store · meal + separate day's pay" }] };
+    { day: "2027-01-01", shift: "5-32", max: 2, ko: "1/1 (금) 매장 지키기 · 식사 + 일당 별도", en: "Jan 1 (Fri) stay at the store · meal + separate day's pay",
+      // owner 11/10: 1 person 05:00 – 08:00 next day; 2 people 05:00–17:00 and 17:00–08:00 (first to sign up takes the morning)
+      note: { ko: "1명: 05:00 ~ 다음날 08:00 · 2명: 05:00–17:00 / 17:00–08:00 (먼저 신청한 사람이 05:00) · 최대 2명", en: "1 person: 5:00 AM – 8:00 AM next day · 2 people: 5 AM–5 PM / 5 PM–8 AM (first to sign up takes 5 AM) · max 2" } }] };
 const EV_DAYS = new Set(EVENT.days.map(d => d.day));
 const evL = (ko, en) => lang === "ko" ? ko : en;
 function myEventCard() {
@@ -633,40 +635,43 @@ function myEventCard() {
     ? h("ul", { style: "margin:4px 0 8px;padding-left:20px" }, x.map(y => h("li", {}, h("b", {}, y))))
     : h("p", { style: "margin:0 0 8px" }, x))));
   const body = h("div", {}, h("span", { class: "muted" }, "…")); card.append(body);
-  const draw = resp => { body.innerHTML = "";
-    const mine = Object.fromEntries((resp || []).map(r => [r.day, r.choice]));
+  const draw = (resp, work) => { body.innerHTML = "";
+    const mine = Object.fromEntries((resp || []).map(r => [r.day, r.choice])), shOf = Object.fromEntries((resp || []).map(r => [r.day, r.shift]));
     for (const d of EVENT.days) {
-      const cur = mine[d.day], open = today() < d.day;
+      const cur = mine[d.day], open = today() < d.day, full = d.max && cur !== "work" && +((work || {})[d.day] || 0) >= d.max;
       const btn = (choice, label) => h("button", { class: "btn" + (cur === choice ? " primary" : ""), type: "button", id: `ev-${d.day}-${choice}`, disabled: !open,
         style: "flex:1;padding:12px 6px;font-weight:700", onclick: async ev => { if (cur === choice) return; ev.target.disabled = true;
           try { const r = await db.empEventSet(EMP.no, EMP.pin, EVENT.id, d.day, choice);
-            if (!r.ok) throw new Error(r.err === "ev_closed" ? evL("마감됐어요", "Closed") : pinErr(r.err, "noData"));
+            if (!r.ok) throw new Error(r.err === "ev_closed" ? evL("마감됐어요", "Closed") : r.err === "ev_full" ? evL("이미 2명이 신청했어요", "Already 2 people signed up") : pinErr(r.err, "noData"));
             toast(evL("반영됐어요 · 스케줄에 저장", "Saved · added to the schedule")); load();
             db.empView(EMP.no, EMP.pin).then(v => { EMP.data = v; }).catch(() => { });
           } catch (er) { toast(errMsg(er)); ev.target.disabled = false; } } }, (cur === choice ? "✓ " : "") + label);
       body.append(h("div", { style: "border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px" },
         h("div", { style: "font-weight:700;margin-bottom:6px" }, evL(d.ko, d.en)),
-        h("div", { class: "row", style: "gap:8px;flex-wrap:nowrap" }, btn("work", evL("근무 원함", "I want to work")), btn("off", evL("휴무 원함", "I want the day off"))),
+        d.note ? h("small", { class: "muted", style: "display:block;margin:-2px 0 6px" }, evL(d.note.ko, d.note.en)) : null,
+        full ? h("small", { style: "display:block;margin:0 0 6px;color:var(--bad)" }, evL("이미 2명이 신청했어요", "Already 2 people signed up")) : null,
+        h("div", { class: "row", style: "gap:8px;flex-wrap:nowrap" }, (full ? (x => (x.disabled = true, x))(btn("work", evL("근무 원함", "I want to work"))) : btn("work", evL("근무 원함", "I want to work"))), btn("off", evL("휴무 원함", "I want the day off"))),
         h("small", { class: "muted", style: "display:block;margin-top:4px" }, !cur ? evL("아직 선택 안 함", "Not answered yet")
-          : (cur === "work" ? evL("근무 원함 → 스케줄 ", "Work → schedule ") + SHIFT_LABEL(d.shift) : evL("휴무 원함 → 스케줄 휴무", "Day off → schedule OFF")) + (open ? evL(" · 전날까지 바꿀 수 있어요", " · you can change it until the day before") : ""))));
+          : (cur === "work" ? evL("근무 원함 → 스케줄 ", "Work → schedule ") + SHIFT_LABEL(shOf[d.day] || d.shift) : evL("휴무 원함 → 스케줄 휴무", "Day off → schedule OFF")) + (open ? evL(" · 전날까지 바꿀 수 있어요", " · you can change it until the day before") : ""))));
     } };
-  const load = () => db.empEventGet(EMP.no, EMP.pin, EVENT.id).then(r => draw(r.ok ? r.resp : [])).catch(() => draw([]));
+  const load = () => db.empEventGet(EMP.no, EMP.pin, EVENT.id).then(r => draw(r.ok ? r.resp : [], r.ok ? r.work : {})).catch(() => draw([], {}));
   load();
   return card;
 }
 /* owner: who answered what (schedule tab) */
 async function eventAdminCard() {
   if (today() > EVENT.until) return null;
-  let rows = []; try { rows = await db.listEventResp(EVENT.id); } catch (e) { return null; }
+  let rows = [], plan = {}; try { rows = await db.listEventResp(EVENT.id);
+    plan = Object.fromEntries((await db.cashbookShifts(EVENT.days[0].day, EVENT.days[EVENT.days.length - 1].day)).map(r => [String(r.staff_name).trim().toLowerCase() + "|" + r.day, r.shift])); } catch (e) { return null; }
   const emps = S.employees.filter(e => e.active && !e.resigned_on && e.name !== "test");
   const nm = id => S.employees.find(e => e.id === id)?.name || "?";
   const card = h("div", { class: "card", id: "event-admin", style: "border:2px solid var(--gold)" }, h("h2", {}, "🎆 " + evL("연말 근무 신청 (직원 앱)", "New Year shift sign-up (staff app)")),
     h("small", { class: "muted" }, evL("직원이 누르면 스케줄에 자동 반영 (근무 → 해당 시간, 휴무 → OFF). 근무한 날은 정규 급여에서 빠지고 별도 지급.", "Answers go into the schedule automatically (work → event shift, off → OFF). Worked days are left out of the regular payroll (paid separately).")));
   for (const d of EVENT.days) {
-    const mine = rows.filter(r => r.day === d.day), work = mine.filter(r => r.choice === "work").map(r => nm(r.employee_id)), off = mine.filter(r => r.choice === "off").map(r => nm(r.employee_id));
+    const mine = rows.filter(r => r.day === d.day), work = mine.filter(r => r.choice === "work").map(r => { const n = nm(r.employee_id), sh = plan[n.trim().toLowerCase() + "|" + d.day]; return n + (sh && sh !== "off" ? ` (${SHIFT_LABEL(sh)})` : ""); }), off = mine.filter(r => r.choice === "off").map(r => nm(r.employee_id));
     const none = emps.filter(e => !mine.some(r => r.employee_id === e.id)).map(e => e.name);
     const line = (lbl, list, color) => h("div", { style: "font-size:14px;margin-top:2px" }, h("b", { style: color ? "color:" + color : "" }, `${lbl} ${list.length}`), list.length ? " · " + list.join(", ") : "");
-    card.append(h("div", { style: "border:1px solid var(--line);border-radius:8px;padding:8px;margin-top:8px" }, h("div", { style: "font-weight:700" }, evL(d.ko, d.en)),
+    card.append(h("div", { style: "border:1px solid var(--line);border-radius:8px;padding:8px;margin-top:8px" }, h("div", { style: "font-weight:700" }, evL(d.ko, d.en)), d.note ? h("small", { class: "muted" }, evL(d.note.ko, d.note.en)) : null,
       line(evL("근무 원함", "Work"), work, "var(--good,#1a7f37)"), line(evL("휴무 원함", "Off"), off), line(evL("미응답", "No answer"), none, "var(--bad)")));
   }
   return card;
@@ -676,9 +681,9 @@ async function eventAdminCard() {
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
   { id: "2026-11-10", ko: [
-      "🎆 12/31 · 1/1 근무 안내: 홈 맨 위 카드에서 날짜별로 '근무 원함' / '휴무 원함'을 눌러 주세요. 누르면 스케줄에 바로 반영되고, 전날까지 바꿀 수 있어요."],
+      "🎆 12/31 · 1/1 근무 안내: 홈 맨 위 카드에서 날짜별로 '근무 원함' / '휴무 원함'을 눌러 주세요. 누르면 스케줄에 바로 반영되고, 전날까지 바꿀 수 있어요. 1/1 매장 지키기는 최대 2명 (1명: 05:00~다음날 08:00, 2명: 05:00–17:00 / 17:00–08:00). 12/31·1/1은 당일 지급이라 가불 한도에 안 들어가요."],
     en: [
-      "🎆 Dec 31 · Jan 1: on the card at the top of Home, tap 'I want to work' or 'I want the day off' for each day. Your answer goes straight into the schedule, and you can change it until the day before."] },
+      "🎆 Dec 31 · Jan 1: on the card at the top of Home, tap 'I want to work' or 'I want the day off' for each day. Your answer goes straight into the schedule, and you can change it until the day before. Jan 1 store duty is max 2 people (1 person: 5 AM – 8 AM next day; 2 people: 5 AM–5 PM / 5 PM–8 AM). Dec 31 and Jan 1 are paid on the day, so they are not part of the cash advance limit."] },
   { id: "2026-11-09b", ko: [
       "🛵 기사님: 이 앱에서 출근(IN)을 누르면 기사앱 근무가 자동으로 시작되고, 퇴근(OUT)하면 자동으로 끝나요. 기사앱 화면은 켜 두어야 위치가 전송돼요."],
     en: [

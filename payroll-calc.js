@@ -26,7 +26,7 @@
 export const SHIFTS = ["8-18", "18-4", "8-20", "20-4", "22-8", "20-8", "20-6", "22-6", "22-4", "10-20", "12-22"];
 const toMin = x => { if (x == null || x === "") return NaN; const [h, m = "0"] = String(x).split(":"); return (+h) * 60 + (+m); };
 export const parseShift = v => { if (!v) return null; const [a, b] = String(v).split("-"); const s = toMin(a), e = toMin(b); return isNaN(s) || isNaN(e) ? null : { start: s, end: e }; };
-export const SHIFT_LABEL = v => { const p = parseShift(v); if (!p) return v; const f = m => `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; return `${f(p.start)}–${f(p.end)}`; };
+export const SHIFT_LABEL = v => { const p = parseShift(v); if (!p) return v; const f = m => `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; return `${f(p.start)}–${f(p.end)}${p.end > 1440 ? " (+1)" : ""}`; };
 export const isPreset = v => SHIFTS.includes(v);
 export const MONTHLY_FACTOR = 313 / 12; // 6-day week → 313 paid days a year
 export const HOURS_PER_DAY = 10;        // paper: a day = 10h shift; OT hourly = daily ÷ 10
