@@ -8,7 +8,8 @@ input.json
   "holidays": ["2026-11-16", "2026-11-17", "2026-11-18", "2026-11-30"],
   "history": {"Jonel": {"2026-11-01": "8-18", ...}, ...},   # at least the 7 days before start
   "fixed":   {"Jonel": {"2026-11-08": "sil"}, "June": {"2026-11-08": "off"}},
-  "overrides": {"kitchen": {"2026-11-16": ["8-18","18-4","20-6","22-8"]}}   # optional demand per day
+  "overrides": {"kitchen": {"2026-11-16": ["8-18","18-4","20-6","22-8"]},   # optional demand per day
+                "closed": ["2026-12-31"]}   # store closed: no regular shifts, only saved (fixed) rows such as event shifts
 }
 
 Rules (owner, 2026-11-03):
@@ -65,6 +66,7 @@ def is_day(sh): return is_work(sh) and "-" in sh and hm(sh.split("-")[0]) < 720 
 
 def demand(team, day, hol, overrides):
     k = day.isoformat()
+    if k in overrides.get("closed", []): return [], False   # store closed (owner 2026-11-10: 12/31 day, 1/1)
     if k in overrides.get(team, {}): return list(overrides[team][k]), None
     big = day.weekday() in (4, 5)                       # Fri, Sat
     eve = (day + dt.timedelta(days=1)).isoformat() in hol
@@ -86,7 +88,10 @@ def solve_team(team, people, days, hol, hist, fixed, overrides, current=None, ex
     need, want3 = {}, {}
     for i, d in enumerate(days):
         need[i], want3[i] = demand(team, d, hol, overrides)
-    shifts = sorted({s for i in D for s in (H3 + H2 if hall else need[i])}, key=span)
+    closed = {i for i in D if days[i].isoformat() in overrides.get("closed", [])}
+    # saved work rows outside the normal shift set (e.g. the 12/31 17-5 event shift) are kept as they are
+    extra = {f for p in people for i in D for f in [fixed.get(p, {}).get(days[i].isoformat())] if f and is_work(f)}
+    shifts = sorted({s for i in D for s in (H3 + H2 if hall else need[i])} | extra, key=span)
     X = {(p, i, s): m.NewBoolVar("") for p in people for i in D for s in shifts}
     W = {(p, i): m.NewBoolVar("") for p in people for i in D}
     Y = {i: m.NewBoolVar("") for i in D} if hall else {}
@@ -104,18 +109,21 @@ def solve_team(team, people, days, hol, hist, fixed, overrides, current=None, ex
     for i in D:
         for s in shifts:
             tot = sum(X[p, i, s] for p in people)
-            if hall:
-                req = {"8-20": 1, "20-4": Y[i], "22-8": Y[i], "20-8": 1 - Y[i]}[s]
+            nfix = sum(1 for p in people if fixed.get(p, {}).get(days[i].isoformat()) == s)
+            if i in closed:
+                req = 0
+            elif hall:
+                req = {"8-20": 1, "20-4": Y[i], "22-8": Y[i], "20-8": 1 - Y[i]}.get(s, 0)
             else:
                 req = 1 if s in need[i] else 0
-            if not (isinstance(req, int) and req == 0):
+            if isinstance(req, int) and req == 0:
+                m.Add(tot == nfix)               # only saved rows on closed days / extra shifts
+            else:
                 miss = m.NewBoolVar("")          # a shift may stay empty only as a last resort (reported)
                 m.Add(tot + miss == req); m.Add(tot <= 1)
                 soft(miss, WT["uncovered"], f"{team} {s} not covered {days[i]:%m/%d}")
-            else:
-                m.Add(tot == req)
         if hall and want3[i]: soft(Y[i].Not(), 300, f"hall 2 on duty {days[i]:%m/%d} (3 wanted)")
-        if hall and not want3[i]: m.Add(Y[i] == 0)
+        if hall and (not want3[i] or i in closed): m.Add(Y[i] == 0)
 
     for p in people:
         h = hist.get(p, {})
@@ -135,8 +143,8 @@ def solve_team(team, people, days, hol, hist, fixed, overrides, current=None, ex
         for a in range(n0 - 1, len(seq) - 1):
             x, y = pseq[a], pseq[a + 1]
             if (isinstance(x, int) and x == 1) or (isinstance(y, int) and y == 1): continue
-            def given(j):  # history day or a fixed day off/SIL (or approved leave in re-plan mode)
-                return j < n0 or fixed.get(p, {}).get(days[j - n0].isoformat()) is not None or ex(p, days[j - n0])
+            def given(j):  # history day, a fixed day off/SIL, a closed day (or approved leave in re-plan mode)
+                return j < n0 or fixed.get(p, {}).get(days[j - n0].isoformat()) is not None or ex(p, days[j - n0]) or (j - n0) in closed
             if given(a) and given(a + 1): continue
             b = m.NewBoolVar("")
             m.AddBoolOr([v for v in (x, y) if not isinstance(v, int)] + [b])
@@ -146,6 +154,7 @@ def solve_team(team, people, days, hol, hist, fixed, overrides, current=None, ex
             x, y, z = pseq[a], pseq[a + 1], pseq[a + 2]
             if isinstance(y, int) and y == 0: continue
             if (isinstance(x, int) and x == 1) or (isinstance(z, int) and z == 1): continue
+            if any(0 <= j - n0 < len(days) and (j - n0) in closed for j in (a, a + 2)): continue   # next to a closed day
             b = m.NewBoolVar("")
             lits = [v for v in (x, z) if not isinstance(v, int)]
             m.AddBoolOr(lits + ([y.Not()] if not isinstance(y, int) else []) + [b])
@@ -172,10 +181,12 @@ def solve_team(team, people, days, hol, hist, fixed, overrides, current=None, ex
             return len(blk) - sum(W[p, i] for i in blk) - paid
         def week_rule(blk, before):
             offs = regular_offs(blk)
+            # a closed-store day off counts as the weekly day off, but not toward the "more than 2" cap
+            cl = sum(1 for i in blk if i in closed and not is_work(fixed.get(p, {}).get(days[i].isoformat()) or ""))
             if len(blk) + (7 - len(blk) if before is not None else 0) >= 7:   # whole week visible
                 m.Add(offs + (before or 0) >= 1)
             over = m.NewBoolVar("")
-            m.Add(offs + (before or 0) <= 2 + 5 * over)
+            m.Add(offs - cl + (before or 0) <= 2 + 5 * over)
             soft(over, 100, f"{p} more than 2 days off in week of {days[blk[0]] - dt.timedelta(days=(days[blk[0]].weekday() + 1) % 7):%m/%d}")
         for a in range(len(days)):
             if days[a].weekday() != 6 or a + 7 > len(days): continue
@@ -206,6 +217,7 @@ def solve_team(team, people, days, hol, hist, fixed, overrides, current=None, ex
         pen.append(WT["fair"] * (hi - lo))
     # preferences
     for i, d in enumerate(days):
+        if i in closed: continue
         if "Jonel" in people and "Archie" in people:
             m.AddBoolOr([W["Jonel", i], W["Archie", i]])
         if "Jonel" in people:

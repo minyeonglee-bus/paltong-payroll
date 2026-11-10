@@ -607,10 +607,78 @@ function mySilSelf(x) {
       rec.length ? tf("sil_selfRec", { d: rec.map(d => d.slice(5).replace("-", "/")).join(", ") + ` (${rec.length})` }) : t("sil_selfRecNone")), h("div", { class: "row", style: "gap:8px;align-items:center" }, inp, btn));
   return box;
 }
+/* ---- 🎆 New Year special shift sign-up (owner 2026-11-10: "12-31 따로 1-1 따로", 근무 원함 / 휴무 원함 → 자동 반영).
+   The owner's notice is shown as written (English). Each day is answered separately; the answer goes straight into the
+   schedule (pr_emp_event_set → pr_plan: work = event shift, off = 'off') and the owner gets a push.
+   Worked event days are paid separately (₱5,000 for 12/31, meal + a day's pay for 1/1) → left out of the regular payroll. ---- */
+const EVENT = { id: "ny2027", until: "2027-01-01",
+  notice: ["Hello everyone,",
+    "Our original plan was to close on December 31. However, we have decided to adjust the schedule and operate for 12 hours only, from 5:00 PM on December 31 until 5:00 AM on January 1. The store will be closed for the rest of January 1.",
+    "For those working during this 12-hour shift, payment will be as follows:",
+    ["Regular Salary: ₱2,000", "Incentive: ₱3,000", "Total Payment: ₱5,000"],
+    "The full amount will be paid upon completion of the shift and will not be included in the regular payroll cutoff.",
+    "Additionally, we are looking for someone who can stay at the store on January 1 to look after the business.",
+    "For this duty, we will provide a meal and a separate day’s pay.",
+    "If anyone is available and interested, please let us know.",
+    "Thank you!"],
+  days: [
+    { day: "2026-12-31", shift: "17-5", ko: "12/31 (목) 17:00–05:00 특근 · ₱5,000", en: "Dec 31 (Thu) 5:00 PM – 5:00 AM shift · ₱5,000" },
+    { day: "2027-01-01", shift: "5-17", ko: "1/1 (금) 매장 지키기 · 식사 + 일당 별도", en: "Jan 1 (Fri) stay at the store · meal + separate day's pay" }] };
+const EV_DAYS = new Set(EVENT.days.map(d => d.day));
+const evL = (ko, en) => lang === "ko" ? ko : en;
+function myEventCard() {
+  if (today() > EVENT.until) return null;
+  const card = h("div", { class: "card", id: "my-event", style: "border:2px solid var(--gold)" }, h("h2", {}, "🎆 " + evL("12/31 · 1/1 근무 안내", "Dec 31 · Jan 1 schedule")));
+  card.append(h("div", { style: "font-size:14px;line-height:1.55;margin-bottom:10px" }, EVENT.notice.map(x => Array.isArray(x)
+    ? h("ul", { style: "margin:4px 0 8px;padding-left:20px" }, x.map(y => h("li", {}, h("b", {}, y))))
+    : h("p", { style: "margin:0 0 8px" }, x))));
+  const body = h("div", {}, h("span", { class: "muted" }, "…")); card.append(body);
+  const draw = resp => { body.innerHTML = "";
+    const mine = Object.fromEntries((resp || []).map(r => [r.day, r.choice]));
+    for (const d of EVENT.days) {
+      const cur = mine[d.day], open = today() < d.day;
+      const btn = (choice, label) => h("button", { class: "btn" + (cur === choice ? " primary" : ""), type: "button", id: `ev-${d.day}-${choice}`, disabled: !open,
+        style: "flex:1;padding:12px 6px;font-weight:700", onclick: async ev => { if (cur === choice) return; ev.target.disabled = true;
+          try { const r = await db.empEventSet(EMP.no, EMP.pin, EVENT.id, d.day, choice);
+            if (!r.ok) throw new Error(r.err === "ev_closed" ? evL("마감됐어요", "Closed") : pinErr(r.err, "noData"));
+            toast(evL("반영됐어요 · 스케줄에 저장", "Saved · added to the schedule")); load();
+            db.empView(EMP.no, EMP.pin).then(v => { EMP.data = v; }).catch(() => { });
+          } catch (er) { toast(errMsg(er)); ev.target.disabled = false; } } }, (cur === choice ? "✓ " : "") + label);
+      body.append(h("div", { style: "border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px" },
+        h("div", { style: "font-weight:700;margin-bottom:6px" }, evL(d.ko, d.en)),
+        h("div", { class: "row", style: "gap:8px;flex-wrap:nowrap" }, btn("work", evL("근무 원함", "I want to work")), btn("off", evL("휴무 원함", "I want the day off"))),
+        h("small", { class: "muted", style: "display:block;margin-top:4px" }, !cur ? evL("아직 선택 안 함", "Not answered yet")
+          : (cur === "work" ? evL("근무 원함 → 스케줄 ", "Work → schedule ") + SHIFT_LABEL(d.shift) : evL("휴무 원함 → 스케줄 휴무", "Day off → schedule OFF")) + (open ? evL(" · 전날까지 바꿀 수 있어요", " · you can change it until the day before") : ""))));
+    } };
+  const load = () => db.empEventGet(EMP.no, EMP.pin, EVENT.id).then(r => draw(r.ok ? r.resp : [])).catch(() => draw([]));
+  load();
+  return card;
+}
+/* owner: who answered what (schedule tab) */
+async function eventAdminCard() {
+  if (today() > EVENT.until) return null;
+  let rows = []; try { rows = await db.listEventResp(EVENT.id); } catch (e) { return null; }
+  const emps = S.employees.filter(e => e.active && !e.resigned_on && e.name !== "test");
+  const nm = id => S.employees.find(e => e.id === id)?.name || "?";
+  const card = h("div", { class: "card", id: "event-admin", style: "border:2px solid var(--gold)" }, h("h2", {}, "🎆 " + evL("연말 근무 신청 (직원 앱)", "New Year shift sign-up (staff app)")),
+    h("small", { class: "muted" }, evL("직원이 누르면 스케줄에 자동 반영 (근무 → 해당 시간, 휴무 → OFF). 근무한 날은 정규 급여에서 빠지고 별도 지급.", "Answers go into the schedule automatically (work → event shift, off → OFF). Worked days are left out of the regular payroll (paid separately).")));
+  for (const d of EVENT.days) {
+    const mine = rows.filter(r => r.day === d.day), work = mine.filter(r => r.choice === "work").map(r => nm(r.employee_id)), off = mine.filter(r => r.choice === "off").map(r => nm(r.employee_id));
+    const none = emps.filter(e => !mine.some(r => r.employee_id === e.id)).map(e => e.name);
+    const line = (lbl, list, color) => h("div", { style: "font-size:14px;margin-top:2px" }, h("b", { style: color ? "color:" + color : "" }, `${lbl} ${list.length}`), list.length ? " · " + list.join(", ") : "");
+    card.append(h("div", { style: "border:1px solid var(--line);border-radius:8px;padding:8px;margin-top:8px" }, h("div", { style: "font-weight:700" }, evL(d.ko, d.en)),
+      line(evL("근무 원함", "Work"), work, "var(--good,#1a7f37)"), line(evL("휴무 원함", "Off"), off), line(evL("미응답", "No answer"), none, "var(--bad)")));
+  }
+  return card;
+}
 /* ---- 🆕 What's new for staff (owner 2026-11-09: "새 기능이 생길 때마다 직원에게 안내해줘").
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-10", ko: [
+      "🎆 12/31 · 1/1 근무 안내: 홈 맨 위 카드에서 날짜별로 '근무 원함' / '휴무 원함'을 눌러 주세요. 누르면 스케줄에 바로 반영되고, 전날까지 바꿀 수 있어요."],
+    en: [
+      "🎆 Dec 31 · Jan 1: on the card at the top of Home, tap 'I want to work' or 'I want the day off' for each day. Your answer goes straight into the schedule, and you can change it until the day before."] },
   { id: "2026-11-09b", ko: [
       "🛵 기사님: 이 앱에서 출근(IN)을 누르면 기사앱 근무가 자동으로 시작되고, 퇴근(OUT)하면 자동으로 끝나요. 기사앱 화면은 켜 두어야 위치가 전송돼요."],
     en: [
@@ -675,6 +743,7 @@ function renderStaffHome() {
       h("button", { id: "e-logout", onclick: staffLogout }, t("logout"))),
     h("div", { class: "tabs", role: "tablist", id: "staff-tabs" }, [["home", t("stab_home")], ["adv", t("stab_adv")], ["docs", t("stab_docs")]].map(([k, l]) => h("button", { role: "tab", id: "stab-" + k, "aria-selected": String((EMP.tab || "home") === k), onclick: () => { EMP.tab = k; renderStaffHome(); } }, l))),
     h("main", { id: "main" }, ...(EMP.tab === "adv" ? myAdvTab(v, emp) : EMP.tab === "docs" ? myDocsTab(v, emp) : [
+      myEventCard(),
       finalCard,
       mentionsCard(v),
       myEstCard(emp, v),
@@ -1334,6 +1403,9 @@ async function loadPay(P) {
     }
     // open payroll: app clock-ins (with the manager's approve / reject) go on the schedule automatically
     if (P.status !== "paid" && !P.shared_at) { try { applyPunchRows(P, await db.listPunches(P.employee_id, P.carry[0] || P.start, P.end)); } catch { } }
+    // New Year event days (12/31 shift, 1/1 store duty) are paid separately, never in the regular cutoff (owner 2026-11-10)
+    if (P.status !== "paid" && !P.shared_at) for (const d of P.days) if (EV_DAYS.has(d.date) && (d.shift || DAY_TYPES[d.type]?.worked)) {
+      d.card = (d.card ? d.card + " · " : "") + evL("별도 지급", "paid separately"); d.shift = ""; d.type = "off"; d.sepPay = true; }
     if (P.status !== "paid" && !P.shared_at) applyHolidays(P.days, HOL);   // public holidays included from the start
     const led = await db.listLedger({ employeeId: P.employee_id });
     const inPeriod = l => periodForDate(l.biz_date).start === P.start;
@@ -1550,7 +1622,8 @@ async function renderSched() {
   const monthIn = h("input", { type: "month", value: SCH.month, onchange: e => { SCH.month = e.target.value; render(); } });
   const halfSel = sel([[1, t("first")], [2, t("second")]], SCH.half, { onchange: e => { SCH.half = +e.target.value; render(); } });
   const card = h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_sched")), h("span", { class: "sp" }), monthIn, halfSel), h("small", { class: "muted" }, t("sched_help")));
-  main.append(card);
+  const evSlot = h("div"); main.append(evSlot, card);
+  eventAdminCard().then(c => { if (c) evSlot.append(c); });
   try {
     const [punches, plan, reqKeys] = await Promise.all([db.listPunchesAll(p.start, p.end), db.cashbookShifts(p.start, p.end), db.reqOffDays(p.start, p.end)]);
     const reqOff = new Set(reqKeys);
