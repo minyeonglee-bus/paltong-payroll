@@ -132,6 +132,8 @@ export async function saveThirteenth(row) {
 }
 export async function empAck13(no, pin, year, amount) { return must(await sb.rpc("pr_emp_ack13", { p_no: String(no).trim(), p_pin: String(pin), p_year: year, p_amount: amount })); }
 export async function empReq13(no, pin, year, amount, ok, note) { return must(await sb.rpc("pr_emp_req13", { p_no: String(no).trim(), p_pin: String(pin), p_year: year, p_amount: amount, p_ok: !!ok, p_note: note || null })); }
+export async function empDays13(no, pin, year) { return must(await sb.rpc("pr_emp_days13", { p_no: String(no).trim(), p_pin: String(pin), p_year: year })); }
+export async function empDate13(no, pin, year, day) { return must(await sb.rpc("pr_emp_date13", { p_no: String(no).trim(), p_pin: String(pin), p_year: year, p_date: day })); }
 export async function listAck13(year) { return must(await sb.from("pr_13_ack").select("*").eq("year", year)); }
 export async function empCoe(no, pin, purpose, salary) { return must(await sb.rpc("pr_emp_coe", { p_no: String(no).trim(), p_pin: String(pin), p_purpose: purpose, p_salary: !!salary })); }
 export async function coeIssue(empId, purpose, salary) { return must(await sb.rpc("pr_coe_issue", { p_emp: empId, p_purpose: purpose, p_salary: !!salary })); }
