@@ -688,6 +688,10 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-12", ko: [
+      "💵 받으셨나요?: 급여일(15일·30일)이나 13th month 받는 날이 되면 화면 맨 위에 카드가 떠요. 받았으면 '받았어요'를 눌러 주세요 (13th month는 받은 방법도 골라요). 누를 때까지 카드가 계속 맨 위에 있어요."],
+    en: [
+      "💵 Did you receive it?: on pay day (15th & 30th) and on your 13th month date, a card shows at the very top. When you get the money, press \"I received it\" (for the 13th month, also choose how you got it). The card stays on top until you press it."] },
   { id: "2026-11-11", ko: [
       "📅 13th month 받을 날짜: 사장님이 날짜를 다시 정해 달라고 한 경우 홈 맨 위에 카드가 떠요. 12/23까지는 하루에 한 명, 12/24는 다 같이 받는 날이에요. 지급 전까지 바꿀 수 있어요."],
     en: [
@@ -763,7 +767,7 @@ function renderStaffHome() {
       h("button", { onclick: () => { setLangOnly(lang === "ko" ? "en" : "ko"); renderStaffHome(); } }, lang === "ko" ? "EN" : "한"),
       h("button", { id: "e-logout", onclick: staffLogout }, t("logout"))),
     h("div", { class: "tabs", role: "tablist", id: "staff-tabs" }, [["home", t("stab_home")], ["adv", t("stab_adv")], ["docs", t("stab_docs")]].map(([k, l]) => h("button", { role: "tab", id: "stab-" + k, "aria-selected": String((EMP.tab || "home") === k), onclick: () => { EMP.tab = k; renderStaffHome(); } }, l))),
-    h("main", { id: "main" }, ...(EMP.tab === "adv" ? myAdvTab(v, emp) : EMP.tab === "docs" ? myDocsTab(v, emp) : [
+    h("main", { id: "main" }, myRecvCard(v), ...(EMP.tab === "adv" ? myAdvTab(v, emp) : EMP.tab === "docs" ? myDocsTab(v, emp) : [
       my13DateCard(v),
       myEventCard(),
       finalCard,
@@ -851,6 +855,43 @@ function my13DateCard(v) {
     body.append(h("div", { class: "row", style: "align-items:center;flex-wrap:wrap" }, h("b", { id: "d13-mine", style: "font-size:18px" }, tf("d13_mine", { d: fmt(ack.pay_date) })),
       h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => picker() }, t("d13_change")))); };
   ack.pay_date ? mine() : picker();
+  return card;
+}
+/* ---- "받으셨나요?" (supabase/pr_recv.sql, owner 2026-11-12): on pay day the staff confirm they received it.
+   Top of every tab until they press "받았어요" → owner approves → paid + cash book. Salary from the 11/1–15 payroll on
+   (bonuses are inside the payroll); 13th month on the chosen date (Dec 24 when none) once requested. ---- */
+const RECV_FROM = "2026-11-15";
+function myRecvCard(v) {
+  const td = today(), year = +td.slice(0, 4);
+  const pays = (v.payrolls || []).filter(p => (p.status === "paid" || p.shared) && p.result && p.period_end >= RECV_FROM && td >= p.period_end && !p.recv_at);
+  const ack = (v.ack13 || []).find(a => a.year === year), x13 = (v.thirteenth || []).find(x => x.year === year);
+  const ask13 = ack?.requested_at && ack.ok !== false && !ack.recv_at && td >= (ack.pay_date || `${year}-12-24`) && (!x13?.paid_on || x13.paid_on >= "2026-11-12");
+  if (!pays.length && !ask13) return null;
+  const card = h("div", { class: "card", id: "my-recv", style: "border:3px solid var(--gold);background:#fffbea" }, h("h2", {}, "💵 " + evL("받으셨나요?", "Did you receive it?")),
+    h("small", { class: "muted", style: "display:block;margin-bottom:8px" }, evL("받았으면 '받았어요'를 눌러 주세요. 누를 때까지 이 카드가 맨 위에 있어요.", "If you got it, press \"I received it\". This card stays on top until you do.")));
+  const viaTxt = p => { const parts = (p.result?.payout?.parts || []).filter(x => +x.amount > 0);
+    return parts.length > 1 ? parts.map(x => `${viaLabel(slipVia(x.via || ""))} ₱${money(x.amount)}`).join(" + ") : viaLabel(slipVia(p.paid_via || parts[0]?.via || "CASH")); };
+  const send = async (kind, key, via, done, label) => {
+    confirmSheet(evL(`${label} — 정말 받으셨나요?`, `${label} — did you really receive it?`), async () => { try {
+      const r = await db.empRecv(EMP.no, EMP.pin, kind, key, via); if (!r.ok) throw new Error(pinErr(r.err, "noData"));
+      done(); toast(evL("고마워요! 사장님께 알렸어요", "Thank you! The owner was told")); renderStaffHome(); } catch (er) { toast(errMsg(er)); } }, { ask: true }); };
+  for (const p of pays) {
+    const label = `${periodLabel(p.period_start, p.period_end)} ${evL("급여", "salary")} ₱${money(p.result.net)}`;
+    card.append(h("div", { class: "row", style: "align-items:center;flex-wrap:wrap;padding:8px 0;border-top:1px dashed var(--line)" },
+      h("div", {}, h("b", {}, periodLabel(p.period_start, p.period_end) + " · " + evL("급여", "Salary")), h("div", { class: "muted" }, viaTxt(p))),
+      h("span", { class: "sp" }), h("div", { class: "money", style: "font-size:24px;font-weight:800" }, "₱" + money(p.result.net)),
+      h("button", { class: "btn primary", type: "button", id: "recv-pay-" + p.period_start, onclick: () => send("pay", p.period_start, null, () => { p.recv_at = new Date().toISOString(); }, label) }, "✅ " + evL("받았어요", "I received it"))));
+  }
+  if (ask13) {
+    const amt = x13?.amount ?? ack.amount;
+    const vSel = sel([["CASH", "Cash"], ["GCASH", "GCash"], ["MAYA", "Maya"], ["METROBANK", "Metrobank"]], x13?.paid_via && x13.paid_via !== "SAVINGBOX" ? x13.paid_via : "CASH", { id: "recv-13-via" });
+    const label = `13th month ₱${money(amt)}`;
+    card.append(h("div", { class: "row", style: "align-items:center;flex-wrap:wrap;padding:8px 0;border-top:1px dashed var(--line)" },
+      h("div", {}, h("b", {}, `13th month · ${year}`), h("div", { class: "muted" }, ack.pay_date ? fmtLvDay(ack.pay_date) : fmtLvDay(`${year}-12-24`))),
+      h("span", { class: "sp" }), h("div", { class: "money", style: "font-size:24px;font-weight:800" }, "₱" + money(amt)),
+      field(evL("받은 방법", "How did you get it?"), vSel),
+      h("button", { class: "btn primary", type: "button", id: "recv-13", onclick: () => send("13", year, vSel.value, () => { ack.recv_at = new Date().toISOString(); ack.recv_via = vSel.value; }, label) }, "✅ " + evL("받았어요", "I received it"))));
+  }
   return card;
 }
 function my13Card(v, emp) {
@@ -991,6 +1032,40 @@ async function silAdminCard() {
   return card;
 }
 /* ---- owner: 13th month section in the due tab ---- */
+/* ---- owner: staff pressed "받았어요" (supabase/pr_recv.sql) → approve = paid + cash book row · send back = ask again ---- */
+async function recvCard() {
+  let L; try { L = await db.recvList(); } catch { return null; }
+  if (!L || !(L.pay.length + L.th.length)) return null;
+  const wait = [...L.pay.filter(x => x.recv_at && x.status !== "paid"), ...L.th.filter(x => x.recv_at && !x.paid)];
+  const notYet = [...L.pay.filter(x => !x.recv_at).map(x => `${x.name} (${evL("급여", "salary")} ${x.period_end.slice(5)})`), ...L.th.filter(x => !x.recv_at).map(x => `${x.name} (13th)`)];
+  const card = h("div", { class: "card", id: "recv-admin", style: wait.length ? "border:2px solid var(--gold)" : "" },
+    h("h2", {}, "📥 " + evL("받음 확인", "Received — confirm")),
+    h("small", { class: "muted", style: "display:block;margin-bottom:6px" }, evL("직원이 '받았어요'를 누른 것. 승인하면 지급 완료로 기록되고 캐시북에 자동으로 들어가요.", "Staff pressed \"I received it\". Approve → recorded as paid and written to the cash book.")));
+  const fmtAt = a => new Date(a).toLocaleString(undefined, { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  const year = new Date().getFullYear();
+  let rows = null;
+  for (const x of wait) {
+    const is13 = !x.period_start;
+    const via = is13 ? viaLabel(x.recv_via) : (x.parts || []).filter(q => +q.amount > 0).length > 1 ? x.parts.filter(q => +q.amount > 0).map(q => `${viaLabel(q.via)} ₱${money(q.amount)}`).join(" + ") : viaLabel(x.paid_via || x.parts?.[0]?.via || "CASH");
+    const ok = async () => { try {
+      if (!is13) { await db.recvDecide(x.id, true); toast(evL("지급 완료 · 캐시북 기록됨", "Paid · in the cash book")); return render(); }
+      const e = S.employees.find(q => q.id === x.employee_id); if (!e) return;
+      rows ||= await db.listPayrollsYear(year);
+      const periods = rows.filter(r => r.employee_id === e.id && (r.status === "paid" || r.shared_at) && r.result).map(r => ({ start: r.period_start, end: r.period_end, basic: +r.result.basicFor13th || 0 }));
+      const P = proj13(periods, year, e);
+      pay13(e, year, P.total, P.amount, P.monthAvg, P.oneYear, { date: new Date(x.recv_at).toLocaleDateString("en-CA", { timeZone: "Asia/Manila" }), via: x.recv_via, amount: +x.amount });
+    } catch (er) { toast(errMsg(er)); } };
+    const back = () => confirmSheet(evL(`${x.name} — 아직 안 줬어요? (직원 화면에 다시 '받으셨나요?'가 떠요)`, `${x.name} — not paid yet? (the card shows again for the staff)`), async () => { try {
+      if (is13) await db.recv13Back(x.employee_id, x.year); else await db.recvDecide(x.id, false); render(); } catch (er) { toast(errMsg(er)); } }, { ask: true });
+    card.append(h("div", { class: "row", style: "align-items:center;flex-wrap:wrap;padding:6px 0;border-top:1px dashed var(--line)" },
+      h("div", {}, h("b", {}, x.name), " · ", is13 ? `13th month ${x.year}` : periodLabel(x.period_start, x.period_end), h("div", { class: "muted" }, `${via} · ${evL("받음", "received")} ${fmtAt(x.recv_at)}`)),
+      h("span", { class: "sp" }), h("b", { class: "money" }, "₱" + money(is13 ? x.amount : x.net)),
+      h("button", { class: "btn sm", type: "button", onclick: back }, evL("아직 안 줬어요", "Not paid yet")),
+      h("button", { class: "btn sm primary", type: "button", onclick: ok }, "✅ " + evL("승인", "Approve"))));
+  }
+  if (notYet.length) card.append(h("p", { class: "muted", style: "margin:8px 0 0;font-size:13px" }, "⏳ " + evL("아직 안 누름: ", "Not pressed yet: ") + notYet.join(", ")));
+  return card;
+}
 async function due13Card() {
   const year = new Date().getFullYear();
   const card = h("div", { class: "card", id: "due-13" }, h("h2", {}, `${t("p13_due")} · ${year}`), h("small", { class: "muted" }, t("p13_dueHelp")));
@@ -1298,11 +1373,12 @@ async function pendingBar() {
       h("button", { class: "btn sm primary", type: "button", onclick: async () => { try { await pushEnable(); toast(t("push_done")); render(); } catch (e) { toast(errMsg(e)); } } }, t("push_on")),
       h("button", { class: "btn sm ghost", type: "button", style: "color:#fff", onclick: ev => { lsSet("pr_push_later", "1"); ev.currentTarget.parentNode.remove(); } }, t("push_later"))));
   let p = null; try { p = await db.pendingCounts(); } catch { return; }
-  if (!p || !(+p.leave + +p.punch + +p.cash)) return;
+  if (!p || !(+p.leave + +p.punch + +p.cash + +(p.recv || 0))) return;
   const go = (tab, id) => { S.tab = tab; render(); setTimeout(() => document.getElementById(id)?.scrollIntoView({ block: "start", behavior: "smooth" }), 400); };
   const chip = (n, k, tab, id) => +n ? h("button", { class: "btn sm", type: "button", style: "background:#fff;color:#111", onclick: () => go(tab, id) }, tf(k, { n })) : null;
   bar.append(h("div", { style: "display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 14px;background:var(--gold, #f5b800);color:#111;font-weight:700" },
-    h("span", {}, t("pend_title")), chip(p.leave, "pend_leave", "due", "sil-req-admin"), chip(p.punch, "pend_punch", "due", "punch-review"), chip(p.cash, "pend_cash", "ledger", "cash-issues")));
+    h("span", {}, t("pend_title")), chip(p.leave, "pend_leave", "due", "sil-req-admin"), chip(p.punch, "pend_punch", "due", "punch-review"), chip(p.cash, "pend_cash", "ledger", "cash-issues"),
+    +p.recv ? h("button", { class: "btn sm", type: "button", style: "background:#fff;color:#111", onclick: () => go("due", "recv-admin") }, evL(`📥 받음 확인 ${p.recv}`, `📥 Received ${p.recv}`)) : null));
 }
 function menu() {
   const close = sheet([
@@ -1957,7 +2033,7 @@ async function renderDue() {
   const mIn = h("input", { type: "month", value: DUE.month, onchange: e => { DUE.month = e.target.value; render(); } });
   const hSel = sel([[1, t("first")], [2, t("second")]], DUE.half, { onchange: e => { DUE.half = +e.target.value; render(); } });
   const head = h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_due")), h("span", { class: "sp" }), mIn, hSel), h("p", { class: "muted" }, h("span", { class: "spin" }), t("due_calc")));
-  main.append(await silReqCard(), await reviewCard(), await due13Card(), head);
+  main.append(await recvCard(), await silReqCard(), await reviewCard(), await due13Card(), head);
   const emps = S.employees.filter(e => onPayroll(e, per.start) && e.name !== "test");
   let all, punches, older;
   try {
@@ -2110,10 +2186,10 @@ function resign13Box(e) {
   }).catch(er => box.append(h("div", { class: "err" }, errMsg(er))));
   return box;
 }
-function pay13(e, year, total, amount, monthAvg = 0, oneYear = false) {
-  const dIn = h("input", { type: "date", id: "p13On", value: today() });
-  const def = oneYear === true && monthAvg ? monthAvg : amount;   // 1년 이상 → 월평균, 1년 미만·퇴사 정산 → ÷12
-  const vIn = sel([["CASH", "Cash"], ["GCASH", "GCash"], ["MAYA", "Maya"], ["METROBANK", "Metrobank"], ["SAVINGBOX", "Saving box"]], "CASH", { id: "p13Via" });
+function pay13(e, year, total, amount, monthAvg = 0, oneYear = false, pre = {}) {   // pre: {date, via, amount} from the staff's "받았어요"
+  const dIn = h("input", { type: "date", id: "p13On", value: pre.date || today() });
+  const def = pre.amount ?? (oneYear === true && monthAvg ? monthAvg : amount);   // 1년 이상 → 월평균, 1년 미만·퇴사 정산 → ÷12
+  const vIn = sel([["CASH", "Cash"], ["GCASH", "GCash"], ["MAYA", "Maya"], ["METROBANK", "Metrobank"], ["SAVINGBOX", "Saving box"]], pre.via || "CASH", { id: "p13Via" });
   const aIn = h("input", { type: "number", id: "p13Amt", value: def, step: 1, min: 0 });
   const close = sheet([h("h3", {}, `${e.name} · ${year} ${t("tab_13")}`), h("p", { class: "muted" }, oneYear === true ? `${t("c13_avg")} ₱${money(monthAvg)}` : oneYear === false ? `${t("c13_total")} ₱${money(total)} ÷ 12 = ₱${money(amount)}` : `${t("c13_total")} ₱${money(total)} ÷ 12 = ₱${money(amount)} · ${t("c13_avg")} ₱${money(monthAvg)}`),
     oneYear === null && monthAvg ? h("div", { class: "row", style: "gap:6px" }, h("button", { class: "btn sm ghost", type: "button", onclick: () => { aIn.value = amount; } }, "÷12"), h("button", { class: "btn sm ghost", type: "button", onclick: () => { aIn.value = monthAvg; } }, t("c13_avg"))) : null,
