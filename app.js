@@ -688,6 +688,10 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-12b", ko: [
+      "🎁 13th month: 1년 이상 근무한 사람은 한 달치(보름 평균 기본급 × 2)만, 1년 미만은 올해 기본급 ÷ 12만 보여요. 명세서 상세도 같아요. 오버타임·야간 등은 빠지고 기본급만 들어가요."],
+    en: [
+      "🎁 13th month: 1 year+ of service shows only one month (half-month average basic × 2); under 1 year shows only this year's basic ÷ 12. The slip details match. Basic pay only — no OT, night diff, etc."] },
   { id: "2026-11-12", ko: [
       "💵 받으셨나요?: 급여일(15일·30일)이나 13th month 받는 날이 되면 화면 맨 위에 카드가 떠요. 받았으면 '받았어요'를 눌러 주세요 (13th month는 받은 방법도 골라요). 누를 때까지 카드가 계속 맨 위에 있어요."],
     en: [
@@ -812,17 +816,19 @@ function proj13(periods, year, emp) {
   const by12 = Math.round(total / 12 * 100) / 100, monthAvg = Math.round(avg * 2 * 100) / 100;
   const hired = emp.hired_on ? new Date(emp.hired_on + "T00:00:00") : null;
   const oneYear = oneYear13(emp, year);
-  const amount = oneYear === false ? by12 : Math.max(by12, monthAvg);   // same rule as before: 1 year+ (or hire date unknown) → the larger of ÷12 and one-month average
+  const amount = oneYear === true ? monthAvg : oneYear === false ? by12 : Math.max(by12, monthAvg);   // owner 11/12: 1 year+ → one-month average only · under 1 year → ÷12 only · hire date unknown → the larger
   const toDate = Math.round((got.reduce((a, x) => a + x.basic, 0) + before) * 100) / 100;
-  return { rows, before, total, by12, monthAvg, oneYear, amount, toDate };
+  return { rows, got, before, total, by12, avg: Math.round(avg * 100) / 100, monthAvg, oneYear, amount, toDate };
 }
 function slip13(emp, year, P, extra) {
   const tb = h("table", { class: "lines" }, h("tr", {}, h("th", {}, t("p13_period")), h("th", { class: "r" }, t("p13_basic"))),
-    ...P.rows.map(x => h("tr", { class: x.est ? "muted" : "" }, h("td", {}, periodLabel(x.start, x.end) + (x.est ? ` (${t("p13_estRow")})` : "")), h("td", { class: "r" }, money(x.basic)))),
-    P.before ? h("tr", {}, h("td", {}, t("c13_basicBefore")), h("td", { class: "r" }, money(P.before))) : null,
-    h("tr", { class: "sum" }, h("td", {}, t("p13_sum")), h("td", { class: "r" }, money(P.total))),
-    h("tr", {}, h("td", {}, t("p13_by12")), h("td", { class: "r" }, money(P.by12))),
-    P.oneYear !== false ? h("tr", {}, h("td", {}, t("p13_avgM")), h("td", { class: "r" }, money(P.monthAvg))) : null,
+    // owner 11/12: 1 year+ → only the one-month average (half-month average × 2) · under 1 year → only ÷12 · hire date unknown → both
+    ...(P.oneYear === true ? P.got || [] : P.rows).map(x => h("tr", { class: x.est ? "muted" : "" }, h("td", {}, periodLabel(x.start, x.end) + (x.est ? ` (${t("p13_estRow")})` : "")), h("td", { class: "r" }, money(x.basic)))),
+    P.oneYear === true ? h("tr", { class: "sum" }, h("td", {}, evL("보름 평균 기본급", "Half-month average basic")), h("td", { class: "r" }, money(P.avg))) : null,
+    P.oneYear !== true && P.before ? h("tr", {}, h("td", {}, t("c13_basicBefore")), h("td", { class: "r" }, money(P.before))) : null,
+    P.oneYear !== true ? h("tr", { class: "sum" }, h("td", {}, t("p13_sum")), h("td", { class: "r" }, money(P.total))) : null,
+    P.oneYear !== true ? h("tr", {}, h("td", {}, t("p13_by12")), h("td", { class: "r" }, money(P.by12))) : null,
+    P.oneYear !== false ? h("tr", {}, h("td", {}, P.oneYear === true ? evL("한 달치 (보름 평균 × 2) · 1년 이상 근무", "One month (half-month average × 2) · 1 year+ of service") : t("p13_avgM")), h("td", { class: "r" }, money(P.monthAvg))) : null,
     h("tr", { class: "net" }, h("td", {}, t("p13_final")), h("td", { class: "r" }, "₱" + money(P.amount))));
   const slip = h("div", { class: "slip" }, h("div", { class: "slipHead" }, h("b", {}, "PALTONG RESTAURANT"), h("div", {}, `13th Month Pay · ${year}`)),
     h("div", {}, h("b", {}, emp.info?.full_name || emp.name), " · ", t("pos_" + (emp.position || "other"))),
@@ -927,11 +933,11 @@ function my13Card(v, emp) {
     paidThis || ack?.requested_at ? t("p13_open") : t("r13_btn"));
   return h("div", { class: "card", id: "my-13" },
     h("div", { class: "row", style: "align-items:center;flex-wrap:wrap" },
-      h("div", {}, h("h2", { style: "margin:0" }, t("p13_title")), h("div", { class: "muted" }, `${year} · ${t("p13_toDate")} ₱${money(P.toDate)}`)),
+      h("div", {}, h("h2", { style: "margin:0" }, t("p13_title")), h("div", { class: "muted" }, P.oneYear === true ? `${year} · ${evL("1년 이상 · 한 달치 (보름 평균 × 2)", "1 year+ · one month (half-month average × 2)")}` : `${year} · ${t("p13_toDate")} ₱${money(P.toDate)}${P.oneYear === false ? " · ÷12" : ""}`)),
       h("span", { class: "sp" }), h("div", { class: "money", style: "font-size:26px;font-weight:800" }, "₱" + money(P.amount))),
     h("p", { style: "margin:6px 0;font-weight:700" }, "📅 " + t("p13_req")),
     h("div", { class: "row", style: "flex-wrap:wrap" }, openBtn, ackEl),
-    h("small", { class: "muted" }, t("p13_help")),
+    h("small", { class: "muted" }, P.oneYear === true ? evL("1년 이상 근무: 올해 확정·지급된 급여의 보름 평균 기본급 × 2 (한 달치). 초과·야간·가산·인센티브는 빠져요.", "1 year+ of service: half-month average basic pay of this year's finalized/paid payrolls × 2 (one month). No OT, night diff, premiums or incentives.") : t("p13_help")),
     paidList.length ? h("div", { class: "list" }, paidList) : null);
 }
 /* ---- SIL (paid leave) balance: base − used (monthly paid vacation §3.2 is separate) ---- */
@@ -1082,7 +1088,7 @@ async function due13Card() {
       h("td", {}, a?.requested_at ? h("span", {}, h("span", { class: "pill paid" }, "💰 " + t("r13_admReq") + " " + new Date(a.requested_at).toLocaleDateString()),
           a.date_ask_at && !pd ? h("span", { class: "pill " + (a.pay_date ? "paid" : "late"), style: "margin-left:4px" }, a.pay_date ? tf("d13_adm", { d: fmtLvDay(a.pay_date) }) : t("d13_admAsk")) : null)
         : a?.ok === false ? h("span", { class: "pill late", title: a.issue_note || "" }, "⚠️ " + (a.issue_note || "")) : a ? h("span", { class: "pill draft" }, "✓ " + new Date(a.ack_at).toLocaleDateString()) : h("span", { class: "pill draft" }, t("p13_notAck"))),
-      h("td", {}, pd ? h("span", { class: "pill paid" }, `${t("c13_paid")} ₱${money(pd.amount)}`) : h("button", { class: "btn sm", type: "button", onclick: () => pay13(e, year, P.total, P.amount, P.monthAvg) }, t("c13_pay")))));
+      h("td", {}, pd ? h("span", { class: "pill paid" }, `${t("c13_paid")} ₱${money(pd.amount)}`) : h("button", { class: "btn sm", type: "button", onclick: () => pay13(e, year, P.total, P.amount, P.monthAvg, P.oneYear) }, t("c13_pay")))));
   }
   tb.append(h("tr", { class: "sum" }, h("td", {}, t("c13_total_row")), h("td", {}), h("td", { class: "r" }, h("b", {}, money(tot))), h("td", {}), h("td", {})));
   card.append(h("div", { class: "tbl" }, tb));
