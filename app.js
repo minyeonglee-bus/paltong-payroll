@@ -689,6 +689,12 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-12c", ko: [
+      "📝 사유서·확인서는 이제 직접 쓰지 않고 골라요. 사유서(지각·늦게/일찍 퇴근, 개인 이유)는 교통 체증 · 개인 사유 (홀은 장부 검사도) — 지각은 공제되고 초과근무는 인정 안 돼요.",
+      "✅ 확인서(업무 이유)만 추가 지급 또는 지각 정상참작: 교대자 지각(교대자가 확인) · 배달 후 오버타임(기사: 주문 앱 배달을 고르면 픽업·배달완료 시간이 자동으로 들어가요) · 업무상 심부름(기사: 주문 앱 심부름 / 그 외: 시킨 사람이 확인). 확인되면 자동으로 승인돼요."],
+    en: [
+      "📝 Explanation letters / confirmations are now chosen, not typed. Explanation letter (late, staying late / leaving early for personal reasons): Traffic · Personal (hall: also Cash Book check) — late time is deducted and it is not overtime.",
+      "✅ Only a confirmation (work reason) gets extra pay or the late time excused: next shift was late (they confirm) · overtime after delivery (riders: pick the delivery from the order app — pick-up / delivered times are filled in) · work errand (riders: errand from the order app / others: the person who asked confirms). Approved automatically once confirmed."] },
   { id: "2026-11-12b", ko: [
       "🎁 13th month: 1년 이상 근무한 사람은 한 달치(보름 평균 기본급 × 2)만, 1년 미만은 올해 기본급 ÷ 12만 보여요. 명세서 상세도 같아요. 오버타임·야간 등은 빠지고 기본급만 들어가요."],
     en: [
@@ -1122,26 +1128,56 @@ function askReason(kind, r, loc) {
       h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", onclick: () => close() }, t("cancel")),
         h("button", { class: "btn primary", id: "who-send", onclick: () => { if (!pick.value) return toast(t("whoNeed"));
           const nm = list.find(c => c.id === pick.value)?.name || ""; send(prefix + pick.value, tf("whoSent", { n: nm }), close); } }, t("rsnSend")))]); };
+  /* owner 2026-11-12: choose, never type. 사유서 (personal: traffic / personal / hall Cash Book check) → noted automatically:
+     late minutes deducted, staying late not overtime. 확인서 (work only: next shift late · delivery · errand) → extra pay /
+     late excused — decided by the coworker's answer or the order app's delivery / errand times. */
+  const me = EMP.data?.employee || {}, hall = me.position === "waiter", rider = me.position === "rider";
+  const EX = "📝 " + evL("사유서 — 지각 공제 · 초과근무 인정 안 됨", "Explanation letter — late time deducted · not overtime");
+  const CF = "✅ " + evL("확인서 — 업무 이유: 승인되면 추가 지급 · 지각 정상참작", "Confirmation — work reason: extra pay / late excused when approved");
+  const group = (label, items) => [h("div", { class: "muted", style: "font-size:13px;margin-top:6px" }, label), ...items];
+  const pickSheet = (title, items) => { const close = sheet([h("h3", {}, title), head(),
+      h("div", { style: "display:grid;gap:8px" }, ...items.map(x => x.nodeType ? x : h("button", { class: "btn" + (x[3] ? " primary" : ""), type: "button", id: x[0], onclick: () => { close(); x[2](); } }, x[1])),
+        h("button", { class: "btn ghost", type: "button", onclick: () => close() }, t("cancel")))]); };
+  const exBtn = (id, label, code) => [id, label, () => send(code, evL("사유서로 기록됐어요", "Recorded as an explanation letter"))];
+  const hm = x => x ? fmtT(x) : "—";
+  const jobs = async kind => {   // rider: pick the delivery / errand from the order app
+    let j; try { j = await db.empJobs(EMP.no, EMP.pin); } catch (e) { j = { ok: false }; }
+    const list = j?.ok ? (kind === "delivery" ? j.deliveries : j.errands) || [] : [];
+    const title = kind === "delivery" ? "🛵 " + evL("배달 후 오버타임", "Overtime after delivery") : "📦 " + evL("업무상 심부름", "Work errand");
+    if (!list.length) {
+      if (kind === "errand") return pickSheet(title, [h("p", { class: "muted" }, evL("주문 앱에 오늘 심부름 기록이 없어요. 심부름을 시킨 사람을 고르면 그 사람이 확인해요.", "No errand in the order app today. Pick who asked you — they will confirm.")),
+        ["job-who", evL("시킨 사람 고르기", "Pick who asked"), () => who(title, "#errandby:"), true]]);
+      return pickSheet(title, [h("p", { class: "muted" }, evL("주문 앱에 오늘 배달 기록이 없어요 (기사 앱에서 픽업·배달완료를 눌렀는지 확인해 주세요).", "No delivery in the order app today (check you pressed picked up / delivered in the rider app)."))]);
+    }
+    pickSheet(title, [h("small", { class: "muted" }, evL("주문 앱 기록이에요. 하나를 고르면 시간이 확인서에 자동으로 들어가요.", "From the order app. Pick one — the times go on the confirmation automatically.")),
+      ...list.slice(0, 15).map(x => [`job-${x.id}`, kind === "delivery" ? `#${x.no}${x.zone ? " · " + x.zone : ""} · ${evL("픽업", "picked up")} ${hm(x.picked)} → ${evL("배달완료", "delivered")} ${hm(x.delivered)}`
+        : `${x.title || ""}${x.place ? " · " + x.place : ""} · ${hm(x.started)} → ${hm(x.done)}`, () => send(`#${kind}:${x.id}`, evL("확인서로 기록됐어요", "Recorded as a confirmation"))]),
+      ...(kind === "errand" ? [["job-who", evL("목록에 없어요 → 시킨 사람 고르기", "Not in the list → pick who asked"), () => who(title, "#errandby:")]] : [])]);
+  };
+  const errand = () => rider ? jobs("errand") : who("📦 " + evL("업무상 심부름 — 시킨 사람", "Work errand — who asked you"), "#errandby:");
   if (r.early) return choose(t("eqTitle"), t("eqQ"), [
     ["eq-cover", t("eqCover"), () => who(t("eqCover"), "#cover:"), true],
     ["eq-personal", t("eqPersonal"), () => send("#personal", tf("clockDone", { k: t("punchIn"), t: fmtT(r.at) }))]]);
-  if (r.late_in) return write(t("liTitle"), t("liLbl"), "");
-  if (r.early_out) return write(t("eoTitle"), t("eoLbl"), "");
-  if (r.late_out) { const hall = (EMP.data?.employee?.position || "") === "waiter";
-    return choose(t("loTitle"), t("loQ"), [
-      ["lo-relief", t("loRelief"), () => who(t("loRelief"), "#relief:"), true],
-      ["lo-work", t("loWork"), () => !hall ? write(t("loWork"), t("rsnWork"), "#work:") : choose(t("loWork"), t("cbQ"), [
-        ["cb-yes", t("cbYes"), () => { const c3 = sheet([h("p", { style: "font-weight:700" }, t("cbMsg")), h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn primary", type: "button", id: "cb-ok", onclick: () => send("#cashbook", t("cbMsg"), c3) }, t("ok")))]); }],
-        ["cb-no", t("cbNo"), () => write(t("loWork"), t("rsnWork"), "#work:"), true]])],
-      ["lo-personal", t("loPersonal"), () => write(t("loPersonal"), t("rsnPersonal"), "#personal:")]]); }
-  return write(t("rsnTitle"), t("rsnLbl"), "");   // no shift that day
+  if (r.late_in) return pickSheet(t("liTitle"), [
+    ...group(EX, [exBtn("li-traffic", "🚗 " + evL("교통 체증 (트래픽)", "Traffic"), "#traffic"), exBtn("li-personal", "🙋 " + evL("개인 사유", "Personal reason"), "#personal")]),
+    ...group(CF, [["li-errand", "📦 " + evL("업무상 심부름", "Work errand"), errand]])]);
+  if (r.early_out) return pickSheet(t("eoTitle"), group(EX, [exBtn("eo-personal", "🙋 " + evL("개인 사유", "Personal reason"), "#personal"), exBtn("eo-traffic", "🚗 " + evL("교통 체증 (트래픽)", "Traffic"), "#traffic")]));
+  if (r.late_out) return pickSheet(t("loTitle"), [
+    ...group(CF, [["lo-relief", "👥 " + evL("교대자 지각 (교대자가 확인)", "Next shift was late (they confirm)"), () => who(t("loRelief"), "#relief:"), true],
+      rider ? ["lo-delivery", "🛵 " + evL("배달 후 오버타임", "Overtime after delivery"), () => jobs("delivery"), true] : null,
+      ["lo-errand", "📦 " + evL("업무상 심부름", "Work errand"), errand]].filter(Boolean)),
+    ...group(EX, [exBtn("lo-personal", "🙋 " + evL("개인 사유", "Personal reason"), "#personal"), exBtn("lo-traffic", "🚗 " + evL("교통 체증 (트래픽)", "Traffic"), "#traffic"),
+      hall ? exBtn("lo-cashbook", "📒 " + evL("장부 검사", "Cash Book check"), "#cashbook") : null].filter(Boolean))]);
+  return pickSheet(t("rsnTitle"), [   // no shift that day
+    ...group("✅ " + evL("확인서 — 사장님이 승인", "Confirmation — the owner approves"), [["ns-boss", "📞 " + evL("사장님·매니저가 불러서 (업무)", "Called in for work by the owner / manager"), () => send("#boss"), true]]),
+    ...group(EX, [exBtn("ns-personal", "🙋 " + evL("개인 사유", "Personal reason"), "#personal")])]);
 }
 /* ---- staff: a coworker wrote your name (covered for you / stayed because you were late) → confirm ---- */
 function mentionsCard(v) {
   const list = (v.mentions || []); if (!list.length) return null;
   return h("div", { class: "card", id: "my-mentions", style: list.some(m => !m.ack_at) ? "border:2px solid var(--gold)" : "" }, h("h2", {}, "🔔 " + t("mnTitle")),
     h("div", { class: "list" }, list.map(m => h("div", { class: "item", style: "display:block" },
-      h("div", {}, tf(m.mode === "cover" ? "mnCover" : "mnRelief", { n: m.by, t: fmtDT(m.at) })),
+      h("div", {}, m.mode === "errand" ? evL(`${m.by}님이 ${fmtDT(m.at)}에 "당신이 업무상 심부름을 시켰다"고 했어요. 맞나요?`, `${m.by} said you asked them to do a work errand (${fmtDT(m.at)}). Is that right?`) : tf(m.mode === "cover" ? "mnCover" : "mnRelief", { n: m.by, t: fmtDT(m.at) })),
       m.ack_at ? h("span", { class: "pill " + (m.ok ? "paid" : "late") }, m.ok ? t("mnYes") : t("mnNo"))
         : h("div", { class: "row", style: "gap:6px;margin-top:6px" },
             h("button", { class: "btn sm primary", type: "button", onclick: async () => { try { const r = await db.mentionAck(EMP.no, EMP.pin, m.id, true); if (!r.ok) throw new Error(pinErr(r.err, "noData")); EMP.data = await db.empView(EMP.no, EMP.pin); renderStaffHome(); } catch (e) { toast(errMsg(e)); } } }, t("mnYes")),
@@ -1178,7 +1214,7 @@ async function reviewCard() {
         h("span", { class: "pill " + (p.status === "approved" ? "paid" : p.status === "rejected" ? "late" : "draft") }, t(p.status === "rejected" ? "rv_st_rejected" : "st_" + p.status)), h("span", { class: "sp" }),
         p.status === "pending" ? h("button", { class: "btn sm primary", onclick: async () => { try { await db.decidePunch(p.id, "approved"); render(); } catch (e) { toast(errMsg(e)); } } }, t("rv_ok")) : null,
         p.status === "pending" ? h("button", { class: "btn sm", onclick: async () => { try { await db.decidePunch(p.id, "rejected"); render(); } catch (e) { toast(errMsg(e)); } } }, t("rv_no")) : null,
-        h("button", { class: "btn sm", onclick: () => printLetter(p) }, "🖨 " + (["work", "cover", "relief"].includes(p.mode) || (p.mode === "personal" && p.kind === "in") ? t("lt_conf") : t("lt_ex"))),
+        h("button", { class: "btn sm", onclick: () => printLetter(p) }, "🖨 " + (isConf(p) ? t("lt_conf") : t("lt_ex"))),
         h("button", { class: "btn sm ghost", onclick: () => confirmSheet(t("rv_void") + "?", async () => { try { await db.decidePunch(p.id, "void"); render(); } catch (e) { toast(errMsg(e)); } }, { ask: true }) }, t("rv_void"))),
       h("div", { class: "muted", style: "font-size:13px" }, t("rsnPlan") + " " + (p.plan_shift && !/^(off|sil)$/.test(p.plan_shift) ? SHIFT_LABEL(p.plan_shift) : "—") + " · " + devText(p.plan_shift, p.dev_min)),
       h("div", { style: "margin-top:2px" }, "“" + (p.reason || "—") + "”"),
@@ -1188,7 +1224,8 @@ async function reviewCard() {
   if (done.length) card.append(h("details", {}, h("summary", { class: "muted" }, t("rv_done") + ` (${done.length})`), h("div", { class: "list" }, done.map(line))));
   return card;
 }
-const isConf = p => ["work", "cover", "relief"].includes(p.mode) || (p.mode === "personal" && p.kind === "in");
+const CONF_MODES = ["work", "cover", "relief", "delivery", "errand", "boss"];   // 확인서 (work reasons) — the rest are 사유서
+const isConf = p => CONF_MODES.includes(p.mode) || (p.mode === "personal" && p.kind === "in" && (p.dev_min ?? 0) < 0);
 const letterName = p => `${isConf(p) ? "Confirmation" : "Explanation letter"} - ${p.employees?.info?.full_name || p.employees?.name || ""} - ${fmtD(p.punched_at)}`;
 function printLetter(p) { docSheet(letterDoc(p, sigOf(p.employee_id)), letterName(p)); }
 function letterDoc(p, sig) {
@@ -1198,16 +1235,24 @@ function letterDoc(p, sig) {
   const dev = p.dev_min == null ? "No shift scheduled" : p.dev_min > 0 ? `${p.dev_min} minute(s) late` : `${-p.dev_min} minute(s) early`;
   const row = (a, b) => h("tr", {}, h("th", { style: "text-align:left;width:38%;padding:6px;border:1px solid #999;background:#f3f3f3" }, a), h("td", { style: "padding:6px;border:1px solid #999" }, b));
   return h("div", { class: "slip", style: "font-family:Arial,sans-serif;color:#000;background:#fff;padding:24px;max-width:720px" },
-    h("h2", { style: "text-align:center;margin:0 0 4px" }, ["work", "cover", "relief"].includes(p.mode) || (p.mode === "personal" && p.kind === "in") ? "CONFIRMATION / 확인서" : "EXPLANATION LETTER / 사유서"), h("div", { style: "text-align:center;margin-bottom:16px" }, "Paltong"),
+    h("h2", { style: "text-align:center;margin:0 0 4px" }, isConf(p) ? "CONFIRMATION / 확인서" : "EXPLANATION LETTER / 사유서"), h("div", { style: "text-align:center;margin-bottom:16px" }, "Paltong"),
     h("table", { style: "width:100%;border-collapse:collapse;font-size:14px" },
       row("Employee name", name), row("Position", e.position || ""), row("Date", d.toLocaleDateString("en-PH", { timeZone: "Asia/Manila", year: "numeric", month: "long", day: "numeric", weekday: "short" })),
       row(p.kind === "in" ? "Clock in" : "Clock out", d.toLocaleTimeString("en-PH", { timeZone: "Asia/Manila", hour: "2-digit", minute: "2-digit" })), row("Scheduled shift", plan), row("Difference", dev),
       row("Status", p.status === "approved" ? "Approved (reason accepted)" : p.status === "rejected" ? "Noted (reason not accepted)" : "Waiting for approval") ),
     h("h3", { style: "margin:18px 0 6px" }, "Reason / 사유"), h("div", { style: "border:1px solid #999;min-height:110px;padding:10px;white-space:pre-wrap;font-size:14px" }, p.reason || ""),
-    h("p", { style: "font-size:13px;margin:14px 0 0" }, ["work", "cover", "relief"].includes(p.mode)
+    p.job ? h("table", { style: "width:100%;border-collapse:collapse;font-size:14px;margin-top:10px" },
+      row(p.job.type === "delivery" ? "Delivery (order app)" : "Errand (order app)", p.job.type === "delivery" ? `#${p.job.no || ""}${p.job.zone ? " · " + p.job.zone : ""}` : `${p.job.title || ""}${p.job.place ? " · " + p.job.place : ""}`),
+      row(p.job.type === "delivery" ? "Picked up → delivered" : "Started → done", `${p.job.picked || p.job.started ? fmtT(p.job.picked || p.job.started) : "—"} → ${p.job.delivered || p.job.done ? fmtT(p.job.delivered || p.job.done) : "—"}`),
+      row("Checked", p.job.verified ? "Matches the order app — approved automatically" : "Not matched — waiting for the manager")) : null,
+    h("p", { style: "font-size:13px;margin:14px 0 0" }, ["delivery", "errand", "boss"].includes(p.mode) && p.kind === "in" && (p.dev_min ?? 0) > 0
+      ? "I was late for the work reason above. I agree that the late time is excused only if this is confirmed / approved."
+      : CONF_MODES.includes(p.mode)
       ? "I worked outside my scheduled hours for the work reason above" + (p.other?.name ? ` (coworker: ${p.other.name}${p.other_ack_at ? (p.other_ok ? " — confirmed" : " — denied") : " — not yet confirmed"})` : "") + ". I agree that this time is recorded as overtime and paid only if approved by the manager."
-      : p.mode === "personal" && p.kind === "in" ? "I came in before my scheduled time for a personal reason (to avoid being late). I confirm this time is not work time and is not paid."
+      : p.mode === "personal" && p.kind === "in" && (p.dev_min ?? 0) < 0 ? "I came in before my scheduled time for a personal reason (to avoid being late). I confirm this time is not work time and is not paid."
       : p.mode === "cashbook" ? "The Cash Book must be closed before the end of the shift; this time is not overtime."
+      : p.kind === "in" && (p.dev_min ?? 0) > 0 ? "I confirm that I was late for the personal reason above. I understand the late minutes are deducted from my salary."
+      : p.kind === "out" && (p.dev_min ?? 0) < 0 ? "I confirm that I left early for the personal reason above. I understand only the time until I clocked out is paid."
       : "I confirm that the information above is true and correct. This time is for a personal reason and is not overtime."),
     h("div", { style: "display:flex;gap:40px;margin-top:36px" }, sigLine("Employee signature / Date", sig, fmtD(p.punched_at)), sigLine("Manager signature" + (mgrName() ? " / " + mgrName() : "") + " / Date", p.status === "approved" || p.status === "rejected" ? mgrSig() : null, p.decided_at && p.status !== "pending" ? fmtD(p.decided_at) : "")));
 }

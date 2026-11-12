@@ -14,7 +14,7 @@ export const idToEmail = id => { id = String(id || "").trim().toLowerCase(); ret
 // Phones on weak mobile data often drop a request before it reaches the server ("TypeError: Failed to fetch").
 // Retry those automatically — but only for reads and for staff writes the server already guards against doubling
 // (one-time / locked values), so a retried request can never create a second punch, advance, etc.
-const RETRY_RPC = new Set(["pr_emp_view", "pr_emp_token", "pr_emp_set_hired", "pr_emp_set_sil", "pr_emp_intro_done", "pr_emp_ack", "pr_emp_ack13", "pr_emp_req13", "pr_emp_set_signature", "pr_emp_event_get", "pr_emp_event_set", "pr_emp_recv"]);
+const RETRY_RPC = new Set(["pr_emp_view", "pr_emp_token", "pr_emp_set_hired", "pr_emp_set_sil", "pr_emp_intro_done", "pr_emp_ack", "pr_emp_ack13", "pr_emp_req13", "pr_emp_set_signature", "pr_emp_event_get", "pr_emp_event_set", "pr_emp_recv", "pr_emp_jobs"]);
 async function retryFetch(input, init = {}) {
   const url = typeof input === "string" ? input : input.url, method = String(init.method || "GET").toUpperCase();
   const rpc = (url.match(/\/rest\/v1\/rpc\/([a-z0-9_]+)/) || [])[1];
@@ -181,6 +181,7 @@ export async function punch(no, pin, kind, reason = null, loc = null) { return m
 export async function empEventGet(no, pin, event) { return must(await sb.rpc("pr_emp_event_get", { p_no: String(no).trim(), p_pin: String(pin), p_event: event })); }
 export async function empEventSet(no, pin, event, day, choice) { return must(await sb.rpc("pr_emp_event_set", { p_no: String(no).trim(), p_pin: String(pin), p_event: event, p_day: day, p_choice: choice })); }
 export async function listEventResp(event) { return must(await sb.from("pr_event_resp").select("day, choice, updated_at, employee_id").eq("event", event)); }
+export async function empJobs(no, pin) { return must(await sb.rpc("pr_emp_jobs", { p_no: String(no).trim(), p_pin: String(pin) })); }   // rider: deliveries / errands from the order app (pr_letters_auto.sql)
 export async function mentionAck(no, pin, id, ok) { return must(await sb.rpc("pr_mention_ack", { p_no: String(no).trim(), p_pin: String(pin), p_punch: id, p_ok: ok })); }
 export async function registerStoreIp() { return must(await sb.rpc("pr_store_ip_register")); }
 /** owner: punches outside the schedule (pending first, then decided in the last `days` days) */
