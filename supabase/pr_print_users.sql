@@ -19,3 +19,13 @@ end $$;
 insert into public.pr_print_users (user_id, note)
 select s.user_id, 'Mina — manager, print only' from public.staff s where s.name = 'Mina' on conflict do nothing;
 update public.pr_employees set info = coalesce(info, '{}'::jsonb) || '{"no_payroll": true}' where name = 'Mina';
+
+-- Mina is not a coworker in the staff app (cannot be picked for 교대자 / 심부름 confirmations)
+do $do$ declare d text := pg_get_functiondef('public.pr_emp_view(text,text)'::regprocedure); n text;
+begin
+  if position('no_payroll' in d) > 0 then return; end if;
+  n := replace(d, $a$where o.active and o.resigned_on is null and o.id <> e.id and o.name <> 'test'$a$,
+                  $a$where o.active and o.resigned_on is null and o.id <> e.id and o.name <> 'test' and not coalesce((o.info->>'no_payroll')::boolean, false)$a$);
+  if n = d then raise exception 'coworker patch not applied'; end if;
+  execute n;
+end $do$;

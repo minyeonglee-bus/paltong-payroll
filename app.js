@@ -231,6 +231,9 @@ async function staffSignIn(no, pin) {
     EMP.no = String(no).trim(); EMP.pin = String(pin);
     try { localStorage.setItem("pp-empno", EMP.no); } catch {}
     if (v.must_change) return renderSetPin(v.name);
+    // Mina (manager, no_payroll): uses the admin login only — none of the staff screens / prompts (owner 2026-11-12)
+    if (v.employee?.info?.no_payroll) { saveTok(""); EMP.pin = ""; loginMode = "admin"; try { localStorage.setItem("pp-login", "admin"); } catch {}
+      return renderLogin(evL("관리자 로그인으로 들어오세요 (ID: mina)", "Please use the admin login (ID: mina)")); }
     if (!auto) try { const r = await db.empToken(EMP.no, pin); if (r.ok && r.token) { saveTok(r.token); EMP.pin = "tok:" + r.token; } } catch {}
     EMP.data = v; EMP.tab = "home"; renderStaffHome();
   } catch (e) { if (auto) return renderStaffLogin(null, no); renderStaffLogin(String(e.message || e), no); }
@@ -670,7 +673,7 @@ async function eventAdminCard() {
   if (today() > EVENT.until) return null;
   let rows = [], plan = {}; try { rows = await db.listEventResp(EVENT.id);
     plan = Object.fromEntries((await db.cashbookShifts(EVENT.days[0].day, EVENT.days[EVENT.days.length - 1].day)).map(r => [String(r.staff_name).trim().toLowerCase() + "|" + r.day, r.shift])); } catch (e) { return null; }
-  const emps = S.employees.filter(e => e.active && !e.resigned_on && e.name !== "test");
+  const emps = S.employees.filter(e => e.active && !e.resigned_on && e.name !== "test" && !e.info?.no_payroll);
   const nm = id => S.employees.find(e => e.id === id)?.name || "?";
   const card = h("div", { class: "card", id: "event-admin", style: "border:2px solid var(--gold)" }, h("h2", {}, "🎆 " + evL("연말 근무 신청 (직원 앱)", "New Year shift sign-up (staff app)")),
     h("small", { class: "muted" }, evL("직원이 누르면 스케줄에 자동 반영 (근무 → 해당 시간, 휴무 → OFF). 근무한 날은 정규 급여에서 빠지고 별도 지급.", "Answers go into the schedule automatically (work → event shift, off → OFF). Worked days are left out of the regular payroll (paid separately).")));
