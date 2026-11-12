@@ -42,7 +42,9 @@ export async function changePassword(pw) { must(await sb.auth.updateUser({ passw
 export async function me() {
   const { data } = await sb.auth.getUser(); if (!data.user) return null;
   const row = must(await sb.from("staff").select("*").eq("user_id", data.user.id).maybeSingle());
-  return row ? { ...row, email: data.user.email } : { user_id: data.user.id, name: data.user.email, role: "staff", email: data.user.email };
+  // print-only payroll login (pr_print_users.sql — Mina, manager): only the 🖨 인쇄 tab
+  let printer = false; try { printer = !!must(await sb.from("pr_print_users").select("user_id").eq("user_id", data.user.id).maybeSingle()); } catch { }
+  return row ? { ...row, email: data.user.email, printer } : { user_id: data.user.id, name: data.user.email, role: "staff", email: data.user.email, printer };
 }
 
 export async function getSettings() { return must(await sb.from("pr_settings").select("*").eq("id", 1).single()); }

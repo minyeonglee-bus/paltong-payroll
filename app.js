@@ -132,7 +132,7 @@ let lang = "ko"; try { lang = localStorage.getItem("pp-lang") || "ko"; } catch {
 const t = k => I18N[lang][k] ?? I18N.ko[k] ?? k;
 const pinErr = (err, fallback = "pinWrong") => t(err === "locked" ? "pinLocked" : err === "closed" ? "pinClosed" : err === "resigned" ? "punchResigned" : fallback);
 // 재직 중이거나, 이 기간 시작일 이후 퇴사한 직원 (마지막 급여 계산용)
-const onPayroll = (e, start) => e.active || (!!e.resigned_on && e.resigned_on >= start);
+const onPayroll = (e, start) => !e.info?.no_payroll && (e.active || (!!e.resigned_on && e.resigned_on >= start));   // no_payroll: paid outside the restaurant payroll (Mina, manager)
 const tf = (k, vars) => Object.entries(vars).reduce((s, [a, b]) => s.replaceAll(`{${a}}`, b), t(k));
 
 /* ---------- helpers ---------- */
@@ -525,7 +525,7 @@ function myDocsTab(v, emp) {
       list(letters.map(p => item(`${isConf(p) ? t("lt_conf") : t("lt_ex")} · ${fmtDT(p.punched_at)}`, "“" + p.reason + "”", () => docSheet(letterDoc(p, v.signature), letterName(p)))))),
     h("div", { class: "card" }, h("h2", {}, t("docs_adv")),
       list(advs.map(l => item(`${l.biz_date} · ₱${money(l.amount)}`, l.deducted ? t("led_deducted") : t("led_pending"), () => printAdvance(l, emp, v.signature))))),
-    h("div", { class: "card" }, h("h2", {}, t("docs_13")),
+    emp.info?.no_payroll ? null : h("div", { class: "card" }, h("h2", {}, t("docs_13")),
       list([item(`${year} · ${t("p13_final")} ₱${money(P13.amount)}`, t("p13_open"), () => slip13(emp, year, P13))]))];
 }
 /* ---- staff: cash advance tab ---- */
@@ -777,8 +777,10 @@ function renderStaffHome() {
       h("span", { style: "opacity:.85;font-size:13px" }, `${emp.name} · ${t("empNoLbl")} ${emp.emp_no}`),
       h("button", { onclick: () => { setLangOnly(lang === "ko" ? "en" : "ko"); renderStaffHome(); } }, lang === "ko" ? "EN" : "한"),
       h("button", { id: "e-logout", onclick: staffLogout }, t("logout"))),
-    h("div", { class: "tabs", role: "tablist", id: "staff-tabs" }, [["home", t("stab_home")], ["adv", t("stab_adv")], ["docs", t("stab_docs")]].map(([k, l]) => h("button", { role: "tab", id: "stab-" + k, "aria-selected": String((EMP.tab || "home") === k), onclick: () => { EMP.tab = k; renderStaffHome(); } }, l))),
-    h("main", { id: "main" }, myRecvCard(v), ...(EMP.tab === "adv" ? myAdvTab(v, emp) : EMP.tab === "docs" ? myDocsTab(v, emp) : [
+    h("div", { class: "tabs", role: "tablist", id: "staff-tabs" }, (emp.info?.no_payroll ? [["home", t("stab_home")], ["docs", t("stab_docs")]] : [["home", t("stab_home")], ["adv", t("stab_adv")], ["docs", t("stab_docs")]]).map(([k, l]) => h("button", { role: "tab", id: "stab-" + k, "aria-selected": String((EMP.tab || "home") === k), onclick: () => { EMP.tab = k; renderStaffHome(); } }, l))),
+    h("main", { id: "main" }, myRecvCard(v), ...(EMP.tab === "adv" && !emp.info?.no_payroll ? myAdvTab(v, emp) : EMP.tab === "docs" ? myDocsTab(v, emp) : emp.info?.no_payroll ? [
+      // Mina (manager, paid outside the restaurant payroll): no pay / advance / 13th / approval cards
+      myEventCard(), clockCard(), h("div", { class: "card" }, h("h2", {}, t("myShifts")), shifts), mySchedCard(v, emp), myInfoCard(emp)] : [
       my13DateCard(v),
       myEventCard(),
       finalCard,
@@ -1033,7 +1035,7 @@ async function silAdminCard() {
   const card = h("div", { class: "card", id: "sil-admin" }, h("h2", {}, `${t("sil_title")} · ${year}`), h("small", { class: "muted" }, t("sil_help")));
   let all = {}; try { all = await db.silAll(year); } catch (e) { card.append(h("p", { class: "muted" }, errMsg(e))); return card; }
   const tb = h("table", {}, h("tr", {}, h("th", {}, t("employee")), h("th", { class: "r" }, t("sil_base")), h("th", { class: "r" }, t("sil_before")), h("th", { class: "r" }, t("mpv_col")), h("th", { class: "r" }, t("sil_used")), h("th", { class: "r" }, t("sil_planned")), h("th", { class: "r" }, t("sil_left"))));
-  for (const e of S.employees.filter(e => e.active && e.name !== "test")) {
+  for (const e of S.employees.filter(e => !e.info?.no_payroll && (e.active && e.name !== "test"))) {
     const x = all[e.id]; if (!x) continue; const n = silNums(x);
     const inp = (k, val) => h("input", { type: "number", step: 0.5, min: 0, value: val, disabled: !owner, style: "width:64px;text-align:right", onchange: async ev => {
       try { await db.saveSil({ employee_id: e.id, year, allowance: k === "allowance" ? +ev.target.value : n.base, used_before: k === "used_before" ? +ev.target.value : +x.used_before || 0 }); toast(t("saved")); render(); } catch (er) { toast(errMsg(er)); } } });
@@ -1086,7 +1088,7 @@ async function due13Card() {
   try { [rows, paid, acks] = await Promise.all([db.listPayrollsYear(year), db.listThirteenth(year).catch(() => []), db.listAck13(year).catch(() => [])]); } catch (e) { card.append(h("p", { class: "muted" }, errMsg(e))); return card; }
   const tb = h("table", {}, h("tr", {}, h("th", {}, t("employee")), h("th", { class: "r" }, t("p13_toDate")), h("th", { class: "r" }, t("p13_final")), h("th", {}, t("ackBtn")), h("th", {}, t("c13_status"))));
   let tot = 0;
-  for (const e of S.employees.filter(e => e.active && !e.resigned_on && e.name !== "test")) {
+  for (const e of S.employees.filter(e => !e.info?.no_payroll && (e.active && !e.resigned_on && e.name !== "test"))) {
     const periods = rows.filter(r => r.employee_id === e.id && (r.status === "paid" || r.shared_at) && r.result).map(r => ({ start: r.period_start, end: r.period_end, basic: +r.result.basicFor13th || 0 }));
     const P = proj13(periods, year, e); tot += P.amount;
     const a = acks.find(x => x.employee_id === e.id), pd = paid.find(x => x.employee_id === e.id);
@@ -1378,7 +1380,9 @@ function setLang(l) { lang = l; try { localStorage.setItem("pp-lang", l); } catc
 function render() {
   root.innerHTML = "";
   // owner 2026-11-12: no separate 급여 계산 tab (open a payroll from 지급 예정 / 급여 내역); 요청 first, 인쇄 on its own
-  const tabs = [["req", "📋 " + evL("요청", "Requests")], ["due", t("tab_due")], ["sched", t("tab_sched")], ["emp", t("tab_emp")], ["ledger", t("tab_ledger")], ["hist", t("tab_hist")], ["m13", t("tab_13")], ["print", "🖨 " + evL("인쇄", "Print")], ["set", t("tab_set")]];
+  const printOnly = S.user?.printer && S.user?.role !== "owner";   // Mina (manager): print signed documents only — nothing to approve or edit
+  if (printOnly) S.tab = "print";
+  const tabs = printOnly ? [["print", "🖨 " + evL("인쇄", "Print")]] : [["req", "📋 " + evL("요청", "Requests")], ["due", t("tab_due")], ["sched", t("tab_sched")], ["emp", t("tab_emp")], ["ledger", t("tab_ledger")], ["hist", t("tab_hist")], ["m13", t("tab_13")], ["print", "🖨 " + evL("인쇄", "Print")], ["set", t("tab_set")]];
   root.append(
     h("div", { class: "top" }, h("span", { class: "brand" }, t("app")), h("span", { class: "sp" }),
       h("span", { class: "muted", style: "color:inherit;opacity:.8;font-size:13px" }, S.user?.name || ""),
@@ -1438,7 +1442,7 @@ function menu() {
     h("h3", {}, S.user?.name || ""),
     h("button", { class: "btn", onclick: () => { close(); changePw(); } }, t("changePw")),
     S.user?.role === "owner" ? h("button", { class: "btn", onclick: () => { close(); pushSheet(); } }, t("push_menu")) : null,
-    S.user?.role === "owner" ? h("button", { class: "btn", id: "m-signed-print", onclick: () => { close(); signedPrintSheet(); } }, "🖨 " + evL("사인 완료 서류 한번에 인쇄", "Print all signed documents")) : null,
+    S.user?.role === "owner" || S.user?.printer ? h("button", { class: "btn", id: "m-signed-print", onclick: () => { close(); signedPrintSheet(); } }, "🖨 " + evL("사인 완료 서류 한번에 인쇄", "Print all signed documents")) : null,
     h("button", { class: "btn", onclick: async () => { await db.signOut(); location.reload(); } }, t("logout")),
     h("button", { class: "btn ghost", onclick: () => close() }, t("close")),
   ]);
@@ -1973,7 +1977,7 @@ async function bdayCard() {
   const pill = r => r.decided === "paid" ? h("span", { class: "pill paid" }, tf("bd_paid", { a: money(r.amount || amt) }))
     : r.decided === "denied" ? h("span", { class: "pill late" }, t("bd_denied")) : r.decided === "no_record" ? h("span", { class: "pill draft" }, t("bd_norec"))
     : h("span", { class: "pill " + (r.preview === "paid" ? "waiter" : "draft") }, r.preview === "paid" ? t("bd_ok") : t("bd_bad"));
-  const noBday = S.employees.filter(e => e.active && !e.resigned_on && !e.birthday && e.name !== "test").map(e => e.name);
+  const noBday = S.employees.filter(e => !e.info?.no_payroll && (e.active && !e.resigned_on && !e.birthday && e.name !== "test")).map(e => e.name);
   return h("div", { class: "card", id: "bday-card" }, h("h2", {}, t("bd_title")), h("small", { class: "muted" }, tf("bd_help", { a: money(amt) })),
     rows.length ? h("div", { class: "list" }, rows.map(r => h("div", { class: "item" }, h("div", { class: "t" }, r.name, " · ", String(r.bday).slice(5).replace("-", "/"), " ", pill(r)),
       h("div", { class: "s" }, r.reason || "")))) : h("p", { class: "muted" }, t("bd_none")),
@@ -1997,7 +2001,7 @@ async function cashIssuesCard() {
     done.length ? h("details", {}, h("summary", { class: "muted" }, t("cbDone")), h("div", { class: "list" }, done.map(item))) : null);
 }
 function issueForm(r) {
-  const people = S.employees.filter(e => e.active && !e.resigned_on && e.name !== "test");
+  const people = S.employees.filter(e => !e.info?.no_payroll && (e.active && !e.resigned_on && e.name !== "test"));
   const byName = n => people.find(e => e.name.toLowerCase() === String(n || "").trim().toLowerCase());
   // default = the employee who completed the order (order app), never the person who did the closing
   const emp = sel([["", "—"], ...people.map(e => [e.id, e.name])], byName(r.suggested)?.id || "", { id: "iEmp" });
@@ -2240,7 +2244,7 @@ async function renderReq() {
 async function renderPrint() {
   const main = document.getElementById("main");
   main.append(h("div", { class: "card", id: "print-signed" }, ...signedPrintUI()),
-    h("div", { class: "card" }, h("h2", {}, "🧾 " + evL("보름치 급여명세서 일괄 인쇄", "Payslips for a pay period")),
+    S.user?.role !== "owner" ? null : h("div", { class: "card" }, h("h2", {}, "🧾 " + evL("보름치 급여명세서 일괄 인쇄", "Payslips for a pay period")),
       h("small", { class: "muted", style: "display:block;margin-bottom:8px" }, evL("지급 예정 탭에서 기간을 고르고 '🖨 일괄 인쇄'를 누르면 A4 한 장에 6명씩 나와요.", "In the To pay tab choose the period and press 🖨 Print all — 6 per A4.")),
       h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => { S.tab = "due"; render(); } }, evL("지급 예정으로 →", "Go to To pay →")))));
 }
@@ -2263,7 +2267,7 @@ async function render13() {
   const yIn = h("input", { type: "number", id: "y13", value: year, step: 1, min: 2025, max: 2100, style: "width:110px", onchange: e => { M13.year = +e.target.value || year; render(); } });
   const tbl = h("table"); let tot = 0, totBasic = 0, totAvg = 0;
   tbl.append(h("tr", {}, h("th", {}, t("employee")), h("th", { class: "r" }, t("c13_periods")), h("th", { class: "r" }, t("c13_basicApp")), h("th", { class: "r" }, t("c13_basicBefore")), h("th", { class: "r" }, t("c13_total")), h("th", { class: "r" }, t("c13_amount")), h("th", { class: "r" }, t("c13_avg")), h("th", { class: "r" }, t("c13_proj")), h("th", {}, t("c13_status"))));
-  for (const e of S.employees.filter(e => e.active || rows.some(r => r.employee_id === e.id) || (e.resigned_on || "").startsWith(String(year)))) {
+  for (const e of S.employees.filter(e => !e.info?.no_payroll && (e.active || rows.some(r => r.employee_id === e.id) || (e.resigned_on || "").startsWith(String(year))))) {
     const { mine, basicApp, before, total, amount, avg, monthAvg, oneYear } = calc13(e, year, rows);
     const showBy12 = oneYear !== true, showAvg = oneYear !== false;   // 1년 미만 → ÷12만 · 1년 이상 → 월평균만 · 입사일 없음 → 둘 다
     const proj = oneYear === true ? monthAvg : Math.round((total + avg * Math.max(0, 24 - elapsedHalves)) / 12 * 100) / 100;
