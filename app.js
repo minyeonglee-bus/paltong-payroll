@@ -171,7 +171,7 @@ const errMsg = e => isNetErr(e) ? t("netErr") : e.message === "NO_PERMISSION" ? 
 const payTypeOf = emp => emp?.pay_type || "daily";
 
 /* ---------- state ---------- */
-const S = { user: null, settings: null, employees: [], tab: "pay", pay: null };
+const S = { user: null, settings: null, employees: [], tab: "req", pay: null };
 const root = document.getElementById("root");
 
 let HOL = {};
@@ -1377,17 +1377,18 @@ function setLang(l) { lang = l; try { localStorage.setItem("pp-lang", l); } catc
 
 function render() {
   root.innerHTML = "";
-  const tabs = [["pay", t("tab_pay")], ["sched", t("tab_sched")], ["emp", t("tab_emp")], ["ledger", t("tab_ledger")], ["due", t("tab_due")], ["hist", t("tab_hist")], ["m13", t("tab_13")], ["set", t("tab_set")]];
+  // owner 2026-11-12: no separate 급여 계산 tab (open a payroll from 지급 예정 / 급여 내역); 요청 first, 인쇄 on its own
+  const tabs = [["req", "📋 " + evL("요청", "Requests")], ["due", t("tab_due")], ["sched", t("tab_sched")], ["emp", t("tab_emp")], ["ledger", t("tab_ledger")], ["hist", t("tab_hist")], ["m13", t("tab_13")], ["print", "🖨 " + evL("인쇄", "Print")], ["set", t("tab_set")]];
   root.append(
     h("div", { class: "top" }, h("span", { class: "brand" }, t("app")), h("span", { class: "sp" }),
       h("span", { class: "muted", style: "color:inherit;opacity:.8;font-size:13px" }, S.user?.name || ""),
       h("button", { onclick: () => setLang(lang === "ko" ? "en" : "ko") }, lang === "ko" ? "EN" : "한"),
       h("button", { onclick: menu }, "⋯")),
-    h("div", { class: "tabs", role: "tablist" }, tabs.map(([k, l]) => h("button", { role: "tab", class: k === "due" ? "due" : "", "aria-selected": S.tab === k, onclick: () => { S.tab = k; render(); } }, l))),
+    h("div", { class: "tabs", role: "tablist" }, tabs.map(([k, l]) => h("button", { role: "tab", class: k === "due" ? "due" : "", "aria-selected": S.tab === k || (S.tab === "pay" && k === "due"), onclick: () => { S.tab = k; render(); } }, l))),
     h("div", { id: "pend-bar" }),
     h("main", { id: "main" }));
   pendingBar();
-  ({ pay: renderPay, sched: renderSched, emp: renderEmp, ledger: renderLedger, due: renderDue, hist: renderHist, m13: render13, set: renderSet })[S.tab]();
+  ({ req: renderReq, print: renderPrint, pay: renderPay, sched: renderSched, emp: renderEmp, ledger: renderLedger, due: renderDue, hist: renderHist, m13: render13, set: renderSet })[S.tab]();
 }
 /* ---- owner: web push on this device (approval alerts) ---- */
 const pushOK = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
@@ -1429,8 +1430,8 @@ async function pendingBar() {
   const go = (tab, id) => { S.tab = tab; render(); setTimeout(() => document.getElementById(id)?.scrollIntoView({ block: "start", behavior: "smooth" }), 400); };
   const chip = (n, k, tab, id) => +n ? h("button", { class: "btn sm", type: "button", style: "background:#fff;color:#111", onclick: () => go(tab, id) }, tf(k, { n })) : null;
   bar.append(h("div", { style: "display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 14px;background:var(--gold, #f5b800);color:#111;font-weight:700" },
-    h("span", {}, t("pend_title")), chip(p.leave, "pend_leave", "due", "sil-req-admin"), chip(p.punch, "pend_punch", "due", "punch-review"), chip(p.cash, "pend_cash", "ledger", "cash-issues"),
-    +p.recv ? h("button", { class: "btn sm", type: "button", style: "background:#fff;color:#111", onclick: () => go("due", "recv-admin") }, evL(`📥 받음 확인 ${p.recv}`, `📥 Received ${p.recv}`)) : null));
+    h("span", {}, t("pend_title")), chip(p.leave, "pend_leave", "req", "sil-req-admin"), chip(p.punch, "pend_punch", "req", "punch-review"), chip(p.cash, "pend_cash", "ledger", "cash-issues"),
+    +p.recv ? h("button", { class: "btn sm", type: "button", style: "background:#fff;color:#111", onclick: () => go("req", "recv-admin") }, evL(`📥 받음 확인 ${p.recv}`, `📥 Received ${p.recv}`)) : null));
 }
 function menu() {
   const close = sheet([
@@ -1626,7 +1627,7 @@ async function renderPay() {
   if (emp?.position === "rider") headFields.push(field(t("allowDay"), numIn("pAllow", "allowance_per_day", 10)));
   const note = monthly ? t("monthlyNote") : emp?.position === "rider" ? t("riderNote") : null;
   const head = h("div", { class: "card" },
-    h("div", { class: "row" }, h("h2", {}, t("tab_pay")), h("span", { class: "sp" }), P.id && h("span", { class: "pill " + (P.status === "paid" ? "paid" : P.shared_at ? "paid" : "draft") }, P.status === "paid" ? t("paid") : P.shared_at ? t("sharedPill") : t("draft")), P.id && (P.shared_at || P.status === "paid") && h("span", { class: "pill " + (P.ack_at ? "paid" : "draft"), title: P.ack_at ? new Date(P.ack_at).toLocaleString() : "" }, P.ack_at ? t("ackPill") : t("ackWait")),
+    h("div", { class: "row" }, h("button", { class: "btn sm ghost", type: "button", id: "pay-back", onclick: () => { S.tab = "due"; render(); } }, "← " + t("tab_due")), h("h2", {}, t("tab_pay")), h("span", { class: "sp" }), P.id && h("span", { class: "pill " + (P.status === "paid" ? "paid" : P.shared_at ? "paid" : "draft") }, P.status === "paid" ? t("paid") : P.shared_at ? t("sharedPill") : t("draft")), P.id && (P.shared_at || P.status === "paid") && h("span", { class: "pill " + (P.ack_at ? "paid" : "draft"), title: P.ack_at ? new Date(P.ack_at).toLocaleString() : "" }, P.ack_at ? t("ackPill") : t("ackWait")),
       emp && h("span", { class: "pill " + (emp.position || "") }, t("pos_" + emp.position), " · ", t("pt_" + P.pay_type).split(" (")[0], " · ", t("scheme_" + schemeOf(emp)))),
     h("div", { class: "grid2" }, headFields), note && h("small", { class: "muted" }, note), P.note && h("div", { class: "muted", style: "white-space:pre-line;padding:8px 10px;border-left:3px solid var(--gold);background:var(--bg);border-radius:6px" }, "📝 " + String(P.note).replaceAll("[[ACK]]", "\n\n✍ ")));
 
@@ -2086,7 +2087,7 @@ async function renderDue() {
   const mIn = h("input", { type: "month", value: DUE.month, onchange: e => { DUE.month = e.target.value; render(); } });
   const hSel = sel([[1, t("first")], [2, t("second")]], DUE.half, { onchange: e => { DUE.half = +e.target.value; render(); } });
   const head = h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_due")), h("span", { class: "sp" }), mIn, hSel), h("p", { class: "muted" }, h("span", { class: "spin" }), t("due_calc")));
-  main.append(await recvCard(), await silReqCard(), await reviewCard(), await due13Card(), head);
+  main.append(head);
   const emps = S.employees.filter(e => onPayroll(e, per.start) && e.name !== "test");
   let all, punches, older;
   try {
@@ -2176,7 +2177,8 @@ function slipCompact(r) {
 /* ---- 🖨 print every signed (completed) document in a date range at once (owner 2026-11-12) ----
    사유서·확인서: staff signed + manager decided (approved / noted) · 가불 확인서: requested (signed) by the staff in the app ·
    급여명세서: staff pressed "확인했어요" (signed). One document per page; payslips 6 per A4 like 🖨 일괄 인쇄. */
-function signedPrintSheet() {
+function signedPrintSheet() { const close = sheet(signedPrintUI(() => close())); }
+function signedPrintUI(onClose) {   // onClose: inside a sheet (⋯ menu) · none: the 🖨 인쇄 tab
   const from = h("input", { type: "date", id: "sp-from" }), to = h("input", { type: "date", id: "sp-to", value: today() });
   const kinds = [["letter", evL("사유서 · 확인서", "Explanation letters · confirmations")], ["adv", evL("가불 확인서", "Cash advance slips")], ["slip", evL("급여명세서 (직원 확인)", "Payslips (confirmed by staff)")]];
   const cbs = kinds.map(([k, label]) => h("label", { class: "row", style: "gap:6px;align-items:center" }, h("input", { type: "checkbox", checked: true, "data-k": k }), label));
@@ -2216,7 +2218,7 @@ function signedPrintSheet() {
       window.print(); // left in place until the next print (Android — see printOneDoc)
     } catch (er) { toast(errMsg(er)); }
   };
-  const close = sheet([h("h3", {}, "🖨 " + evL("사인 완료 서류 한번에 인쇄", "Print all signed documents")),
+  const parts = [h(onClose ? "h3" : "h2", {}, "🖨 " + evL("사인 완료 서류 한번에 인쇄", "Print all signed documents")),
     h("div", { class: "row", style: "gap:8px;flex-wrap:wrap" }, field(evL("시작일", "From"), from), field(evL("끝일", "To"), to)),
     h("div", { class: "row", style: "gap:6px;flex-wrap:wrap;margin:4px 0" },
       h("button", { class: "btn sm", type: "button", onclick: () => { from.value = ""; to.value = today(); docs = null; refresh(); } }, evL("오늘까지 전부", "Everything to today")),
@@ -2224,9 +2226,23 @@ function signedPrintSheet() {
       h("button", { class: "btn sm", type: "button", onclick: () => { from.value = today().slice(0, 8) + "01"; to.value = today(); docs = null; refresh(); } }, evL("이번 달", "This month"))),
     field(evL("직원", "Staff"), empSel), h("div", { style: "display:grid;gap:4px;margin:6px 0" }, ...cbs), info,
     h("small", { class: "muted", style: "display:block" }, evL("사인 완료 = 사유서·확인서는 직원 사인 + 사장님 처리(승인/반려), 가불 확인서는 직원이 앱에서 신청(사인)한 것, 급여명세서는 직원이 '확인했어요'를 누른 것. 서류마다 한 장, 급여명세서는 A4 한 장에 6개.", "Signed = letters: staff signature + owner decided · advances: requested (signed) by the staff in the app · payslips: staff pressed \"I confirm\". One document per page; payslips 6 per A4.")),
-    h("div", { class: "row", style: "margin-top:8px" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => close() }, t("close")),
-      h("button", { class: "btn primary", type: "button", id: "sp-go", onclick: go }, "🖨 " + t("print")))]);
+    h("div", { class: "row", style: "margin-top:8px" }, h("span", { class: "sp" }), onClose ? h("button", { class: "btn", type: "button", onclick: onClose }, t("close")) : null,
+      h("button", { class: "btn primary", type: "button", id: "sp-go", onclick: go }, "🖨 " + t("print")))];
   refresh();
+  return parts;
+}
+/* ---- owner tabs (2026-11-12): 요청 = everything waiting for a decision · 인쇄 = printing in one place ---- */
+async function renderReq() {
+  const main = document.getElementById("main");
+  main.append(h("div", { class: "card" }, h("h2", {}, "📋 " + evL("요청", "Requests")), h("small", { class: "muted" }, evL("직원이 보낸 것 중 사장님 확인이 필요한 것 — 받음 확인 · 휴가 신청 · 출퇴근 사유 · 13월급 요청.", "Everything from the staff that needs you — received pay · leave · clock-in/out reasons · 13th month requests."))),
+    await recvCard(), await silReqCard(), await reviewCard(), await due13Card());
+}
+async function renderPrint() {
+  const main = document.getElementById("main");
+  main.append(h("div", { class: "card", id: "print-signed" }, ...signedPrintUI()),
+    h("div", { class: "card" }, h("h2", {}, "🧾 " + evL("보름치 급여명세서 일괄 인쇄", "Payslips for a pay period")),
+      h("small", { class: "muted", style: "display:block;margin-bottom:8px" }, evL("지급 예정 탭에서 기간을 고르고 '🖨 일괄 인쇄'를 누르면 A4 한 장에 6명씩 나와요.", "In the To pay tab choose the period and press 🖨 Print all — 6 per A4.")),
+      h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => { S.tab = "due"; render(); } }, evL("지급 예정으로 →", "Go to To pay →")))));
 }
 function batchPrint(rows, s, e) {
   const sorted = rows.slice().sort((a, b) => String(a.employees?.name).localeCompare(String(b.employees?.name)));
