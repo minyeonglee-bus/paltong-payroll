@@ -229,3 +229,9 @@ tr.sum.neg td{border-bottom:2px solid var(--fg)}
 .slip .sig:has(.sigImg){margin-top:60px}
 #batchPrint .slip.mini .sig .sigImg{max-height:20px}
 #batchPrint .slip.mini .sig:has(.sigImg){margin-top:24px}
+
+/* 🖨 사인 완료 서류 한번에 인쇄: one document per page, payslips 2×3 per A4 after them */
+@media print{
+  body.print-signed #printOne .docPage{page-break-after:always;break-after:page}
+  body.print-signed #printOne #batchPrint{display:grid;grid-template-columns:1fr 1fr;gap:0;width:194mm;font-size:9px}
+}

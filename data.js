@@ -89,6 +89,10 @@ export async function listPayrolls({ from, to, employeeId, status } = {}) {
   if (status) q = q.eq("status", status);
   return must(await q);
 }
+/** owner: payslips the staff confirmed ("확인했어요" = signed), pay period ending between two dates */
+export async function listAckedPayrolls(from, to) {
+  return must(await sb.from("pr_payrolls").select("*, employees:pr_employees(name, position, info)").not("ack_at", "is", null).gte("period_end", from).lte("period_end", to).order("period_start").limit(2000));
+}
 export async function savePayroll(row) {
   return row.id ? must(await sb.from("pr_payrolls").update(row).eq("id", row.id).select().single())
                 : must(await sb.from("pr_payrolls").insert(row).select().single());
@@ -187,6 +191,11 @@ export async function listPunchReview(days = 30) {
 export async function decidePunch(id, status) {
   const { data: u } = await sb.auth.getUser();
   return must(await sb.from("pr_punches").update({ status, decided_at: new Date().toISOString(), decided_by: u?.user?.id || null }).eq("id", id).select().single());
+}
+/** owner: every explanation letter / confirmation (punch with a reason) between two Manila dates */
+export async function listLetters(from, to) {
+  const s = new Date(from + "T00:00:00+08:00").toISOString(), e = new Date(to + "T23:59:59.999+08:00").toISOString();
+  return must(await sb.from("pr_punches").select("*, employees:pr_employees!pr_punches_employee_id_fkey(name, position, info), other:pr_employees!pr_punches_other_emp_fkey(name)").neq("status", "void").not("reason", "is", null).gte("punched_at", s).lte("punched_at", e).order("punched_at").limit(2000));
 }
 /** owner: punches for a period (+ next-morning punches so an overnight shift's OUT is included) */
 export async function listPunches(employeeId, from, to) {

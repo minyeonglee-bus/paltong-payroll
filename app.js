@@ -394,7 +394,7 @@ function renderHiredFirst(err) {
    #printOne is hidden on screen, so leaving it there is harmless. */
 function clearPrint() {
   document.getElementById("printOne")?.remove(); document.getElementById("batchPrint")?.remove();
-  document.body.classList.remove("print-one", "print-simple", "print-batch");
+  document.body.classList.remove("print-one", "print-simple", "print-batch", "print-signed");
 }
 function printOneDoc(inner) {
   clearPrint();
@@ -446,11 +446,12 @@ async function docImage(doc, fileName) {
 // signature line used on printed letters: signature image above the line, name/date below
 const sigLine = (label, sig, date) => h("div", { style: "flex:1;font-size:13px" }, h("div", { style: "height:64px;display:flex;align-items:flex-end;justify-content:center" }, sigImg(sig, "max-height:60px;max-width:100%")),
   h("div", { style: "border-top:1px solid #000;padding-top:4px" }, label + (date ? " · " + date : "")));
-function printAdvance(l, emp, sig) {
+function printAdvance(l, emp, sig) { docSheet(advDoc(l, emp, sig), `Cash advance - ${fullName(emp)} - ${l.biz_date}`); }
+function advDoc(l, emp, sig) {
   const name = fullName(emp), p = periodForDate(l.biz_date);
   const reason = String(l.note || "").replace(/^📱 가불 신청 \(자동 승인\)( · )?/, "") || "";
   const row = (a, b) => h("tr", {}, h("th", { style: "text-align:left;width:38%;padding:6px;border:1px solid #999;background:#f3f3f3" }, a), h("td", { style: "padding:6px;border:1px solid #999" }, b));
-  docSheet(h("div", { class: "slip", style: "font-family:Arial,sans-serif;color:#000;background:#fff;padding:24px;max-width:720px" },
+  return h("div", { class: "slip", style: "font-family:Arial,sans-serif;color:#000;background:#fff;padding:24px;max-width:720px" },
     h("h2", { style: "text-align:center;margin:0 0 4px" }, "CASH ADVANCE / 가불 확인서"), h("div", { style: "text-align:center;margin-bottom:16px" }, "Paltong Restaurant"),
     h("table", { style: "width:100%;border-collapse:collapse;font-size:14px" },
       row("Employee name", name), row("Position", emp?.position || ""), row("Date", fmtD(l.biz_date + "T12:00:00+08:00")),
@@ -458,7 +459,7 @@ function printAdvance(l, emp, sig) {
       row("Requested", l.self_req_at ? "In the app · auto-approved · " + new Date(l.self_req_at).toLocaleString("en-PH", { timeZone: "Asia/Manila" }) : "Recorded by the manager"),
       reason ? row("Reason", reason) : null),
     h("p", { style: "font-size:13px;margin:14px 0 0" }, `I received a cash advance of ₱${money(l.amount)} and I authorize Paltong Restaurant to deduct this amount from my salary for the payroll period ${p.start} ~ ${p.end}.`),
-    h("div", { style: "display:flex;gap:40px;margin-top:36px" }, sigLine("Employee signature", sig, fmtD(l.self_req_at || l.created_at)), sigLine("Manager signature" + (mgrName() ? " / " + mgrName() : ""), mgrSig(), fmtD(l.created_at)))), `Cash advance - ${name} - ${l.biz_date}`);
+    h("div", { style: "display:flex;gap:40px;margin-top:36px" }, sigLine("Employee signature", sig, fmtD(l.self_req_at || l.created_at)), sigLine("Manager signature" + (mgrName() ? " / " + mgrName() : ""), mgrSig(), fmtD(l.created_at))));
 }
 /* ---- Certificate of Employment (COE) — supabase/pr_coe.sql · staff self-issue (Documents tab) or owner (Staff tab) ---- */
 const COE_POS = { waiter: "Service Crew", kitchen: "Kitchen Staff", rider: "Delivery Rider", other: "Staff" };
@@ -1391,6 +1392,7 @@ function menu() {
     h("h3", {}, S.user?.name || ""),
     h("button", { class: "btn", onclick: () => { close(); changePw(); } }, t("changePw")),
     S.user?.role === "owner" ? h("button", { class: "btn", onclick: () => { close(); pushSheet(); } }, t("push_menu")) : null,
+    S.user?.role === "owner" ? h("button", { class: "btn", id: "m-signed-print", onclick: () => { close(); signedPrintSheet(); } }, "🖨 " + evL("사인 완료 서류 한번에 인쇄", "Print all signed documents")) : null,
     h("button", { class: "btn", onclick: async () => { await db.signOut(); location.reload(); } }, t("logout")),
     h("button", { class: "btn ghost", onclick: () => close() }, t("close")),
   ]);
@@ -2125,6 +2127,61 @@ function slipCompact(r) {
     noteParts(r.note).main && h("div", { class: "slipNote" }, noteParts(r.note).main),
     h("div", { class: "sig" + (noteParts(r.note).acks.length ? " one" : "") }, h("div", {}, slipFinal(r) ? sigImg(mgrSig(), "") : null, "Employer · Date"), noteParts(r.note).acks.length ? null : h("div", {}, slipSig({ id: r.employee_id }, r.ack_at), "Employee / " + fullName(emp) + " · Date" + (r.ack_at && sigOf(r.employee_id) ? " " + fmtD(r.ack_at) : ""))),
     ackBlock(noteParts(r.note).acks, fullName(emp), r.ack_at && sigOf(r.employee_id), r.ack_at));
+}
+/* ---- 🖨 print every signed (completed) document in a date range at once (owner 2026-11-12) ----
+   사유서·확인서: staff signed + manager decided (approved / noted) · 가불 확인서: requested (signed) by the staff in the app ·
+   급여명세서: staff pressed "확인했어요" (signed). One document per page; payslips 6 per A4 like 🖨 일괄 인쇄. */
+function signedPrintSheet() {
+  const from = h("input", { type: "date", id: "sp-from" }), to = h("input", { type: "date", id: "sp-to", value: today() });
+  const kinds = [["letter", evL("사유서 · 확인서", "Explanation letters · confirmations")], ["adv", evL("가불 확인서", "Cash advance slips")], ["slip", evL("급여명세서 (직원 확인)", "Payslips (confirmed by staff)")]];
+  const cbs = kinds.map(([k, label]) => h("label", { class: "row", style: "gap:6px;align-items:center" }, h("input", { type: "checkbox", checked: true, "data-k": k }), label));
+  const empSel = sel([["", evL("전 직원", "All staff")], ...S.employees.slice().sort((a, b) => a.name.localeCompare(b.name)).map(e => [e.id, e.name])], "", { id: "sp-emp" });
+  const info = h("p", { class: "muted", id: "sp-info", style: "margin:6px 0" }, evL("시작일을 비우면 처음부터예요.", "Leave the start empty to print from the beginning."));
+  let docs = null;
+  const load = async () => {
+    const f = from.value || "2000-01-01", tt = to.value || today(), only = empSel.value || null, want = new Set(cbs.map(c => c.querySelector("input")).filter(i => i.checked).map(i => i.dataset.k));
+    if (f > tt) { toast(evL("시작일이 끝일보다 늦어요", "Start is after end")); return null; }
+    info.textContent = evL("불러오는 중…", "Loading…");
+    const [letters, advs, slips] = await Promise.all([
+      want.has("letter") ? db.listLetters(f, tt) : [],
+      want.has("adv") ? db.listLedger({ kind: "advance", from: f, to: tt }) : [],
+      want.has("slip") ? db.listAckedPayrolls(f, tt) : []]);
+    const byName = (a, b) => String(a.n).localeCompare(String(b.n)) || (a.d < b.d ? -1 : a.d > b.d ? 1 : 0);
+    const L = letters.filter(p => (!only || p.employee_id === only) && (p.status === "approved" || p.status === "rejected") && sigOf(p.employee_id))
+      .map(p => ({ n: p.employees?.name, d: p.punched_at, el: () => letterDoc(p, sigOf(p.employee_id)) })).sort(byName);
+    const A = advs.filter(l => (!only || l.employee_id === only) && l.self_req_at && sigOf(l.employee_id))   // signed = requested by the staff in the app (owner-entered ones were never signed)
+      .map(l => { const e = S.employees.find(x => x.id === l.employee_id) || { name: l.employees?.name }; return { n: e.name, d: l.biz_date, el: () => advDoc(l, e, sigOf(l.employee_id)) }; }).sort(byName);
+    const P = slips.filter(r => (!only || r.employee_id === only) && r.ack_at && (r.status === "paid" || r.shared_at) && r.period_end >= f && r.period_end <= tt)
+      .sort((a, b) => String(a.employees?.name).localeCompare(String(b.employees?.name)) || (a.period_start < b.period_start ? -1 : 1));
+    info.textContent = evL(`사유서·확인서 ${L.length} · 가불 확인서 ${A.length} · 급여명세서 ${P.length}`, `Letters ${L.length} · advances ${A.length} · payslips ${P.length}`);
+    return { L, A, P, total: L.length + A.length + P.length };
+  };
+  const refresh = async () => { try { docs = await load(); } catch (er) { info.textContent = ""; toast(errMsg(er)); } };
+  [from, to, empSel, ...cbs.map(c => c.querySelector("input"))].forEach(i => i.addEventListener("change", () => { docs = null; refresh(); }));
+  const go = async () => {
+    try {
+      docs ||= await load(); if (!docs) return;
+      if (!docs.total) { toast(evL("인쇄할 서류가 없어요", "Nothing to print")); return; }
+      clearPrint();
+      const page = el => h("div", { class: "docPage" }, el);
+      const box = h("div", { id: "printOne" }, ...docs.L.map(x => page(x.el())), ...docs.A.map(x => page(x.el())),
+        docs.P.length ? h("div", { id: "batchPrint" }, docs.P.map(slipCompact)) : null);
+      document.body.append(box); document.body.classList.add("print-one", "print-signed");
+      await Promise.all([...box.querySelectorAll("img")].map(i => i.complete ? null : new Promise(r => { i.onload = i.onerror = r; })));
+      window.print(); // left in place until the next print (Android — see printOneDoc)
+    } catch (er) { toast(errMsg(er)); }
+  };
+  const close = sheet([h("h3", {}, "🖨 " + evL("사인 완료 서류 한번에 인쇄", "Print all signed documents")),
+    h("div", { class: "row", style: "gap:8px;flex-wrap:wrap" }, field(evL("시작일", "From"), from), field(evL("끝일", "To"), to)),
+    h("div", { class: "row", style: "gap:6px;flex-wrap:wrap;margin:4px 0" },
+      h("button", { class: "btn sm", type: "button", onclick: () => { from.value = ""; to.value = today(); docs = null; refresh(); } }, evL("오늘까지 전부", "Everything to today")),
+      h("button", { class: "btn sm", type: "button", onclick: () => { const p = periodForDate(today()); from.value = p.start; to.value = today(); docs = null; refresh(); } }, evL("이번 보름", "This half-month")),
+      h("button", { class: "btn sm", type: "button", onclick: () => { from.value = today().slice(0, 8) + "01"; to.value = today(); docs = null; refresh(); } }, evL("이번 달", "This month"))),
+    field(evL("직원", "Staff"), empSel), h("div", { style: "display:grid;gap:4px;margin:6px 0" }, ...cbs), info,
+    h("small", { class: "muted", style: "display:block" }, evL("사인 완료 = 사유서·확인서는 직원 사인 + 사장님 처리(승인/반려), 가불 확인서는 직원이 앱에서 신청(사인)한 것, 급여명세서는 직원이 '확인했어요'를 누른 것. 서류마다 한 장, 급여명세서는 A4 한 장에 6개.", "Signed = letters: staff signature + owner decided · advances: requested (signed) by the staff in the app · payslips: staff pressed \"I confirm\". One document per page; payslips 6 per A4.")),
+    h("div", { class: "row", style: "margin-top:8px" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => close() }, t("close")),
+      h("button", { class: "btn primary", type: "button", id: "sp-go", onclick: go }, "🖨 " + t("print")))]);
+  refresh();
 }
 function batchPrint(rows, s, e) {
   const sorted = rows.slice().sort((a, b) => String(a.employees?.name).localeCompare(String(b.employees?.name)));
