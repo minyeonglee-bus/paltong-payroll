@@ -893,7 +893,8 @@ function myRecvCard(v) {
   const td = today(), year = +td.slice(0, 4);
   const pays = (v.payrolls || []).filter(p => (p.status === "paid" || p.shared) && p.result && p.period_end >= RECV_FROM && td >= p.period_end && !p.recv_at);
   const ack = (v.ack13 || []).find(a => a.year === year), x13 = (v.thirteenth || []).find(x => x.year === year);
-  const ask13 = ack?.requested_at && ack.ok !== false && !ack.recv_at && td >= (ack.pay_date || `${year}-12-24`) && (!x13?.paid_on || x13.paid_on >= "2026-11-12");
+  const ask13 = ack && !ack.recv_at && ((ack.requested_at && ack.ok !== false && td >= (ack.pay_date || `${year}-12-24`) && (!x13?.paid_on || x13.paid_on >= "2026-11-12"))
+    || (ack.recv_ask_at && x13?.paid_on));   // recv_ask_at: owner asked someone already paid to confirm (Lorence 11/13)
   if (!pays.length && !ask13) return null;
   const card = h("div", { class: "card", id: "my-recv", style: "border:3px solid var(--gold);background:#fffbea" }, h("h2", {}, "💵 " + evL("받으셨나요?", "Did you receive it?")),
     h("small", { class: "muted", style: "display:block;margin-bottom:8px" }, evL("받았으면 '받았어요'를 눌러 주세요. 누를 때까지 이 카드가 맨 위에 있어요.", "If you got it, press \"I received it\". This card stays on top until you do.")));
@@ -915,7 +916,7 @@ function myRecvCard(v) {
     const vSel = sel([["CASH", "Cash"], ["GCASH", "GCash"], ["MAYA", "Maya"], ["METROBANK", "Metrobank"]], x13?.paid_via && x13.paid_via !== "SAVINGBOX" ? x13.paid_via : "CASH", { id: "recv-13-via" });
     const label = `13th month ₱${money(amt)}`;
     card.append(h("div", { class: "row", style: "align-items:center;flex-wrap:wrap;padding:8px 0;border-top:1px dashed var(--line)" },
-      h("div", {}, h("b", {}, `13th month · ${year}`), h("div", { class: "muted" }, ack.pay_date ? fmtLvDay(ack.pay_date) : fmtLvDay(`${year}-12-24`))),
+      h("div", {}, h("b", {}, `13th month · ${year}`), h("div", { class: "muted" }, x13?.paid_on ? evL("지급 기록", "Recorded paid") + " " + fmtLvDay(x13.paid_on) : ack.pay_date ? fmtLvDay(ack.pay_date) : fmtLvDay(`${year}-12-24`))),
       h("span", { class: "sp" }), h("div", { class: "money", style: "font-size:24px;font-weight:800" }, "₱" + money(amt)),
       field(evL("받은 방법", "How did you get it?"), vSel),
       h("button", { class: "btn primary", type: "button", id: "recv-13", onclick: () => send("13", year, vSel.value, () => { ack.recv_at = new Date().toISOString(); ack.recv_via = vSel.value; }, label) }, "✅ " + evL("받았어요", "I received it"))));
