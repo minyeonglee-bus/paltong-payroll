@@ -24,15 +24,18 @@ create trigger pr_payrolls_aa_period before insert or update on public.pr_payrol
 
 create or replace function public.pr_cashbook_sync(pid uuid)
 returns void language plpgsql security definer set search_path = public as $$
-declare p public.pr_payrolls; e public.pr_employees; x record; hit uuid; bd date;
+declare p public.pr_payrolls; e public.pr_employees; x record; hit uuid; bd date; prev date;
 begin
   select * into p from public.pr_payrolls where id = pid;
   if not found then return; end if;
+  select min(biz_date) into prev from public.entries where pr_payroll_id = pid and staff_name = 'Payroll';
   delete from public.entries where pr_payroll_id = pid and staff_name = 'Payroll';
   update public.entries set pr_payroll_id = null, pr_part = null where pr_payroll_id = pid;
   if p.status <> 'paid' then return; end if;
   select * into e from public.pr_employees where id = p.employee_id;
   bd := public.pr_cb_bizdate(coalesce(p.paid_on, (now() at time zone 'Asia/Manila')::date));
+  -- re-sync after an edit: keep the business day the row was already on (night payment stays on the night's day)
+  if prev is not null and p.paid_on is not null and prev between p.paid_on - 1 and p.paid_on then bd := prev; end if;
   for x in select * from public.pr_payout_parts(p) loop
     select id into hit from public.entries
       where kind = 'staff' and note = 'salary' and pr_payroll_id is null and account = x.via
@@ -50,3 +53,23 @@ begin
     end if;
   end loop;
 end $$;
+
+-- owner 2026-11-15: cashbook follows the payroll, also for payrolls already paid — re-sync every paid payroll
+-- whose linked app-made cashbook rows differ (amount / method / missing part). Hand-entered history rows are not touched.
+create or replace function public.pr_cashbook_reconcile()
+returns int language plpgsql security definer set search_path = public as $$
+declare r record; n int := 0;
+begin
+  for r in
+    select distinct p.id from public.pr_payrolls p
+    where p.status = 'paid' and exists (select 1 from public.entries e where e.pr_payroll_id = p.id and e.staff_name = 'Payroll')
+      and (exists (select 1 from public.pr_payout_parts(p) x
+                   where not exists (select 1 from public.entries e where e.pr_payroll_id = p.id and e.pr_part = x.i
+                                     and abs(e.amount - x.amount) < 0.01 and e.account = x.via))
+           or exists (select 1 from public.entries e where e.pr_payroll_id = p.id
+                      and not exists (select 1 from public.pr_payout_parts(p) x where x.i = e.pr_part)))
+  loop perform public.pr_cashbook_sync(r.id); n := n + 1; end loop;
+  return n;
+end $$;
+revoke execute on function public.pr_cashbook_reconcile() from public, anon, authenticated;
+select public.pr_cashbook_reconcile();
