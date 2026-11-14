@@ -769,9 +769,9 @@ function whatsNewSheet(all) {
 }
 function renderStaffHome() {
   const v = EMP.data, emp = v.employee;
-  if (!emp.intro_seen_at) return renderIntro();
-  if (!v.signature) return renderSignFirst();
-  if (!emp.hired_self_at) return renderHiredFirst();
+  if (!EMP.preview && !emp.intro_seen_at) return renderIntro();
+  if (!EMP.preview && !v.signature) return renderSignFirst();
+  if (!EMP.preview && !emp.hired_self_at) return renderHiredFirst();
   root.innerHTML = "";
   const paid = v.payrolls.filter(p => (p.status === "paid" || p.shared) && p.result);
   const payList = h("div", { class: "list", id: "my-pay" }, paid.length ? paid.map(p => h("div", { class: "item", onclick: () => {
@@ -803,8 +803,9 @@ function renderStaffHome() {
     h("div", { class: "top" }, h("span", { class: "brand" }, t("app")), h("span", { class: "sp" }),
       h("span", { style: "opacity:.85;font-size:13px" }, `${emp.name} · ${t("empNoLbl")} ${emp.emp_no}`),
       h("button", { onclick: () => { setLangOnly(lang === "ko" ? "en" : "ko"); renderStaffHome(); } }, lang === "ko" ? "EN" : "한"),
-      h("button", { id: "e-logout", onclick: staffLogout }, t("logout"))),
+      h("button", { id: "e-logout", onclick: EMP.preview ? endPreview : staffLogout }, EMP.preview ? evL("관리자로", "Admin") : t("logout"))),
     h("div", { class: "tabs", role: "tablist", id: "staff-tabs" }, (emp.info?.no_payroll ? [["home", t("stab_home")], ["docs", t("stab_docs")]] : [["home", t("stab_home")], ["adv", t("stab_adv")], ["docs", t("stab_docs")]]).map(([k, l]) => h("button", { role: "tab", id: "stab-" + k, "aria-selected": String((EMP.tab || "home") === k), onclick: () => { EMP.tab = k; renderStaffHome(); } }, l))),
+    EMP.preview ? h("div", { id: "preview-bar", style: "background:var(--gold);color:#2a1c00;padding:8px 14px;font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px" }, "👀 " + evL("직원 화면 미리보기 · 보기만 돼요 (버튼은 작동 안 함)", "Staff screen preview · view only (buttons do not work)"), h("span", { class: "sp" }), h("button", { class: "btn sm", type: "button", onclick: endPreview }, evL("닫기", "Close"))) : null,
     h("main", { id: "main" }, myRecvCard(v), ...(EMP.tab === "adv" && !emp.info?.no_payroll ? myAdvTab(v, emp) : EMP.tab === "docs" ? myDocsTab(v, emp) : emp.info?.no_payroll ? [
       // Mina (manager, paid outside the restaurant payroll): no pay / advance / 13th / approval cards
       myEventCard(), clockCard(), h("div", { class: "card" }, h("h2", {}, t("myShifts")), shifts), mySchedCard(v, emp), myInfoCard(emp)] : [
@@ -1486,9 +1487,32 @@ function menu() {
     h("button", { class: "btn", onclick: () => { close(); changePw(); } }, t("changePw")),
     S.user?.role === "owner" ? h("button", { class: "btn", onclick: () => { close(); pushSheet(); } }, t("push_menu")) : null,
     S.user?.role === "owner" || S.user?.printer ? h("button", { class: "btn", id: "m-signed-print", onclick: () => { close(); signedPrintSheet(); } }, "🖨 " + evL("사인 완료 서류 한번에 인쇄", "Print all signed documents")) : null,
+    S.user?.role === "owner" ? h("button", { class: "btn", id: "m-preview", onclick: () => { close(); previewPick(); } }, "👀 " + evL("직원 화면 미리보기", "Preview staff screen")) : null,
     h("button", { class: "btn", onclick: async () => { await db.signOut(); location.reload(); } }, t("logout")),
     h("button", { class: "btn ghost", onclick: () => close() }, t("close")),
   ]);
+}
+/* ---- owner: preview one employee's staff screen, read-only (owner 2026-11-14 "나도 직원용 화면 볼 수 있게해줘") ---- */
+function previewPick() {
+  const list = (S.employees || []).filter(e => e.active && !e.info?.no_payroll);
+  const close = sheet([h("h3", {}, "👀 " + evL("누구 화면을 볼까요?", "Whose screen?")),
+    h("p", { class: "muted" }, evL("직원이 보는 화면 그대로 보여요. 보기만 되고 버튼은 작동하지 않아요. PIN을 아직 안 만든 직원은 볼 수 없어요.", "Shows exactly what the employee sees. View only — buttons do not work. Employees who have not set a PIN yet cannot be previewed.")),
+    h("div", { class: "list" }, list.map(e => h("div", { class: "item", onclick: () => { close(); startPreview(e); } }, h("div", { class: "t" }, e.name), h("div", { class: "s" }, `${t("empNoLbl")} ${e.emp_no}`)))),
+    h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => close() }, t("close")))]);
+}
+async function startPreview(e) {
+  try {
+    const v = await db.admEmpView(e.id);
+    if (!v.ok) return toast(v.err === "no_pin" ? evL("이 직원은 아직 PIN을 만들지 않았어요", "This employee has not set a PIN yet") : t("noData"));
+    db.setPreview(e.id);
+    Object.assign(EMP, { no: e.emp_no, pin: "preview", data: v, tab: "home", preview: true, newShown: false });
+    try { localStorage.removeItem("pr_new_seen_" + e.emp_no); } catch {}   // 미리보기에서는 새 기능 안내도 항상 보여 줌
+    renderStaffHome(); window.scrollTo(0, 0);
+  } catch (er) { toast(errMsg(er)); }
+}
+function endPreview() {
+  db.setPreview(null); Object.assign(EMP, { no: "", pin: "", data: null, preview: false });
+  document.getElementById("sheetRoot").innerHTML = ""; render(); window.scrollTo(0, 0);
 }
 function changePw() {
   const pw = h("input", { type: "password", id: "npw", minlength: 6 });
