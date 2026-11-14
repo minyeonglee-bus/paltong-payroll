@@ -2134,14 +2134,15 @@ async function renderHist() {
   const out = [];
   for (const [k, g] of Object.entries(groups)) {
     const [s, e] = k.split("|"); const tot = g.reduce((a, r) => a + (+r.result?.net || 0), 0);
-    out.push(h("div", { class: "card" }, h("div", { class: "row" }, h("h3", {}, periodLabel(s, e)), h("span", { class: "sp" }), h("span", { class: "money" }, `${t("total")} ₱${money(tot)}`),
+    out.push(h("div", { style: out.length ? "margin-top:18px;padding-top:14px;border-top:1px solid var(--line)" : "margin-top:14px" }, h("div", { class: "row" }, h("h3", {}, periodLabel(s, e)), h("span", { class: "sp" }), h("span", { class: "money" }, `${t("total")} ₱${money(tot)}`),
         h("button", { class: "btn sm", type: "button", onclick: () => batchPrint(g, s, e) }, "🖨 " + t("printBatch"))),
       h("div", { class: "list" }, g.map(r => h("div", { class: "item", onclick: () => { S.pay = { ...defaultPay(), employee_id: r.employee_id, month: s.slice(0, 7), half: +s.slice(8) === 1 ? 1 : 2, loaded: false }; S.tab = "pay"; render(); } },
         h("div", { class: "t" }, r.employees?.name, " ", h("span", { class: "pill " + r.status }, r.status === "paid" ? t("paid") : t("draft"))),
         h("div", { class: "s" }, `${t("pos_" + (r.employees?.position || "other"))} · ${r.result?.daysWorked ?? 0}d · OT ${r.result?.otHours ?? 0}h` + (r.paid_on ? ` · ${r.paid_on} ${r.paid_via || ""}` : "")),
         h("div", { class: "m money" }, "₱" + money(r.result?.net)))))));
   }
-  main.append(h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_hist")), h("span", { class: "sp" }), mIn)), ...(out.length ? out : [h("p", { class: "muted" }, t("hist_empty"))]));
+  // owner 2026-11-15: one card — the month filter and the payroll list together, not two separate boxes
+  main.append(h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_hist")), h("span", { class: "sp" }), mIn), ...(out.length ? out : [h("p", { class: "muted" }, t("hist_empty"))])));
 }
 
 /* ---- 지급 예정: every saved-but-unpaid payroll, grouped by period, with cash / GCash / bank totals ---- */
