@@ -698,12 +698,12 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
-  { id: "2026-11-14c", ko: [
+  { id: "2026-11-14d", ko: [
       "💰 캐시 어드밴스(가불) 안내: 화면에 표시된 한도 안에서 자유롭게 가져가시면 됩니다. 스케줄이 바뀌면 한도가 달라질 수 있으며, 줄어든 한도보다 많이 가져간 금액은 다음 급여에서 공제됩니다.",
-      "📱 신청 방법: 위쪽 '가불' 탭 → '신청 가능' 금액 확인 → 받는 방법(💵 현금 / 📱 GCash) 고르기 → 금액 적기 (사유는 선택) → '가불 신청'. 바로 자동 승인되고, 현금은 매장에서 · GCash는 GCash로 받아요. 처음이면 사인을 먼저 등록해야 해요."],
+      "📱 신청 방법: 위쪽 '가불' 탭 → '신청 가능' 금액 확인 → 받는 방법(💵 현금 / 📱 GCash) 고르기 → 금액 적기 (사유는 선택) → '가불 신청'. 바로 자동 승인돼요. 신청 후 홀 직원에게 요청하세요 (현금은 매장에서 · GCash는 GCash로 받아요). 처음이면 사인을 먼저 등록해야 해요."],
     en: [
       "💰 Cash advance: you can take any amount up to the limit shown on the screen. Your limit may go up or down if your schedule changes. If it goes down and you have already taken more than the new limit, the extra amount will be deducted from your next salary.",
-      "📱 How to request: tap the 'Advance' tab at the top → check 'You can request' → choose how to receive it (💵 Cash / 📱 GCash) → enter the amount (reason is optional) → tap 'Request advance'. It is approved right away; cash is given at the restaurant, GCash is sent to your GCash. If it is your first time, register your signature first."] },
+      "📱 How to request: tap the 'Advance' tab at the top → check 'You can request' → choose how to receive it (💵 Cash / 📱 GCash) → enter the amount (reason is optional) → tap 'Request advance'. It is approved right away. After requesting, ask the hall staff to give it to you (cash at the restaurant, or sent to your GCash). If it is your first time, register your signature first."] },
   { id: "2026-11-14b", ko: ["📅 급여날(15일·30일) 3일 전 ~ 3일 후에는 13th month를 받을 수 없어요. 그 날을 골랐던 사람은 홈 맨 위 카드에서 다른 날짜를 다시 골라 주세요."],
     en: ["📅 13th month pay cannot be given from 3 days before to 3 days after payday (15th and 30th). If you chose one of those days, please choose another date in the card at the top of Home."] },
   { id: "2026-11-14", ko: [
