@@ -150,6 +150,7 @@ export async function empCoe(no, pin, purpose, salary) { return must(await sb.rp
 export async function coeIssue(empId, purpose, salary) { return must(await sb.rpc("pr_coe_issue", { p_emp: empId, p_purpose: purpose, p_salary: !!salary })); }
 export async function empSetHired(no, pin, date) { return must(await sb.rpc("pr_emp_set_hired", { p_no: String(no).trim(), p_pin: String(pin), p_date: date })); }
 export async function empSetSil(no, pin, used) { return must(await sb.rpc("pr_emp_set_sil", { p_no: String(no).trim(), p_pin: String(pin), p_used: used })); }
+export async function empSetSilLeft(no, pin, left) { return must(await sb.rpc("pr_emp_set_sil_left", { p_no: String(no).trim(), p_pin: String(pin), p_left: left })); }
 export async function empToken(no, pin) { return must(await sb.rpc("pr_emp_token", { p_no: String(no).trim(), p_pin: String(pin) })); }
 export async function empLogout(no, token) { return must(await sb.rpc("pr_emp_logout", { p_no: String(no).trim(), p_token: String(token) })); }
 export async function empIntroDone(no, pin) { return must(await sb.rpc("pr_emp_intro_done", { p_no: String(no).trim(), p_pin: String(pin) })); }
