@@ -2130,7 +2130,8 @@ async function renderHist() {
   const main = document.getElementById("main");
   const rows = await db.listPayrolls(HF.month ? { from: HF.month + "-01", to: HF.month + "-31" } : {});
   const mIn = h("input", { type: "month", value: HF.month, onchange: e => { HF.month = e.target.value; render(); } });
-  const groups = {}; for (const r of rows) (groups[r.period_start + "|" + r.period_end] ||= []).push(r);
+  // one group per cutoff (period start) — never split the same cutoff because one row's end differs
+  const groups = {}; for (const r of rows) { const k = Object.keys(groups).find(x => x.startsWith(r.period_start + "|")) || r.period_start + "|" + r.period_end; (groups[k] ||= []).push(r); }
   const out = [];
   for (const [k, g] of Object.entries(groups)) {
     const [s, e] = k.split("|"); const tot = g.reduce((a, r) => a + (+r.result?.net || 0), 0);
