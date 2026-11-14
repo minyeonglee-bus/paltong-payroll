@@ -698,6 +698,8 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-14f", ko: ["⏳ 출퇴근 사유에서 다른 직원(교대자·심부름 시킨 사람)을 골랐는데 그 직원이 아직 확인하지 않았으면 홈 맨 위에 카드가 떠요. 확인이 안 되면 인정되지 않으니 그 직원에게 빨리 확인해 달라고 요청하세요."],
+    en: ["⏳ If you picked a coworker for a clock-in/out reason (next/previous shift, or who asked for an errand) and they have not confirmed yet, a card shows at the top of Home. It is not accepted until they confirm, so ask them to confirm soon."] },
   { id: "2026-11-14e", ko: [
       "💰 캐시 어드밴스(가불) 안내: 화면에 표시된 한도 안에서 자유롭게 가져가시면 됩니다. 스케줄이 바뀌면 한도가 달라질 수 있으며, 줄어든 한도보다 많이 가져간 금액은 다음 급여에서 공제됩니다.",
       "📱 신청 방법: 위쪽 '가불' 탭 → '신청 가능' 금액 확인 → 받는 방법(💵 현금 / 📱 GCash) 고르기 → 금액 적기 (사유는 선택) → '가불 신청'. 바로 자동 승인돼요. 신청 후 승인된 것을 확인하고 홀 직원에게 요청하세요 (현금은 매장에서 · GCash는 GCash로 받아요). 처음이면 사인을 먼저 등록해야 해요."],
@@ -809,6 +811,7 @@ function renderStaffHome() {
     h("main", { id: "main" }, myRecvCard(v), ...(EMP.tab === "adv" && !emp.info?.no_payroll ? myAdvTab(v, emp) : EMP.tab === "docs" ? myDocsTab(v, emp) : emp.info?.no_payroll ? [
       // Mina (manager, paid outside the restaurant payroll): no pay / advance / 13th / approval cards
       myEventCard(), clockCard(), h("div", { class: "card" }, h("h2", {}, t("myShifts")), shifts), mySchedCard(v, emp), myInfoCard(emp)] : [
+      myWaitCard(v),
       my13DateCard(v),
       mySilSelf(v.sil_sum, true),
       myEventCard(),
@@ -1219,6 +1222,16 @@ function askReason(kind, r, loc) {
     ...group(EX, [exBtn("ns-personal", "🙋 " + evL("개인 사유", "Personal reason"), "#personal")])]);
 }
 /* ---- staff: a coworker wrote your name (covered for you / stayed because you were late) → confirm ---- */
+/* ---- staff: coworker I picked has not confirmed yet (owner 2026-11-14) ---- */
+function myWaitCard(v) {
+  const list = (v.punches || []).filter(q => q.other && !q.other_ack_at && q.status === "pending" && ["cover", "relief", "errand"].includes(q.mode));
+  if (!list.length) return null;
+  return h("div", { class: "card", id: "my-wait", style: "border:2px solid var(--bad)" }, h("h2", {}, "⏳ " + evL("아직 확인 안 됐어요", "Not confirmed yet")),
+    ...list.map(q => h("div", { style: "margin-bottom:8px;line-height:1.5" },
+      h("b", {}, `${fmtDT(q.at)} · ${q.kind === "in" ? evL("출근", "IN") : evL("퇴근", "OUT")}`), h("br"),
+      evL(`${q.other}님이 아직 확인하지 않았어요. 확인이 안 되면 인정되지 않아요. ${q.other}님에게 앱에서 빨리 확인해 달라고 요청하세요.`,
+          `${q.other} has not confirmed yet. If it is not confirmed, it will not be accepted. Please ask ${q.other} to confirm it in the app soon.`))));
+}
 function mentionsCard(v) {
   const list = (v.mentions || []); if (!list.length) return null;
   return h("div", { class: "card", id: "my-mentions", style: list.some(m => !m.ack_at) ? "border:2px solid var(--gold)" : "" }, h("h2", {}, "🔔 " + t("mnTitle")),
