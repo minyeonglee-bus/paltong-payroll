@@ -801,11 +801,11 @@ const NOTICES = [
   { id: "2026-11-17-equip", title: { en: "Equipment Repair Policy", ko: "장비 수리 규칙" },
     en: [
       "If any equipment breaks down and the repair costs less than ₱10,000, call a technician and get it fixed right away. You do not need to wait for the owner's approval.",
-      "If broken equipment is not repaired, we cannot make menu items and sales fall below average, ALL incentives and bonuses will be cancelled for ALL staff for 3 months, as compensation for the loss to the business.",
+      "If broken equipment is not repaired, we cannot make menu items and sales fall below average, ALL incentives and bonuses will be cancelled for ALL staff, as compensation for the loss to the business, until the loss has been fully covered by the cancelled incentives and bonuses.",
       "This does not affect your salary, 13th month pay, SIL, overtime, holiday pay or any other pay required by law."],
     ko: [
       "장비가 고장 났고 수리비가 ₱10,000 미만이면 사장님 승인을 기다리지 말고 바로 기사를 불러 고치세요.",
-      "고장 난 장비를 고치지 않아서 메뉴를 못 만들고 매출이 평균보다 떨어지면, 영업 손해에 대한 배상으로 직원 전원의 모든 인센티브·보너스가 3개월간 없어요.",
+      "고장 난 장비를 고치지 않아서 메뉴를 못 만들고 매출이 평균보다 떨어지면, 영업 손해에 대한 배상으로, 취소된 인센티브·보너스로 손해금이 다 처리될 때까지 직원 전원의 모든 인센티브·보너스가 없어요.",
       "급여, 13th month, SIL, 오버타임, 공휴일 수당 등 법으로 정해진 돈은 영향이 없어요."] }];
 const noticeText = n => n.title.en + "\n" + n.en.map((x, i) => `${i + 1}. ${x}`).join("\n");
 const noticeAgreed = id => (EMP.notices || []).find(a => a.notice_id === id && a.agreed_at);
