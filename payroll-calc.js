@@ -111,7 +111,7 @@ export function computePayroll(days, opts) {
   const ndRate = paper ? 0 : ND_RATE;
 
   let basic = 0, premium = 0, otPay = 0, ndPay = 0, silPay = 0, holidayOffPay = 0, absentDed = 0;
-  let daysWorked = 0, halfDays = 0, hoursWorked = 0, otHours = 0, ndHours = 0, silDays = 0, holidayOffDays = 0, absentDays = 0;
+  let daysWorked = 0, halfDays = 0, hoursWorked = 0, otHours = 0, ndHours = 0, silDays = 0, holidayOffDays = 0, absentDays = 0, mpvDays = 0, mpvPay = 0;
   const rows = [];
   for (const d of days || []) {
     const t = DAY_TYPES[d.type] || DAY_TYPES.regular;
@@ -121,7 +121,7 @@ export function computePayroll(days, opts) {
     let base = 0, extra = 0, otp = 0, ndp = 0;
     if (t.paidDay) {
       if (!isMonthly) base = daily;                       // monthly: already inside the fixed salary
-      if (d.type === "sil") { silPay += base; silDays++; } else { holidayOffPay += base; holidayOffDays++; }
+      if (d.type === "sil") { silPay += base; silDays++; if (d.mpv) { mpvPay += base; mpvDays++; } /* mpv = monthly paid vacation §3.2, part of silPay */ } else { holidayOffPay += base; holidayOffDays++; }
     } else if (t.absent) {
       absentDays++; if (isMonthly) absentDed += daily;    // monthly: pro-rata deduction
     } else if (t.worked && (paper || sh.reg > 0)) {
@@ -164,7 +164,7 @@ export function computePayroll(days, opts) {
 
   return {
     scheme, payType, hourly: r2(hourly), dailyEquiv: r2(daily), perMinute: r2(perMin), monthly: r2(monthly), hoursPerDay: hpd,
-    daysWorked, halfDays, hoursWorked: r2(hoursWorked), otHours: r2(otHours), ndHours: r2(ndHours), silDays, holidayOffDays, absentDays, lateMinutes, rows,
+    daysWorked, halfDays, hoursWorked: r2(hoursWorked), otHours: r2(otHours), ndHours: r2(ndHours), silDays, holidayOffDays, absentDays, lateMinutes, rows, mpvDays, mpvPay: r2(mpvPay),
     basic: r2(basic), premium: r2(premium), otPay: r2(otPay), ndPay: r2(ndPay), silPay: r2(silPay), holidayOffPay: r2(holidayOffPay),
     allowance: r2(allowance), absentDed: r2(absentDed), late: r2(late), penalty: r2(penalty), incentive: r2(incentive), bonus: r2(bonus), gross: r2(gross),
     sss, philhealth, pagibig, advances: r2(advances), shortage: r2(shortage), otherDeduction: r2(otherDeduction),

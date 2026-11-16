@@ -129,6 +129,13 @@ export async function cashbookShifts(from, to) {
 }
 
 // 승인된 "휴무" 신청 (사장님 11/6: 신청 휴무는 Off(R)로 따로 표시) — 관리자만 읽힘(RLS), 아니면 빈 목록
+// approved monthly paid vacation (MPV, contract §3.2) — stored as 'sil' in the plan, shown as MPV (owner 11/17)
+export async function reqMpvDays(from, to, employeeId) {
+  let q = sb.from("pr_sil_req").select("day, employee_id, pr_employees(name)").eq("status", "approved").eq("kind", "mpv").gte("day", from).lte("day", to);
+  if (employeeId) q = q.eq("employee_id", employeeId);
+  const r = await q; if (r.error) return [];
+  return (r.data || []).filter(x => x.pr_employees).map(x => String(x.pr_employees.name).trim().toLowerCase() + "|" + x.day);
+}
 export async function reqOffDays(from, to) {
   const r = await sb.from("pr_sil_req").select("day, pr_employees(name)").eq("status", "approved").eq("kind", "off").gte("day", from).lte("day", to);
   if (r.error) return [];

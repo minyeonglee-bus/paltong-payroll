@@ -713,6 +713,8 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-17d", ko: ["🏷 스케줄·급여명세서에서 SIL(법정 유급휴가)과 MPV(개근휴가, 계약서 3.2조)를 따로 보여줘요."],
+    en: ["🏷 The schedule and payslips now show SIL (legal paid leave) and MPV (monthly paid vacation, contract §3.2) separately."] },
   { id: "2026-11-17c", ko: ["🔒 SIL(유급휴가)은 법대로 입사 1년 후부터 생겨요. 1년 미만이면 SIL 칸에 사용 가능 날짜가 보여요. 개근휴가는 그대로예요."],
     en: ["🔒 SIL (paid leave) starts after 1 year of service, as the law says. Under 1 year, the SIL card shows the date it starts. Monthly perfect-attendance leave is not affected."] },
   { id: "2026-11-17b", ko: ["🔧 홈의 '수리' 칸: 고장·재고 문제가 생기면 '수리 필요' → 무엇인지 적기 → 기사 날짜 넣기 또는 '찾는 중'. 찾는 중이면 앱을 열 때마다 '찾았나요?' 알림, 날짜가 되면 '고쳤어요' 알림이 떠요. '고쳤어요'까지 눌러야 보너스에 문제가 없어요. 금액이 ₱10,000 이상이면 사장님께 알림이 가요."],
@@ -1023,10 +1025,11 @@ function renderStaffHome() {
     return h("div", { class: "item" }, h("div", { class: "t" }, t("k_" + l.kind), " ", h("span", { class: "pill " + (l.deducted ? "paid" : "draft") }, l.deducted ? t("led_deducted") : t("led_pending"))),
       h("div", { class: "s" }, l.biz_date, " ", t("led_applies").replace("{p}", periodLabel(p.start, p.end)), noteOf(l) ? ` · ${noteOf(l)}` : ""), h("div", { class: "m money " + (l.kind === "bonus" ? "pos" : "neg") }, (l.kind === "bonus" ? "+" : "−") + money(l.amount))); })
     : h("span", { class: "muted" }, t("noData")));
+  const mpvMine = new Set((v.sil_reqs || []).filter(r => r.status === "approved" && r.kind === "mpv").map(r => String(r.day)));
   const shifts = h("div", { id: "my-shifts" }, v.payrolls.length ? v.payrolls.map(p => h("details", { class: "card", style: "margin:0 0 8px" },
       h("summary", {}, h("b", {}, periodLabel(p.period_start, p.period_end)), " ", h("span", { class: "pill " + (p.status === "paid" || p.shared ? "paid" : "draft") }, p.status === "paid" ? t("paid") : p.shared ? t("sharedStaff") : t("notPaidYet"))),
       h("div", { class: "tbl" }, h("table", {}, (p.days || []).filter(d => d.type !== "off" || d.shift).map(d => h("tr", {}, h("td", {}, d.date.slice(5) + " " + t("dow")[new Date(d.date + "T00:00:00").getDay()]),
-        h("td", {}, d.card || (d.shift ? SHIFT_LABEL(d.shift) : "—")), h("td", {}, t("type_" + d.type)))))))) : h("span", { class: "muted" }, t("noData")));
+        h("td", {}, d.card || (d.shift ? SHIFT_LABEL(d.shift) : "—")), h("td", {}, d.type === "sil" && (d.mpv || mpvMine.has(d.date)) ? "MPV · " + evL("개근휴가", "Monthly paid vacation") : d.type === "sil" ? "SIL · " + t("type_sil") : t("type_" + d.type)))))))) : h("span", { class: "muted" }, t("noData")));
   const openSlip = p => payslip({ start: p.period_start, end: p.period_end, daily_rate: p.daily_rate, status: p.status, paid_on: p.paid_on, paid_via: p.paid_via, note: p.note || "", ack_at: p.ack_at, pay_type: p.pay_type || "daily", monthly_rate: p.monthly_rate }, { name: emp.name, position: emp.position, info: emp.info, signature: v.signature }, p.result);
   const finals = v.payrolls.filter(p => p.shared && p.status !== "paid" && p.result);
   const finalCard = finals.length ? h("div", { class: "card", id: "my-final", style: "border:2px solid var(--gold)" }, h("h2", {}, t("myFinal")),
@@ -1070,7 +1073,7 @@ function renderStaffHome() {
     checkNotices().then(shown => { if (shown) EMP.afterNotice = rest; else rest(); }); }
 }
 const addD = (d, n) => { const x = new Date(d + "T00:00:00"); x.setDate(x.getDate() + n); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
-const planLabel = (v, req) => v === "off" ? (req ? "Off(R)" : t("off")) : v === "sil" ? "SIL" : SHIFT_LABEL(v);   // req = approved day-off request (owner 11/6)
+const planLabel = (v, req, mpv) => v === "off" ? (req ? "Off(R)" : t("off")) : v === "sil" ? (mpv ? "MPV" : "SIL") : SHIFT_LABEL(v);   // mpv = approved monthly paid vacation (stored as sil, owner 11/17)   // req = approved day-off request (owner 11/6)
 /* ---- staff: Cash Book plan for the next two weeks + own clock-ins ---- */
 function mySchedCard(v, emp) {
   const lo = addD(today(), -1), hi = addD(today(), 14);
@@ -1078,8 +1081,9 @@ function mySchedCard(v, emp) {
   const by = pairPunches((v.punches || []).map(q => ({ kind: q.kind, at: q.at })));
   const todayS = today();
   const reqOff = new Set((v.sil_reqs || []).filter(r => r.status === "approved" && r.kind === "off").map(r => String(r.day)));
+  const mpvSet = new Set((v.sil_reqs || []).filter(r => r.status === "approved" && r.kind === "mpv").map(r => String(r.day)));
   const rows = plan.map(r => h("tr", { class: r.day === todayS ? "today" : "" }, h("td", {}, r.day.slice(5) + " " + t("dow")[new Date(r.day + "T00:00:00").getDay()] + (r.day === todayS ? " · " + t("sched_today") : "")),
-    h("td", { class: r.shift === "off" && reqOff.has(r.day) ? "reqoff" : "" }, planLabel(r.shift, reqOff.has(r.day))), h("td", { class: "muted" }, by[r.day]?.shift ? by[r.day].shift.replace("-", "–") : by[r.day]?.in ? fmtT(by[r.day].in) + "–?" : "")));
+    h("td", { class: r.shift === "off" && reqOff.has(r.day) ? "reqoff" : "" }, planLabel(r.shift, reqOff.has(r.day), mpvSet.has(r.day))), h("td", { class: "muted" }, by[r.day]?.shift ? by[r.day].shift.replace("-", "–") : by[r.day]?.in ? fmtT(by[r.day].in) + "–?" : "")));
   return h("div", { class: "card" }, h("h2", {}, t("mySched")), h("small", { class: "muted" }, t("mySchedHelp")),
     rows.length ? h("div", { class: "tbl" }, h("table", {}, h("tr", {}, h("th", {}, t("month")), h("th", {}, t("roster")), h("th", {}, t("clock"))), ...rows)) : h("span", { class: "muted" }, t("noData")));
 }
@@ -1784,7 +1788,7 @@ const monthly = P.pay_type === "monthly";
   if (monthly && R.builtInOt) row(tf("basicSplit", { b: money(R.monthlyBasic / 2), o: money(R.builtInOt) }), "");
   if (monthly && R.otPay) row(`${t("otExtra")} (${R.otHours}h)`, money(R.otPay)); else if (monthly && R.otHours) row(`${t("otIncl")} · ${R.otHours}h`, "0.00"); else if (R.otPay) row(paper ? `${tf("ot", { h: R.hoursPerDay || 10 })} ${R.otHours}h × ₱${money(R.hourly)}` : `${t("otC")} (${R.otHours}h)`, money(R.otPay));
   if (R.ndPay) row(`${t("nd")} (${R.ndHours}h)`, money(R.ndPay));
-  if (R.silPay) row(`${t("silPay")} (${R.silDays})`, money(R.silPay)); if (R.holidayOffPay) row(t("holOff"), money(R.holidayOffPay));
+  if (R.silPay - (R.mpvPay || 0) > 0) row(`${t("silPay")} · SIL (${R.silDays - (R.mpvDays || 0)})`, money(R.silPay - (R.mpvPay || 0))); if (R.mpvPay) row(`${evL("개근휴가", "Monthly paid vacation")} · MPV (${R.mpvDays})`, money(R.mpvPay)); if (R.holidayOffPay) row(t("holOff"), money(R.holidayOffPay));
   if (R.allowance) row(tf("allowance", { d: R.daysWorked, a: money(P.allowance_per_day ?? (R.daysWorked ? R.allowance / R.daysWorked : 0)) }), money(R.allowance));
   // ledger items (advances / shortage / other / bonus) itemized by date when we have them (live payroll or saved with the result)
   const items = (R.ledgerItems || P.ledger || []).filter(l => l.kind !== "shortage" || (l.verified && l.authorized));
@@ -1913,6 +1917,8 @@ async function loadPay(P) {
     if (P.status !== "paid" && !P.shared_at) for (const d of P.days) if (EV_DAYS.has(d.date) && (d.shift || DAY_TYPES[d.type]?.worked)) {
       d.card = (d.card ? d.card + " · " : "") + evL("별도 지급", "paid separately"); d.shift = ""; d.type = "off"; d.sepPay = true; }
     if (P.status !== "paid" && !P.shared_at) applyHolidays(P.days, HOL);   // public holidays included from the start
+    try { P.mpv = new Set((await db.reqMpvDays(P.carry[0] || P.start, P.end, P.employee_id)).map(k => k.split("|").pop())); } catch { P.mpv = new Set(); }
+    if (P.status !== "paid" && !P.shared_at) for (const d of P.days) { if (d.type === "sil" && P.mpv.has(d.date)) d.mpv = true; else delete d.mpv; }
     const led = await db.listLedger({ employeeId: P.employee_id });
     const inPeriod = l => periodForDate(l.biz_date).start === P.start;
     P.ledger = led.filter(l => (P.id && l.payroll_id === P.id) || (!l.payroll_id && inPeriod(l)));
@@ -1970,7 +1976,7 @@ async function renderPay() {
     for (const d of P.days) {
       const dt = new Date(d.date + "T00:00:00"); const dow = dt.getDay(); const wk = dow === 5 || dow === 6;   // 주말 = 금·토
       const toggle = () => { if (locked) return; if (d.type === "off") { d.shift = d.shift || P.fillShift; d.type = "regular"; } else { d.shift = ""; d.type = "off"; d.ot = null; } drawRoster(); refresh(); };
-      const tag = HOL[d.date] && !d.carry ? "🎌 " + (HOL[d.date].kind === "regular" ? t("holReg") : t("holSp")) : d.carry ? (paidDays([d]).length ? t("carryIn") : t("carryInNone")) : carriesOver(d.date, d.shift) ? t("carryOut") : "";
+      const tag = d.type === "sil" && P.mpv?.has(d.date) ? "MPV · " + evL("개근휴가", "monthly paid vacation") : HOL[d.date] && !d.carry ? "🎌 " + (HOL[d.date].kind === "regular" ? t("holReg") : t("holSp")) : d.carry ? (paidDays([d]).length ? t("carryIn") : t("carryInNone")) : carriesOver(d.date, d.shift) ? t("carryOut") : "";
       const lbl = h("div", { class: "d", role: "button", title: t("off"), style: locked ? "" : "cursor:pointer", onclick: toggle }, t("dow")[dow], h("b", {}, (d.carry ? +d.date.slice(5, 7) + "/" : "") + +d.date.slice(8)), tag && h("small", { class: "carryTag" }, tag));
       const sh = DAY_TYPES[d.type]?.worked ? shiftHours(d.shift, P.break_hours) : null;
       const cls = "day" + (d.carry ? " carry" : "") + (!d.carry && carriesOver(d.date, d.shift) ? " carryOut" : "") + (HOL[d.date] ? " hol" : "") + (d.type === "off" ? " off" : "") + (d.type === "sil" ? " sil" : "") + (/holiday|special|absent/.test(d.type) ? " hol" : "") + (wk ? " wknd" : "");
@@ -2132,8 +2138,8 @@ async function renderSched() {
   const evSlot = h("div"); main.append(evSlot, card);
   eventAdminCard().then(c => { if (c) evSlot.append(c); });
   try {
-    const [punches, plan, reqKeys] = await Promise.all([db.listPunchesAll(p.start, p.end), db.cashbookShifts(p.start, p.end), db.reqOffDays(p.start, p.end)]);
-    const reqOff = new Set(reqKeys);
+    const [punches, plan, reqKeys, mpvKeys] = await Promise.all([db.listPunchesAll(p.start, p.end), db.cashbookShifts(p.start, p.end), db.reqOffDays(p.start, p.end), db.reqMpvDays(p.start, p.end)]);
+    const reqOff = new Set(reqKeys), mpvSet = new Set(mpvKeys);
     const dates = datesBetween(p.start, p.end); const todayS = today();
     const byEmp = {}; for (const q of punches) (byEmp[q.employee_id] = byEmp[q.employee_id] || []).push({ id: q.id, kind: q.kind, at: q.punched_at, source: q.source, status: q.status, mode: q.mode });
     const owner = S.user?.role === "owner";
@@ -2151,7 +2157,7 @@ async function renderSched() {
           const act = a ? (a.shift ? paid.replace("-", "–") + (a.pending ? " ⏳" : "") : (a.in ? fmtT(a.in) + "–?" : "?–" + fmtT(a.out))) : "";
           const real = a?.shift && paid !== a.shift ? t("sched_real") + " " + a.shift.replace("-", "–") : "";
           const raw = (byEmp[e.id] || []).filter(q => { const dt = new Date(q.at); const ds = fmtDate(dt); return ds === d || (ds === addDays(d, 1) && dt.getHours() < 12); });
-          return h("td", { class: (a && a.incomplete ? "inc " : "") + (!a && (!pl || pl === "off" || pl === "sil") ? "off" : "") + (owner ? " edit" : ""), title: owner ? t("sched_tap") : "", onclick: owner ? () => punchDaySheet(e, d, raw) : null }, h("div", { class: "act" }, act || (pl && pl !== "off" && pl !== "sil" ? "" : t("sched_none"))), real ? h("div", { class: "real" }, real) : null, pl ? (() => { const rq = pl === "off" && reqOff.has(e.name.trim().toLowerCase() + "|" + d); return h("div", { class: "pl" + (rq ? " reqoff" : "") }, planLabel(pl, rq)); })() : null);
+          return h("td", { class: (a && a.incomplete ? "inc " : "") + (!a && (!pl || pl === "off" || pl === "sil") ? "off" : "") + (owner ? " edit" : ""), title: owner ? t("sched_tap") : "", onclick: owner ? () => punchDaySheet(e, d, raw) : null }, h("div", { class: "act" }, act || (pl && pl !== "off" && pl !== "sil" ? "" : t("sched_none"))), real ? h("div", { class: "real" }, real) : null, pl ? (() => { const rq = pl === "off" && reqOff.has(e.name.trim().toLowerCase() + "|" + d); return h("div", { class: "pl" + (rq ? " reqoff" : "") }, planLabel(pl, rq, pl === "sil" && mpvSet.has(e.name.trim().toLowerCase() + "|" + d))); })() : null);
         }))]; }));
     card.append(h("div", { class: "tbl" }, tbl));
   } catch (e) { card.append(h("p", { class: "err" }, errMsg(e))); }
