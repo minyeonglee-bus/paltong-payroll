@@ -712,8 +712,8 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
-  { id: "2026-11-17b", ko: ["🔧 장비·재고 문제는 홈의 '고장 · 재고 문제 통보'로 알려 주세요. 3일 안에 '해결했어요'를 누르거나 기사·입고 날짜를 잡으세요."],
-    en: ["🔧 Report broken equipment or stock problems with 'Report a problem' on Home. Within 3 days press 'Fixed' or book a technician / delivery date."] },
+  { id: "2026-11-17b", ko: ["🔧 홈의 '수리' 칸: 고장·재고 문제가 생기면 '수리 필요' → 무엇인지 적기 → 기사 날짜 넣기 또는 '찾는 중'. 찾는 중이면 앱을 열 때마다 '찾았나요?' 알림, 날짜가 되면 '고쳤어요' 알림이 떠요. '고쳤어요'까지 눌러야 보너스에 문제가 없어요. 금액이 ₱10,000 이상이면 사장님께 알림이 가요."],
+    en: ["🔧 'Repairs' on Home: if something breaks or there is a stock problem → 'Needs repair' → write what it is → enter the technician date or 'Still looking'. While looking, the app asks 'found a technician?' each time you open it; on the repair date it asks 'fixed?'. Press 'Fixed' at the end so bonuses are not affected. ₱10,000 or more → the owner is notified."] },
   { id: "2026-11-17", ko: ["📢 급여 공지(장비 수리 규칙)가 팝업으로 떠요. 읽고 '동의'를 누르면 다시 안 떠요. 동의서는 서류 탭에서 인쇄할 수 있어요."],
     en: ["📢 A payroll notice (equipment repair policy) shows as a popup. Read it and press 'I agree' — then it does not show again. You can print the agreement in the Documents tab."] },
   { id: "2026-11-16", ko: [
@@ -802,16 +802,16 @@ function whatsNewSheet(all) {
 const NOTICES = [
   { id: "2026-11-17-equip", title: { en: "Equipment & Stock Policy", ko: "장비 · 재고 규칙" },
     en: [
-      "If kitchen equipment, aircon or anything else the business needs or uses breaks down, or there is a stock problem, report it right away in the app (Home → 🔧 Report a problem). If the repair costs less than ₱10,000, call a technician and get it fixed right away. You do not need to wait for the owner's approval.",
+      "If kitchen equipment, aircon or anything else the business needs or uses breaks down, or there is a stock problem, report it right away in the app (Home → 🔧 Repairs → Needs repair). If the repair costs less than ₱10,000, call a technician and get it fixed right away. You do not need to wait for the owner's approval. If it is ₱10,000 or more, enter the amount in the app — the owner is notified.",
       "Manage stock properly and on time. If stock is not managed well, it hurts ALL your coworkers, because everyone loses their incentives.",
-      "Within 3 days, report it as fixed in the app. If you book a technician (or delivery) date within those 3 days, that date becomes the deadline.",
+      "Within 3 days, press 'Fixed' in the app. If you enter a technician (or delivery) date within those 3 days, that date becomes the deadline. You must press 'Fixed' when the repair is done, or it is treated as not fixed.",
       "If there is no report by the deadline, it is treated as not fixed. The business loss is counted from the day it was reported until it is fixed: each day, the average sales for that weekday minus that day's sales (only days below average).",
       "To cover this loss, ALL incentives and bonuses will be cancelled for ALL staff until the loss has been fully covered.",
       "This does not affect your salary, 13th month pay, SIL, overtime, holiday pay or any other pay required by law."],
     ko: [
-      "주방기기·에어컨 등 장사에 필요하거나 쓰고 있는 물건이 고장 나거나 재고에 문제가 생기면 바로 앱에서 통보하세요 (홈 → 🔧 고장 · 재고 문제 통보). 수리비가 ₱10,000 미만이면 사장님 승인을 기다리지 말고 바로 기사를 불러 고치세요.",
+      "주방기기·에어컨 등 장사에 필요하거나 쓰고 있는 물건이 고장 나거나 재고에 문제가 생기면 바로 앱에서 통보하세요 (홈 → 🔧 수리 → 수리 필요). 수리비가 ₱10,000 미만이면 사장님 승인을 기다리지 말고 바로 기사를 불러 고치세요. ₱10,000 이상이면 앱에 금액을 적으세요 — 사장님께 알림이 가요.",
       "재고 관리는 제대로, 제때 하세요. 재고 관리를 안 하면 모두의 인센티브가 취소되니 다른 직원 모두에게 피해가 가요.",
-      "3일 안에 앱에서 '해결했어요'를 보고하세요. 3일 안에 기사(또는 입고) 날짜를 잡으면 그 날짜가 기한이 돼요.",
+      "3일 안에 앱에서 '고쳤어요'를 누르세요. 3일 안에 기사(또는 입고) 날짜를 넣으면 그 날짜가 기한이 돼요. 수리가 끝나면 반드시 '고쳤어요'를 눌러야 해요. 안 누르면 안 고친 것으로 봐요.",
       "기한까지 보고가 없으면 안 고친 것으로 판단해요. 통보한 날부터 고쳐질 때까지 손해금을 계산해요: 하루마다 그 요일 평균 매출 − 그날 매출 (평균보다 낮은 날만).",
       "이 손해금이 다 처리될 때까지 직원 전원의 모든 인센티브·보너스가 취소돼요.",
       "급여, 13th month, SIL, 오버타임, 공휴일 수당 등 법으로 정해진 돈은 영향이 없어요."] }];
@@ -887,46 +887,96 @@ async function noticeAdminCard() {
 const EQ_CAT = { kitchen: ["🍳", "주방기기", "Kitchen equipment"], aircon: ["❄️", "에어컨·전기", "Aircon / electric"], other: ["🧰", "기타 장사 물건", "Other business item"], stock: ["📦", "재고", "Stock / inventory"] };
 const eqCat = c => { const x = EQ_CAT[c] || EQ_CAT.other; return x[0] + " " + evL(x[1], x[2]); };
 const eqState = s => ({ open: ["var(--gold)", evL("진행 중", "In progress")], late: ["var(--bad)", evL("기한 지남 · 손해금 계산", "Deadline passed · loss counted")], fixed: ["var(--good,#1a7f37)", evL("해결", "Fixed")], waived: ["var(--muted,#888)", evL("면제", "Waived")] }[s] || ["", s]);
+// 🔧 staff: repair card (owner 11/17 00:39) — 수리 필요 → 무엇인지 → 기사 날짜 또는 '찾는 중' (+ 예상 금액) → 고쳤어요 (+ 금액).
+// ≥ ₱10,000 → owner push. Reminders pop up when the app opens: searching → "found a technician?" · date reached → "fixed?"
+const eqNeeds = i => i.state !== "fixed" && i.state !== "waived" && !i.fixed_date && (i.searching || !i.sched_date || i.sched_date <= today());
+function eqFixedSheet(i, done) {
+  const cost = h("input", { type: "number", min: 0, step: 1, inputmode: "numeric", placeholder: "₱", id: "eq-cost" });
+  const close = sheet([h("h3", {}, "✅ " + evL("수리 완료", "Repair done") + " · " + i.item), field(evL("수리 금액 (₱)", "Repair cost (₱)"), cost, evL("₱10,000 이상이면 사장님께 알림이 가요.", "₱10,000 or more → the owner is notified.")),
+    h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => close() }, t("close")),
+      h("button", { class: "btn primary", type: "button", id: "eq-fixed-go", onclick: () => { close(); done({ cost: cost.value === "" ? null : +cost.value }); } }, "✅ " + evL("고쳤어요", "Fixed")))]);
+}
+function eqSchedSheet(i, done) {
+  const d = h("input", { type: "date", min: today(), id: "eq-date", style: "font-size:18px;padding:8px;width:100%" });
+  const cost = h("input", { type: "number", min: 0, step: 1, inputmode: "numeric", placeholder: "₱", value: i.est_cost ?? "" });
+  const close = sheet([h("h3", {}, "📅 " + evL("기사 찾았어요 · 날짜 넣기", "Found a technician · enter the date") + " · " + i.item), field(evL("수리(입고) 날짜", "Repair / delivery date"), d),
+    field(evL("예상 금액 (₱)", "Estimated cost (₱)"), cost, evL("₱10,000 이상이면 사장님께 알림이 가요.", "₱10,000 or more → the owner is notified.")),
+    h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => close() }, t("close")),
+      h("button", { class: "btn primary", type: "button", id: "eq-sched-go", onclick: () => { if (!d.value) return toast(evL("날짜를 골라 주세요", "Pick a date")); close(); done({ date: d.value, cost: cost.value === "" ? null : +cost.value }); } }, evL("저장", "Save")))]);
+}
+async function eqAct(a, id, extra) {
+  try { const x = await db.empEquipAct(EMP.no, EMP.pin, a, id, extra); if (!x.ok) throw new Error(pinErr(x.err, "noData")); toast(t("saved"));
+    if ((extra?.cost ?? 0) >= 10000) toast(evL("₱10,000 이상 — 사장님께 알렸어요", "₱10,000 or more — the owner was notified"));
+    EMP.equipReload?.(); return true; } catch (e) { toast(errMsg(e)); return false; }
+}
+function eqStatusLine(i) {
+  return i.searching ? "🔎 " + evL("기사 찾는 중", "Looking for a technician")
+    : i.sched_date ? (i.sched_date <= today() ? "⏰ " : "📅 ") + evL(`수리 날짜 ${i.sched_date.slice(5)}`, `Repair date ${i.sched_date.slice(5)}`) : "";
+}
 function myEquipCard() {
-  const card = h("div", { class: "card", id: "my-equip" }, h("h2", {}, "🔧 " + evL("고장 · 재고 문제", "Broken equipment · stock problem")));
+  const card = h("div", { class: "card", id: "my-equip" }, h("h2", {}, "🔧 " + evL("수리", "Repairs")));
   const body = h("div", {}, h("small", { class: "muted" }, "…")); card.append(body);
   const load = async () => {
     let r; try { r = await db.empEquipList(EMP.no, EMP.pin); } catch { body.innerHTML = ""; return; }
     if (!r?.ok) { body.innerHTML = ""; return; }
     body.innerHTML = "";
-    const act = async (a, id, extra = {}) => { try { const x = await db.empEquipAct(EMP.no, EMP.pin, a, id, extra); if (!x.ok) throw new Error(pinErr(x.err, "noData")); toast(t("saved")); load(); } catch (e) { toast(errMsg(e)); } };
-    body.append(h("small", { class: "muted", style: "display:block;margin-bottom:6px" }, evL("주방기기·에어컨 등 장사에 쓰는 물건이 고장 나거나 재고에 문제가 생기면 바로 통보하세요. 3일 안에 '해결했어요'를 누르거나, 3일 안에 기사·입고 날짜를 잡으세요. 보고가 없으면 안 고친 것으로 판단해요.",
-      "If kitchen equipment, aircon or anything the business uses breaks, or there is a stock problem, report it right away. Within 3 days press 'Fixed', or book a technician / delivery date within 3 days. No report = treated as not fixed.")));
-    const open = r.issues.filter(i => i.state === "open" || (i.state === "late" && !i.fixed_date));
-    for (const i of open) {
-      const [col, lbl] = eqState(i.state);
-      const dateIn = h("input", { type: "date", min: today(), style: "max-width:160px" });
-      body.append(h("div", { style: `border:2px solid ${col};border-radius:8px;padding:8px;margin:6px 0` },
+    body.append(h("small", { class: "muted", style: "display:block;margin-bottom:6px" }, evL("주방기기·에어컨 등 장사에 쓰는 물건이 고장 나거나 재고 문제가 생기면 '수리 필요'를 누르세요. 3일 안에 기사 날짜를 넣거나 '고쳤어요'를 눌러야 해요. '고쳤어요'까지 눌러야 보너스에 문제가 없어요.",
+      "If kitchen equipment, aircon or anything the business uses breaks, or there is a stock problem, press 'Needs repair'. Within 3 days enter the technician date or press 'Fixed'. Press 'Fixed' at the end so bonuses are not affected.")));
+    for (const i of r.issues.filter(i => !i.fixed_date && i.state !== "waived")) {
+      const [col, lbl] = eqState(i.state), need = eqNeeds(i);
+      body.append(h("div", { class: "eq-item", style: `border:2px solid ${col};border-radius:8px;padding:8px;margin:6px 0;${need ? "background:#FFF4D6" : ""}` },
         h("div", {}, h("b", {}, i.item), " · ", h("small", {}, eqCat(i.cat)), " ", h("span", { style: `color:${col};font-weight:700` }, lbl)),
-        h("small", { class: "muted", style: "display:block" }, `${evL("통보", "Reported")} ${i.start_date.slice(5)} ${i.reported_by || ""} · ${evL("기한", "Deadline")} ${i.deadline.slice(5)}` + (i.sched_date ? ` · 📅 ${i.sched_date.slice(5)}` : "")),
-        h("div", { class: "row", style: "gap:6px;flex-wrap:wrap;margin-top:6px" }, dateIn,
-          h("button", { class: "btn sm", type: "button", onclick: () => { if (!dateIn.value) return toast(evL("날짜를 골라 주세요", "Pick a date")); act("sched", i.id, { date: dateIn.value }); } }, "📅 " + evL("기사·입고 날짜 잡았어요", "Date booked")),
+        h("div", { style: "font-weight:700;margin-top:2px" }, eqStatusLine(i)),
+        h("small", { class: "muted", style: "display:block" }, `${evL("통보", "Reported")} ${i.start_date.slice(5)} ${i.reported_by || ""} · ${evL("기한", "Deadline")} ${i.deadline.slice(5)}` + (i.est_cost != null ? ` · ${evL("예상", "est.")} ₱${money(i.est_cost)}` : "")),
+        h("div", { class: "row", style: "gap:6px;flex-wrap:wrap;margin-top:6px" },
+          h("button", { class: "btn sm", type: "button", onclick: () => eqSchedSheet(i, x => eqAct("sched", i.id, x)) }, "📅 " + (i.searching ? evL("찾았어요 · 날짜 넣기", "Found · enter date") : evL("날짜 바꾸기", "Change date"))),
           h("span", { class: "sp" }),
-          h("button", { class: "btn sm primary", type: "button", onclick: () => {
-            const cost = h("input", { type: "number", min: 0, step: 1, inputmode: "numeric", placeholder: "₱" });
-            const close = sheet([h("h3", {}, "✅ " + evL("해결했어요", "Fixed") + " · " + i.item), field(evL("수리비 (있으면)", "Repair cost (if any)"), cost),
-              h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => close() }, t("close")),
-                h("button", { class: "btn primary", type: "button", onclick: () => { close(); act("fixed", i.id, { cost: cost.value === "" ? null : +cost.value }); } }, "✅ " + evL("해결 보고", "Report fixed")))]); } }, "✅ " + evL("해결했어요", "Fixed")))));
+          h("button", { class: "btn sm primary", type: "button", onclick: () => eqFixedSheet(i, x => eqAct("fixed", i.id, x)) }, "✅ " + evL("고쳤어요", "Fixed")))));
     }
     if (+r.bal?.balance > 0) body.append(h("div", { style: "background:#FDECEC;border:1px solid var(--bad);border-radius:8px;padding:8px;margin:6px 0;font-weight:700" },
       "⚠️ " + evL(`장비·재고 손해금 ₱${money(r.bal.balance)} 처리 중 — 다 처리될 때까지 모든 인센티브·보너스가 취소돼요.`, `Equipment / stock loss ₱${money(r.bal.balance)} — all incentives and bonuses are cancelled until it is covered.`)));
-    body.append(h("div", { class: "row", style: "margin-top:6px" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", id: "equip-report", onclick: () => {
-      let cat = ""; const item = h("input", { type: "text", maxlength: 200, placeholder: evL("예: 냉동고 온도 안 내려감 / 김치 재고 없음", "e.g. Freezer not cold / out of kimchi") });
-      const catBtns = h("div", { style: "display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px" }, Object.keys(EQ_CAT).map(k => h("button", { class: "btn", type: "button", "data-cat": k, onclick: ev => { cat = k;
-        catBtns.querySelectorAll("[data-cat]").forEach(b => b.classList.toggle("primary", b.dataset.cat === k)); } }, eqCat(k))));
-      const close = sheet([h("h3", {}, "🔧 " + evL("고장 · 재고 문제 통보", "Report a problem")), catBtns, field(evL("무엇이 어떻게?", "What and how?"), item),
-        h("small", { class: "muted", style: "display:block" }, evL("₱10,000 미만 수리는 승인 없이 바로 기사를 부르세요. 오늘부터 3일 안에 해결 보고 또는 날짜 예약이 필요해요.", "Repairs under ₱10,000: call a technician now, no approval needed. Report fixed or book a date within 3 days from today.")),
-        h("div", { class: "row", style: "margin-top:8px" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => close() }, t("close")),
-          h("button", { class: "btn primary", type: "button", onclick: () => { if (!cat) return toast(evL("종류를 골라 주세요", "Pick the type")); if (!item.value.trim()) return toast(evL("내용을 적어 주세요", "Write what happened"));
-            close(); act("report", null, { cat, item: item.value.trim() }); } }, evL("통보", "Report")))]); } }, "🔧 " + evL("고장 · 재고 문제 통보", "Report a problem"))));
+    body.append(h("div", { class: "row", style: "margin-top:6px" }, h("span", { class: "sp" }), h("button", { class: "btn primary", type: "button", id: "equip-report", onclick: eqReportSheet }, "🔧 " + evL("수리 필요", "Needs repair"))));
   };
+  EMP.equipReload = load;
   if (!EMP.preview) load(); else body.innerHTML = "";
   return card;
+}
+function eqReportSheet() {
+  let cat = "", mode = "";
+  const item = h("input", { type: "text", maxlength: 200, id: "eq-item", placeholder: evL("예: 냉동고 온도 안 내려감 / 김치 재고 없음", "e.g. Freezer not cold / out of kimchi") });
+  const catBtns = h("div", { style: "display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px" }, Object.keys(EQ_CAT).map(k => h("button", { class: "btn", type: "button", "data-cat": k, onclick: () => { cat = k;
+    catBtns.querySelectorAll("[data-cat]").forEach(b => b.classList.toggle("primary", b.dataset.cat === k)); } }, eqCat(k))));
+  const d = h("input", { type: "date", min: today(), id: "eq-rdate", style: "font-size:18px;padding:8px;width:100%" });
+  const dWrap = h("div", { hidden: true, style: "margin-top:6px" }, field(evL("수리(입고) 날짜", "Repair / delivery date"), d));
+  const modeBtns = h("div", { style: "display:grid;grid-template-columns:1fr 1fr;gap:6px" }, [["date", "📅 " + evL("기사 날짜 있음", "Have a date")], ["search", "🔎 " + evL("기사 찾는 중", "Still looking")]].map(([k, l]) =>
+    h("button", { class: "btn", type: "button", "data-mode": k, onclick: () => { mode = k; dWrap.hidden = k !== "date"; modeBtns.querySelectorAll("[data-mode]").forEach(b => b.classList.toggle("primary", b.dataset.mode === k)); } }, l)));
+  const cost = h("input", { type: "number", min: 0, step: 1, inputmode: "numeric", placeholder: "₱", id: "eq-est" });
+  const close = sheet([h("h3", {}, "🔧 " + evL("수리 필요", "Needs repair")),
+    h("b", {}, "1. " + evL("종류", "Type")), catBtns,
+    field("2. " + evL("어떤 것이 어떻게?", "What and how?"), item),
+    h("b", {}, "3. " + evL("기사 (또는 입고)", "Technician (or delivery)")), modeBtns, dWrap,
+    field("4. " + evL("예상 금액 (₱, 알면)", "Estimated cost (₱, if known)"), cost, evL("₱10,000 미만은 승인 없이 바로 수리. ₱10,000 이상이면 사장님께 알림이 가요.", "Under ₱10,000: fix it now, no approval needed. ₱10,000 or more → the owner is notified.")),
+    h("div", { class: "row", style: "margin-top:8px" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => close() }, t("close")),
+      h("button", { class: "btn primary", type: "button", id: "eq-report-go", onclick: async () => {
+        if (!cat) return toast(evL("종류를 골라 주세요", "Pick the type")); if (!item.value.trim()) return toast(evL("무엇이 고장 났는지 적어 주세요", "Write what is broken"));
+        if (!mode) return toast(evL("기사 날짜가 있는지 골라 주세요", "Choose: date or still looking")); if (mode === "date" && !d.value) return toast(evL("날짜를 골라 주세요", "Pick a date"));
+        close(); await eqAct("report", null, { cat, item: item.value.trim(), date: mode === "date" ? d.value : null, cost: cost.value === "" ? null : +cost.value }); } }, evL("통보", "Report")))]);
+}
+// app open: remind about repairs that need action (after the notice popup)
+async function equipReminder() {
+  if (EMP.preview || EMP.data?.employee?.info?.no_payroll) return false;
+  let r; try { r = await db.empEquipList(EMP.no, EMP.pin); } catch { return false; }
+  const list = (r?.issues || []).filter(eqNeeds); if (!list.length || document.getElementById("sheetRoot")?.children.length) return false;
+  const close = sheet([h("h3", { id: "eq-remind" }, "🔧 " + evL("수리 확인", "Repair check")),
+    ...list.map(i => h("div", { style: "border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:8px" }, h("b", {}, i.item), " · ", h("small", {}, eqCat(i.cat)),
+      h("div", { style: "margin:4px 0" }, i.searching || !i.sched_date ? evL("🔎 기사 찾았나요? 찾았으면 날짜를 넣어 주세요.", "🔎 Did you find a technician? If yes, enter the date.")
+        : evL(`⏰ 수리 날짜(${i.sched_date.slice(5)})가 됐어요. 고쳤으면 '고쳤어요'를 눌러 주세요.`, `⏰ The repair date (${i.sched_date.slice(5)}) has come. If it is fixed, press 'Fixed'.`)),
+      h("small", { class: "muted", style: "display:block" }, evL(`기한 ${i.deadline.slice(5)} — 기한까지 보고가 없으면 안 고친 것으로 판단해요.`, `Deadline ${i.deadline.slice(5)} — no report by then = not fixed.`)),
+      h("div", { class: "row", style: "gap:6px;margin-top:6px" },
+        h("button", { class: "btn sm", type: "button", onclick: () => { close(); eqSchedSheet(i, x => eqAct("sched", i.id, x)); } }, "📅 " + (i.searching ? evL("찾았어요 · 날짜 넣기", "Found · enter date") : evL("날짜 바꾸기", "Change date"))),
+        h("span", { class: "sp" }), h("button", { class: "btn sm primary", type: "button", onclick: () => { close(); eqFixedSheet(i, x => eqAct("fixed", i.id, x)); } }, "✅ " + evL("고쳤어요", "Fixed"))))),
+    h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", id: "eq-later", onclick: () => { close(); const f = EMP.afterEquip; EMP.afterEquip = null; f?.(); } }, evL("나중에", "Later")))], { lock: true });
+  return true;
 }
 // owner: problems, loss, recovered incentives
 async function equipAdminCard() {
@@ -940,7 +990,7 @@ async function equipAdminCard() {
   for (const i of r.issues.slice(0, 20)) { const [col, lbl] = eqState(i.state);
     card.append(h("div", { class: "row", style: "align-items:center;flex-wrap:wrap;padding:5px 0;border-top:1px dashed var(--line)" },
       h("div", {}, h("b", {}, i.item), " · ", h("small", {}, eqCat(i.cat)), " ", h("span", { style: `color:${col};font-weight:700` }, lbl),
-        h("div", { class: "muted", style: "font-size:13px" }, `${evL("통보", "rep.")} ${i.start_date.slice(5)} ${i.reported_by || ""} · ${evL("기한", "due")} ${i.deadline.slice(5)}` + (i.sched_date ? ` · 📅 ${i.sched_date.slice(5)}` : "") + (i.fixed_date ? ` · ✅ ${i.fixed_date.slice(5)} ${i.fixed_by || ""}${i.cost != null ? " ₱" + money(i.cost) : ""}` : "") + (i.waive_note ? ` · ${i.waive_note}` : ""))),
+        h("div", { class: "muted", style: "font-size:13px" }, `${evL("통보", "rep.")} ${i.start_date.slice(5)} ${i.reported_by || ""} · ${evL("기한", "due")} ${i.deadline.slice(5)}` + (i.searching ? " · 🔎 " + evL("기사 찾는 중", "searching") : i.sched_date ? ` · 📅 ${i.sched_date.slice(5)}` : "") + (i.est_cost != null ? ` · ${evL("예상", "est.")} ₱${money(i.est_cost)}` : "") + (i.fixed_date ? ` · ✅ ${i.fixed_date.slice(5)} ${i.fixed_by || ""}${i.cost != null ? " ₱" + money(i.cost) : ""}` : "") + (i.waive_note ? ` · ${i.waive_note}` : ""))),
       h("span", { class: "sp" }), i.state === "waived" ? null : h("button", { class: "btn sm", type: "button", onclick: () => {
         const note = h("input", { type: "text", maxlength: 200, placeholder: evL("면제 이유", "Reason") });
         const close = sheet([h("h3", {}, evL(`${i.item} — 면제할까요? 손해금에서 빠져요.`, `${i.item} — waive? It is removed from the loss.`)), note,
@@ -992,7 +1042,7 @@ function renderStaffHome() {
       h("button", { onclick: () => { setLangOnly(lang === "ko" ? "en" : "ko"); renderStaffHome(); } }, lang === "ko" ? "EN" : "한"),
       h("button", { id: "e-logout", onclick: EMP.preview ? endPreview : staffLogout }, EMP.preview ? evL("관리자로", "Admin") : t("logout"))),
     h("div", { class: "tabs", role: "tablist", id: "staff-tabs" }, (emp.info?.no_payroll ? [["home", t("stab_home")], ["docs", t("stab_docs")]] : [["home", t("stab_home")], ["adv", t("stab_adv")], ["docs", t("stab_docs")]]).map(([k, l]) => h("button", { role: "tab", id: "stab-" + k, "aria-selected": String((EMP.tab || "home") === k), onclick: () => { EMP.tab = k; renderStaffHome(); } }, l))),
-    EMP.preview ? h("div", { id: "preview-bar", style: "background:var(--gold);color:#2a1c00;padding:8px 14px;font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px" }, "👀 " + evL("직원 화면 미리보기 · 보기만 돼요 (버튼은 작동 안 함)", "Staff screen preview · view only (buttons do not work)"), h("span", { class: "sp" }), h("button", { class: "btn sm", type: "button", onclick: endPreview }, evL("닫기", "Close"))) : null,
+    EMP.preview ? h("div", { id: "preview-bar", style: "background:var(--gold);color:#2a1c00;padding:8px 14px;font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px" }, "👀 " + evL("직원 화면 미리보기 · 보기만 돼요 (버튼은 작동 안 함)", "Staff screen preview · view only (buttons do not work)"), h("span", { class: "sp" }), h("button", { class: "btn sm", type: "button", onclick: endPreview }, evL("닫기", "Close"))) : "",   // root.append(null) would print "null"
     h("main", { id: "main" }, myRecvCard(v), (EMP.tab || "home") === "home" && !emp.info?.no_payroll ? myEquipCard() : null, ...(EMP.tab === "adv" && !emp.info?.no_payroll ? myAdvTab(v, emp) : EMP.tab === "docs" ? myDocsTab(v, emp) : emp.info?.no_payroll ? [
       // Mina (manager, paid outside the restaurant payroll): no pay / advance / 13th / approval cards
       myEventCard(), clockCard(), h("div", { class: "card" }, h("h2", {}, t("myShifts")), shifts), mySchedCard(v, emp), myInfoCard(emp)] : [
@@ -1013,7 +1063,8 @@ function renderStaffHome() {
       my13Card(v, emp),
       myInfoCard(emp)])));
   if (!EMP.newShown) { EMP.newShown = true;   // 📢 notice first, then what's new
-    checkNotices().then(shown => { if (shown) EMP.afterNotice = () => whatsNewSheet(false); else whatsNewSheet(false); }); }
+    const rest = async () => { if (await equipReminder()) EMP.afterEquip = () => whatsNewSheet(false); else whatsNewSheet(false); };
+    checkNotices().then(shown => { if (shown) EMP.afterNotice = rest; else rest(); }); }
 }
 const addD = (d, n) => { const x = new Date(d + "T00:00:00"); x.setDate(x.getDate() + n); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
 const planLabel = (v, req) => v === "off" ? (req ? "Off(R)" : t("off")) : v === "sil" ? "SIL" : SHIFT_LABEL(v);   // req = approved day-off request (owner 11/6)

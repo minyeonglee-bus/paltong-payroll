@@ -155,9 +155,12 @@ end $do$;
 
 -- category (owner 11/17 00:33: 주방기기 · 에어컨 등 장사에 필요하거나 쓰고 있는 물건, 또는 재고)
 alter table public.pr_equip_issues add column if not exists cat text not null default 'kitchen' check (cat in ('kitchen','aircon','other','stock'));
+-- technician date or "still searching" + cost (owner 11/17 00:39). ≥ ₱10,000 → owner push.
+alter table public.pr_equip_issues add column if not exists est_cost numeric;
+alter table public.pr_equip_issues add column if not exists searching boolean not null default false;
 create or replace function public.pr_equip_rows(p_all boolean) returns jsonb language sql stable security definer set search_path to 'public' as $$
   select coalesce(jsonb_agg(jsonb_build_object('id', i.id, 'cat', i.cat, 'item', i.item, 'note', i.note, 'start_date', i.start_date, 'reported_at', i.reported_at,
-      'reported_by', (select name from public.pr_employees where id = i.reported_by), 'sched_date', i.sched_date,
+      'reported_by', (select name from public.pr_employees where id = i.reported_by), 'sched_date', i.sched_date, 'searching', i.searching, 'est_cost', i.est_cost,
       'fixed_date', i.fixed_date, 'fixed_by', (select name from public.pr_employees where id = i.fixed_by), 'cost', i.cost,
       'deadline', public.pr_equip_deadline(i), 'state', public.pr_equip_state(i), 'waive_note', i.waive_note) order by i.reported_at desc), '[]'::jsonb)
     from public.pr_equip_issues i
@@ -169,29 +172,34 @@ create or replace function public.pr_emp_equip_act(p_no text, p_pin text, p_act 
 returns jsonb language plpgsql security definer set search_path to 'public', 'extensions' as $$
 declare c record; nm text; i public.pr_equip_issues; td date := (now() at time zone 'Asia/Manila')::date;
   catk text := case p_cat when 'kitchen' then '주방기기' when 'aircon' then '에어컨·전기' when 'stock' then '재고' else '장사 물건' end;
+  big text := case when p_cost >= 10000 then ' · ⚠️ ₱10,000 이상 — 사장님 확인 필요' else '' end;
 begin
   select * into c from public.pr_emp_check(p_no, p_pin);
   if c.err is not null then return jsonb_build_object('ok', false, 'err', c.err); end if;
   if c.must_change then return jsonb_build_object('ok', false, 'err', 'must_change'); end if;
+  if p_cost is not null and (p_cost < 0 or p_cost > 1000000) then return jsonb_build_object('ok', false, 'err', 'bad_value'); end if;
+  if p_date is not null and (p_date < td or p_date > td + 60) then return jsonb_build_object('ok', false, 'err', 'bad_value'); end if;
   select name into nm from public.pr_employees where id = c.emp_id;
   if p_act = 'report' then
     if coalesce(trim(p_item), '') = '' or length(p_item) > 200 or coalesce(p_cat, '') not in ('kitchen','aircon','other','stock') then return jsonb_build_object('ok', false, 'err', 'bad_value'); end if;
-    insert into public.pr_equip_issues (cat, item, reported_by) values (p_cat, trim(p_item), c.emp_id) returning * into i;
-    begin perform public.pr_notify('🔧 고장·재고 문제 통보 [' || catk || ']: ' || i.item || ' · ' || nm || ' · 기한 ' || to_char(i.start_date + 3, 'MM/DD')); exception when others then null; end;
+    insert into public.pr_equip_issues (cat, item, reported_by, est_cost, searching, sched_date, sched_by, sched_at)
+    values (p_cat, trim(p_item), c.emp_id, p_cost, p_date is null, p_date, case when p_date is not null then c.emp_id end, case when p_date is not null then now() end) returning * into i;
+    begin perform public.pr_notify('🔧 수리 필요 [' || catk || ']: ' || i.item || ' · ' || nm
+      || case when p_date is not null then ' · 📅 ' || to_char(p_date, 'MM/DD') else ' · 🔎 기사 찾는 중' end
+      || coalesce(' · 예상 ₱' || p_cost, '') || ' · 기한 ' || to_char(public.pr_equip_deadline(i), 'MM/DD') || big); exception when others then null; end;
     return jsonb_build_object('ok', true, 'id', i.id);
   end if;
   select * into i from public.pr_equip_issues where id = p_id for update;
   if not found or i.waived_at is not null or i.fixed_date is not null then return jsonb_build_object('ok', false, 'err', 'bad_value'); end if;
   if p_act = 'sched' then
-    if p_date is null or p_date < td or p_date > td + 60 then return jsonb_build_object('ok', false, 'err', 'bad_value'); end if;
-    update public.pr_equip_issues set sched_date = p_date, sched_by = c.emp_id, sched_at = now() where id = i.id returning * into i;
-    begin perform public.pr_notify('📅 수리·입고 날짜: ' || i.item || ' ' || to_char(p_date, 'MM/DD') || ' · ' || nm
-      || case when (i.sched_at at time zone 'Asia/Manila')::date <= i.start_date + 3 then '' else ' (3일 지나서 잡음 — 기한 안 바뀜)' end); exception when others then null; end;
+    if p_date is null then return jsonb_build_object('ok', false, 'err', 'bad_value'); end if;
+    update public.pr_equip_issues set sched_date = p_date, sched_by = c.emp_id, sched_at = now(), searching = false, est_cost = coalesce(p_cost, est_cost) where id = i.id returning * into i;
+    begin perform public.pr_notify('📅 수리 날짜: ' || i.item || ' ' || to_char(p_date, 'MM/DD') || ' · ' || nm || coalesce(' · 예상 ₱' || p_cost, '')
+      || case when (i.sched_at at time zone 'Asia/Manila')::date <= i.start_date + 3 then '' else ' (3일 지나서 잡음 — 기한 안 바뀜)' end || big); exception when others then null; end;
   elsif p_act = 'fixed' then
-    if p_cost is not null and (p_cost < 0 or p_cost > 1000000) then return jsonb_build_object('ok', false, 'err', 'bad_value'); end if;
-    update public.pr_equip_issues set fixed_date = td, fixed_by = c.emp_id, fixed_at = now(), cost = p_cost where id = i.id returning * into i;
-    begin perform public.pr_notify('✅ 해결 완료: ' || i.item || ' · ' || nm || coalesce(' · ₱' || p_cost, '')
-      || case when public.pr_equip_state(i) = 'late' then ' (기한 지남 → 손해금 계산)' else '' end); exception when others then null; end;
+    update public.pr_equip_issues set fixed_date = td, fixed_by = c.emp_id, fixed_at = now(), cost = p_cost, searching = false where id = i.id returning * into i;
+    begin perform public.pr_notify('✅ 수리 완료: ' || i.item || ' · ' || nm || coalesce(' · ₱' || p_cost, '')
+      || case when public.pr_equip_state(i) = 'late' then ' (기한 지남 → 손해금 계산)' else '' end || big); exception when others then null; end;
   else return jsonb_build_object('ok', false, 'err', 'bad_value');
   end if;
   return jsonb_build_object('ok', true, 'state', public.pr_equip_state(i));
