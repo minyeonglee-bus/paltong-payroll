@@ -613,6 +613,7 @@ function myInfoCard(emp) {
 function mySilSelf(x, card) {
   if (!x) return null;
   if (x.self_left_at && card) return null;
+  if (x.sil_from) return null;   // under 1 year: no SIL yet (owner 11/17)
   const md = a => (a || []).slice().sort().map(d => d.slice(5).replace("-", "/")).join(", ");
   const box = card ? h("div", { class: "card", id: "my-sil-redo", style: "border:2px solid var(--gold)" }, h("h2", {}, t("sil_redoT")))
     : h("div", { id: "mi-sil", style: "margin-top:14px;padding-top:12px;border-top:1px solid var(--line)" }, h("b", {}, t("sil_redoT")));
@@ -712,6 +713,8 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-17c", ko: ["🔒 SIL(유급휴가)은 법대로 입사 1년 후부터 생겨요. 1년 미만이면 SIL 칸에 사용 가능 날짜가 보여요. 개근휴가는 그대로예요."],
+    en: ["🔒 SIL (paid leave) starts after 1 year of service, as the law says. Under 1 year, the SIL card shows the date it starts. Monthly perfect-attendance leave is not affected."] },
   { id: "2026-11-17b", ko: ["🔧 홈의 '수리' 칸: 고장·재고 문제가 생기면 '수리 필요' → 무엇인지 적기 → 기사 날짜 넣기 또는 '찾는 중'. 찾는 중이면 앱을 열 때마다 '찾았나요?' 알림, 날짜가 되면 '고쳤어요' 알림이 떠요. '고쳤어요'까지 눌러야 보너스에 문제가 없어요. 금액이 ₱10,000 이상이면 사장님께 알림이 가요."],
     en: ["🔧 'Repairs' on Home: if something breaks or there is a stock problem → 'Needs repair' → write what it is → enter the technician date or 'Still looking'. While looking, the app asks 'found a technician?' each time you open it; on the repair date it asks 'fixed?'. Press 'Fixed' at the end so bonuses are not affected. ₱10,000 or more → the owner is notified."] },
   { id: "2026-11-17", ko: ["📢 급여 공지(장비 수리 규칙)가 팝업으로 떠요. 읽고 '동의'를 누르면 다시 안 떠요. 동의서는 서류 탭에서 인쇄할 수 있어요."],
@@ -1252,7 +1255,8 @@ function mySilCard(v) {
   const x = v.sil_sum; if (!x) return null; const n = silNums(x);
   const box = (k, val, strong) => h("div", { style: "flex:1;min-width:70px;border:1px solid var(--line);border-radius:8px;padding:8px;text-align:center" }, h("small", { class: "muted" }, t(k)), h("div", { style: `font:700 ${strong ? 26 : 20}px var(--mono)` }, String(val)));
   return h("div", { class: "card", id: "my-sil" }, h("h2", {}, `${t("sil_title")} · ${x.year}`),
-    h("div", { class: "row", style: "gap:8px;flex-wrap:wrap" }, box("sil_base", n.base), box("sil_used", n.used), box("sil_planned", n.planned), box("sil_left", n.left, true)),
+    x.sil_from ? h("p", { id: "my-sil-1y", style: "margin:4px 0;font-weight:700" }, "🔒 " + evL(`SIL(유급휴가)은 입사 1년 후부터 생겨요 — ${x.sil_from}부터 사용 가능`, `SIL (paid leave) starts after 1 year of service — from ${x.sil_from}`))
+      : h("div", { class: "row", style: "gap:8px;flex-wrap:wrap" }, box("sil_base", n.base), box("sil_used", n.used), box("sil_planned", n.planned), box("sil_left", n.left, true)),
     (x.used || []).length ? h("p", { class: "muted", style: "margin:8px 0 0" }, t("sil_dates") + ": " + x.used.slice().sort().map(d => d.slice(5).replace("-", "/")).join(", ")) : null,
     (x.planned || []).length ? h("p", { class: "muted", style: "margin:4px 0 0" }, t("sil_plDates") + ": " + x.planned.map(d => d.slice(5).replace("-", "/")).join(", ")) : null,
     h("small", { class: "muted" }, t("sil_help")),
@@ -1278,7 +1282,7 @@ function silReqBox(v, n) {
     onclick: ev => { kind = k; ev.currentTarget.parentNode.querySelectorAll("[data-kind]").forEach(b => { const on = b.dataset.kind === kind; b.classList.toggle("primary", on); b.setAttribute("aria-pressed", on); }); } },
     h("div", { style: "font-weight:700" }, t("lv_" + k)), h("small", {}, sub));
   const kinds = h("div", { class: "row", id: "lv-kinds", style: "gap:6px;flex-wrap:wrap" },
-    kBtn("off", t("lv_offS")), kBtn("sil", tf("lv_silS", { n: avail.sil })), (x.mpv || []).length ? kBtn("mpv", tf("lv_mpvS", { n: avail.mpv })) : null);
+    kBtn("off", t("lv_offS")), x.sil_from ? null : kBtn("sil", tf("lv_silS", { n: avail.sil })), (x.mpv || []).length ? kBtn("mpv", tf("lv_mpvS", { n: avail.mpv })) : null);
   const rsn = h("input", { type: "text", id: "sr-reason", maxlength: 200 });
   const send = h("button", { class: "btn primary", type: "button", id: "sr-send", onclick: () => {
     if (!kind) return toast(t("lv_pickKind"));
@@ -1321,7 +1325,7 @@ async function silAdminCard() {
     const inp = (k, val) => h("input", { type: "number", step: 0.5, min: 0, value: val, disabled: !owner, style: "width:64px;text-align:right", onchange: async ev => {
       try { await db.saveSil({ employee_id: e.id, year, allowance: k === "allowance" ? +ev.target.value : n.base, used_before: k === "used_before" ? +ev.target.value : +x.used_before || 0 }); toast(t("saved")); render(); } catch (er) { toast(errMsg(er)); } } });
     const title = [(x.used || []).length ? t("sil_dates") + ": " + x.used.slice().sort().join(", ") : "", (x.planned || []).length ? t("sil_plDates") + ": " + x.planned.join(", ") : ""].filter(Boolean).join(" · ");
-    tb.append(h("tr", { title }, h("td", {}, e.name), h("td", { class: "r" }, inp("allowance", n.base)), h("td", { class: "r" }, inp("used_before", +x.used_before || 0), x.self_left_at ? h("div", { class: "muted", style: "font-size:11px" }, "🔒 " + tf("sil_redoAdm", { n: +x.self_left || 0, d: x.self_left_at.slice(5, 10).replace("-", "/") })) : x.self_set_at ? h("div", { class: "muted", style: "font-size:11px" }, "🔒 " + tf("sil_selfAdm", { d: x.self_set_at.slice(5, 10).replace("-", "/") })) : null),
+    tb.append(h("tr", { title }, h("td", {}, e.name), h("td", { class: "r" }, x.sil_from ? h("span", { class: "muted", title: evL("입사 1년 미만", "under 1 year") }, "0 · " + evL("1년 후 ", "from ") + x.sil_from.slice(2).replace(/-/g, "/")) : inp("allowance", n.base)), h("td", { class: "r" }, inp("used_before", +x.used_before || 0), x.self_left_at ? h("div", { class: "muted", style: "font-size:11px" }, "🔒 " + tf("sil_redoAdm", { n: +x.self_left || 0, d: x.self_left_at.slice(5, 10).replace("-", "/") })) : x.self_set_at ? h("div", { class: "muted", style: "font-size:11px" }, "🔒 " + tf("sil_selfAdm", { d: x.self_set_at.slice(5, 10).replace("-", "/") })) : null),
       h("td", { class: "r", title: (x.mpv || []).map(m => m.month + " " + m.status).join(" · ") }, String(mpvAvail(x))), h("td", { class: "r" }, String(n.used)), h("td", { class: "r" }, String(n.planned)), h("td", { class: "r" }, h("b", { style: n.left < 0 ? "color:var(--bad)" : "" }, String(n.left)))));
   }
   card.append(h("div", { class: "tbl" }, tb));
