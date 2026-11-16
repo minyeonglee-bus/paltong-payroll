@@ -712,9 +712,11 @@ async function eventAdminCard() {
 const WHATS_NEW = [
   { id: "2026-11-16", ko: [
       "🧾 캐시북 마감 규칙: 장부와 1페소라도 다르면 마감할 수 없어요. 근무자(중간마감 = 오전 파트, 마감 = 저녁 파트)는 임시저장만 하고, 교대자가 현금을 다시 세고 잔고 사진을 다시 찍어서 마감해요.",
+      "📦 하루 마감 때 세이빙박스 안의 돈도 전부 세요. 장부와 다르면 마감할 수 없어요.",
       "🔁 교대자가 확인했는데 다르면 그 차이는 임시저장한 근무자 책임이에요. 근무자 앱 홈 맨 위에 카드가 떠요: 이유를 알면 적기(사장님이 결정) · 이유 모름 → 💸 급여에서 차감 또는 💵 바로 채워두기."],
     en: [
       "🧾 Cash Book closing rule: if it is off from the book by even ₱1, you cannot close. The worker (mid-close = morning part, close = evening part) only saves a draft; the next shift counts the cash again, retakes the balance photos and closes.",
+      "📦 At the day close, also count all the money in the saving box. If it does not match the book, you cannot close.",
       "🔁 If the next shift finds a difference, it is the responsibility of the worker who saved the draft. A card shows at the top of that worker's Home: write the reason if you know it (the owner decides) · don't know → 💸 deduct from salary or 💵 put the money back now."] },
   { id: "2026-11-14f", ko: ["⏳ 출퇴근 사유에서 다른 직원(교대자·심부름 시킨 사람)을 골랐는데 그 직원이 아직 확인하지 않았으면 홈 맨 위에 카드가 떠요. 확인이 안 되면 인정되지 않으니 그 직원에게 빨리 확인해 달라고 요청하세요."],
     en: ["⏳ If you picked a coworker for a clock-in/out reason (next/previous shift, or who asked for an errand) and they have not confirmed yet, a card shows at the top of Home. It is not accepted until they confirm, so ask them to confirm soon."] },
@@ -2084,7 +2086,7 @@ async function bdayCard() {
     noBday.length ? h("p", { class: "muted", style: "margin:8px 0 0" }, tf("bd_missing", { n: noBday.join(", ") })) : null);
 }
 // 캐시북 중간마감·마감 현금 부족 → 조사 후 책임 웨이터 지정 (자동 공제 아님)
-const acctName = a => ({ GCASH: "GCash", MAYA: "Maya" })[a] || (lang === "ko" ? "현금" : "Cash");
+const acctName = a => ({ GCASH: "GCash", MAYA: "Maya" })[a] || (a === "SAVINGBOX" ? (lang === "ko" ? "세이빙박스" : "Saving box") : (lang === "ko" ? "현금" : "Cash"));
 // 🔁 교대 확인 차이 — 직원 본인 (pr_cash_handover.sql)
 function myCashCard() {
   const slot = h("div", { id: "my-cash" });
