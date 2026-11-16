@@ -167,6 +167,7 @@ export async function empLogout(no, token) { return must(await sb.rpc("pr_emp_lo
 export async function empIntroDone(no, pin) { return must(await sb.rpc("pr_emp_intro_done", { p_no: String(no).trim(), p_pin: String(pin) })); }
 export async function empEquipList(no, pin) { return must(await sb.rpc("pr_emp_equip_list", { p_no: String(no).trim(), p_pin: String(pin) })); }
 export async function empEquipAct(no, pin, act, id, x = {}) { return must(await sb.rpc("pr_emp_equip_act", { p_no: String(no).trim(), p_pin: String(pin), p_act: act, p_id: id || null, p_cat: x.cat || null, p_item: x.item || null, p_date: x.date || null, p_cost: x.cost ?? null })); }
+export async function empEquipCb(no, pin, entry, ans, issue) { return must(await sb.rpc("pr_emp_equip_cb", { p_no: String(no).trim(), p_pin: String(pin), p_entry: entry, p_ans: ans, p_issue: issue || null })); }
 export async function equipAdmin() { return must(await sb.rpc("pr_equip_admin")); }
 export async function equipWaive(id, note) { return must(await sb.rpc("pr_equip_waive", { p_id: id, p_note: note || null })); }
 export async function empNoticeGet(no, pin) { return must(await sb.rpc("pr_emp_notice_get", { p_no: String(no).trim(), p_pin: String(pin) })); }
