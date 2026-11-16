@@ -14,7 +14,7 @@ export const idToEmail = id => { id = String(id || "").trim().toLowerCase(); ret
 // Phones on weak mobile data often drop a request before it reaches the server ("TypeError: Failed to fetch").
 // Retry those automatically — but only for reads and for staff writes the server already guards against doubling
 // (one-time / locked values), so a retried request can never create a second punch, advance, etc.
-const RETRY_RPC = new Set(["pr_emp_view", "pr_emp_token", "pr_emp_set_hired", "pr_emp_set_sil", "pr_emp_intro_done", "pr_emp_ack", "pr_emp_ack13", "pr_emp_req13", "pr_emp_set_signature", "pr_emp_event_get", "pr_emp_event_set", "pr_emp_recv", "pr_emp_jobs"]);
+const RETRY_RPC = new Set(["pr_emp_view", "pr_emp_token", "pr_emp_set_hired", "pr_emp_set_sil", "pr_emp_intro_done", "pr_emp_ack", "pr_emp_ack13", "pr_emp_req13", "pr_emp_set_signature", "pr_emp_event_get", "pr_emp_event_set", "pr_emp_recv", "pr_emp_jobs", "pr_emp_notice_get"]);
 async function retryFetch(input, init = {}) {
   const url = typeof input === "string" ? input : input.url, method = String(init.method || "GET").toUpperCase();
   const rpc = (url.match(/\/rest\/v1\/rpc\/([a-z0-9_]+)/) || [])[1];
@@ -158,6 +158,9 @@ export async function empSetSilLeft(no, pin, left) { return must(await sb.rpc("p
 export async function empToken(no, pin) { return must(await sb.rpc("pr_emp_token", { p_no: String(no).trim(), p_pin: String(pin) })); }
 export async function empLogout(no, token) { return must(await sb.rpc("pr_emp_logout", { p_no: String(no).trim(), p_token: String(token) })); }
 export async function empIntroDone(no, pin) { return must(await sb.rpc("pr_emp_intro_done", { p_no: String(no).trim(), p_pin: String(pin) })); }
+export async function empNoticeGet(no, pin) { return must(await sb.rpc("pr_emp_notice_get", { p_no: String(no).trim(), p_pin: String(pin) })); }
+export async function empNoticeAnswer(no, pin, id, agree, text) { return must(await sb.rpc("pr_emp_notice_answer", { p_no: String(no).trim(), p_pin: String(pin), p_notice: id, p_agree: !!agree, p_text: text || null })); }
+export async function listNoticeAcks(id) { return must(await sb.from("pr_notice_ack").select("*").eq("notice_id", id)); }
 export async function empSetSignature(no, pin, image) { return must(await sb.rpc("pr_emp_set_signature", { p_no: String(no).trim(), p_pin: String(pin), p_image: image })); }
 export async function empAdvance(no, pin, amount, reason, via) { return must(await sb.rpc("pr_emp_advance", { p_no: String(no).trim(), p_pin: String(pin), p_amount: amount, p_reason: reason || null, p_via: via })); }
 export async function listSignatures() { return Object.fromEntries(must(await sb.from("pr_signatures").select("employee_id, image, signed_at")).map(x => [x.employee_id, x])); }

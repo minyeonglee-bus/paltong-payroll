@@ -252,7 +252,7 @@ async function staffSignIn(no, pin) {
   } catch (e) { if (auto) return renderStaffLogin(null, no); renderStaffLogin(String(e.message || e), no); }
 }
 async function staffLogout() {
-  const pin = EMP.pin; EMP.pin = ""; EMP.data = null; saveTok("");
+  const pin = EMP.pin; EMP.pin = ""; EMP.data = null; saveTok(""); EMP.notices = null; EMP.noticeLater = {}; EMP.newShown = false;
   if (pin.startsWith("tok:")) try { await db.empLogout(EMP.no, pin); } catch {}
   renderStaffLogin();
 }
@@ -541,6 +541,8 @@ function myDocsTab(v, emp) {
       list(letters.map(p => item(`${isConf(p) ? t("lt_conf") : t("lt_ex")} · ${fmtDT(p.punched_at)}`, "“" + p.reason + "”", () => docSheet(letterDoc(p, v.signature), letterName(p)))))),
     h("div", { class: "card" }, h("h2", {}, t("docs_adv")),
       list(advs.map(l => item(`${l.biz_date} · ₱${money(l.amount)}`, l.deducted ? t("led_deducted") : t("led_pending"), () => printAdvance(l, emp, v.signature))))),
+    NOTICES.some(n => noticeAgreed(n.id)) ? h("div", { class: "card", id: "my-notices" }, h("h2", {}, "📢 " + evL("공지 동의서", "Notice agreements")),
+      list(NOTICES.filter(n => noticeAgreed(n.id)).map(n => item(n.title[lang] || n.title.en, evL("동의함 ", "Agreed ") + fmtD(noticeAgreed(n.id).agreed_at), () => printNotice(n, emp, v.signature, noticeAgreed(n.id).agreed_at))))) : null,
     emp.info?.no_payroll ? null : h("div", { class: "card" }, h("h2", {}, t("docs_13")),
       list([item(`${year} · ${t("p13_final")} ₱${money(P13.amount)}`, t("p13_open"), () => slip13(emp, year, P13))]))];
 }
@@ -710,6 +712,8 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-17", ko: ["📢 급여 공지(장비 수리 규칙)가 팝업으로 떠요. 읽고 '동의'를 누르면 다시 안 떠요. 동의서는 서류 탭에서 인쇄할 수 있어요."],
+    en: ["📢 A payroll notice (equipment repair policy) shows as a popup. Read it and press 'I agree' — then it does not show again. You can print the agreement in the Documents tab."] },
   { id: "2026-11-16", ko: [
       "🧾 캐시북 마감 규칙: 장부와 1페소라도 다르면 마감할 수 없어요. 근무자(중간마감 = 오전 파트, 마감 = 저녁 파트)는 임시저장만 하고, 교대자가 현금을 다시 세고 잔고 사진을 다시 찍어서 마감해요.",
       "📦 하루 마감 때 세이빙박스 안의 돈도 전부 세요. 장부와 다르면 마감할 수 없어요.",
@@ -789,6 +793,85 @@ function whatsNewSheet(all) {
     h("div", { class: "row", style: "margin-top:8px" }, h("span", { class: "sp" }), h("button", { class: "btn primary", type: "button", id: "new-ok", onclick: done }, t("new_ok")))], { lock: !all });   // 처음 뜰 때는 '확인했어요'를 눌러야만 닫힘
   return true;
 }
+/* ---- 📢 payroll notice popup (owner 2026-11-17 · supabase/pr_notice.sql).
+   Locked popup after login until the employee presses Agree. Agree → saved, never shows again, printable agreement
+   (Documents tab / owner Requests tab). Disagree → "contact the manager", closes for now and shows again the next
+   time the app is opened (or comes back after 30 min). A new notice = a new entry with a new id at the top. ---- */
+const NOTICES = [
+  { id: "2026-11-17-equip", title: { en: "Equipment Repair Policy", ko: "장비 수리 규칙" },
+    en: [
+      "If any equipment breaks down and the repair costs less than ₱10,000, call a technician and get it fixed right away. You do not need to wait for the owner's approval.",
+      "If broken equipment is not repaired, we cannot make menu items and sales fall below average, ALL incentives and bonuses will be cancelled for ALL staff for 3 months, as compensation for the loss to the business.",
+      "This does not affect your salary, 13th month pay, SIL, overtime, holiday pay or any other pay required by law."],
+    ko: [
+      "장비가 고장 났고 수리비가 ₱10,000 미만이면 사장님 승인을 기다리지 말고 바로 기사를 불러 고치세요.",
+      "고장 난 장비를 고치지 않아서 메뉴를 못 만들고 매출이 평균보다 떨어지면, 영업 손해에 대한 배상으로 직원 전원의 모든 인센티브·보너스가 3개월간 없어요.",
+      "급여, 13th month, SIL, 오버타임, 공휴일 수당 등 법으로 정해진 돈은 영향이 없어요."] }];
+const noticeText = n => n.title.en + "\n" + n.en.map((x, i) => `${i + 1}. ${x}`).join("\n");
+const noticeAgreed = id => (EMP.notices || []).find(a => a.notice_id === id && a.agreed_at);
+async function checkNotices() {
+  if (EMP.preview) return false;
+  let r; try { r = await db.empNoticeGet(EMP.no, EMP.pin); } catch { return false; }
+  if (!r?.ok) return false;
+  EMP.notices = r.acks || []; EMP.noticeLater ||= {};
+  const n = NOTICES.find(n => !noticeAgreed(n.id) && !(EMP.noticeLater[n.id] > Date.now() - 30 * 60000));
+  if (!n || document.querySelector("#notice-pop")) return !!n;
+  noticeSheet(n); return true;
+}
+function noticeSheet(n) {
+  const list = arr => h("ol", { style: "margin:6px 0 0;padding-left:22px;line-height:1.55;font-size:15px" }, arr.map(x => h("li", { style: "margin-bottom:6px" }, x)));
+  const agree = h("button", { class: "btn primary", type: "button", id: "notice-agree", style: "flex:1;padding:12px;font-size:16px" }, "✅ " + evL("동의", "I agree"));
+  const no = h("button", { class: "btn", type: "button", id: "notice-disagree", style: "flex:1;padding:12px;font-size:16px" }, evL("미동의", "I do not agree"));
+  let close;
+  const done = () => { close(); const f = EMP.afterNotice; EMP.afterNotice = null; if (f) f(); };
+  agree.onclick = async () => { try { agree.disabled = no.disabled = true;
+      const r = await db.empNoticeAnswer(EMP.no, EMP.pin, n.id, true, noticeText(n)); if (!r.ok) throw new Error(pinErr(r.err, "noData"));
+      EMP.notices = [...(EMP.notices || []).filter(a => a.notice_id !== n.id), { notice_id: n.id, agreed_at: r.agreed_at || new Date().toISOString() }];
+      toast(evL("동의했어요 · 서류 탭에서 동의서를 인쇄할 수 있어요", "Agreed · you can print it in the Documents tab")); done();
+      if (EMP.tab === "docs") renderStaffHome();
+    } catch (e) { agree.disabled = no.disabled = false; toast(errMsg(e)); } };
+  no.onclick = async () => { try { agree.disabled = no.disabled = true; await db.empNoticeAnswer(EMP.no, EMP.pin, n.id, false); } catch { }
+    EMP.noticeLater[n.id] = Date.now(); close();
+    close = sheet([h("h3", { id: "notice-contact" }, "📞 " + evL("관리자에게 연락하세요", "Please contact the manager")),
+      h("p", { class: "muted" }, evL("동의할 때까지 앱을 열 때마다 이 공지가 다시 떠요.", "This notice will show again each time you open the app until you agree.")),
+      h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn primary", type: "button", id: "notice-ok", onclick: done }, t("close")))], { lock: true }); };
+  close = sheet([h("div", { id: "notice-pop" }, h("h3", { style: "margin-top:0" }, "📢 " + evL("급여 공지", "Payroll notice") + " · " + (n.title[lang] || n.title.en)),
+    list(n[lang] || n.en),
+    lang === "ko" ? h("details", { style: "margin-top:6px" }, h("summary", { class: "muted" }, "English (원문)"), list(n.en)) : null,
+    h("p", { class: "muted", style: "font-size:13px;margin:10px 0" }, evL("동의를 누르면 내 사인이 들어간 동의서가 저장돼요.", "When you press I agree, an agreement with your signature is saved.")),
+    h("div", { class: "row", style: "gap:8px" }, no, agree))], { lock: true });
+}
+function noticeDoc(n, emp, sig, agreedAt) {
+  const d = agreedAt ? new Date(agreedAt) : null, ds = d ? d.toLocaleDateString("en-PH", { timeZone: "Asia/Manila", year: "numeric", month: "long", day: "numeric" }) : "";
+  return h("div", { class: "slip", style: "font-family:Arial,sans-serif;color:#000;background:#fff;padding:24px;max-width:720px" },
+    h("h2", { style: "text-align:center;margin:0 0 4px" }, "NOTICE AGREEMENT / 공지 동의서"), h("div", { style: "text-align:center;margin-bottom:16px" }, "Paltong"),
+    h("table", { style: "width:100%;border-collapse:collapse;font-size:14px" }, ...[["Employee name", fullName(emp)], ["Position", emp.position || ""], ["Notice", n.title.en], ["Agreed", d ? d.toLocaleString("en-PH", { timeZone: "Asia/Manila" }) : "Not agreed"]].map(([a, b]) =>
+      h("tr", {}, h("th", { style: "text-align:left;width:38%;padding:6px;border:1px solid #999;background:#f3f3f3" }, a), h("td", { style: "padding:6px;border:1px solid #999" }, b)))),
+    h("h3", { style: "margin:18px 0 6px" }, n.title.en), h("ol", { style: "font-size:14px;line-height:1.55;padding-left:22px;margin:0" }, n.en.map(x => h("li", { style: "margin-bottom:6px" }, x))),
+    h("p", { style: "font-size:13px;margin:14px 0 0" }, "I have read and understood the notice above, and I agree to it."),
+    h("div", { style: "display:flex;gap:40px;margin-top:36px" }, sigLine("Employee signature / Date", d ? sig : null, ds), h("div", { style: "flex:1" })));
+}
+// app comes back to the screen → show the notice again if it was put off more than 30 min ago
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && EMP.data && EMP.pin && !EMP.preview && EMP.notices && !document.getElementById("sheetRoot")?.children.length) checkNotices(); });
+const printNotice = (n, emp, sig, at) => docSheet(noticeDoc(n, emp, sig, at), `Notice agreement - ${fullName(emp)} - ${n.id}`);
+// owner: who agreed (🖨 each) / who has not
+async function noticeAdminCard() {
+  let sigs = {}; try { sigs = await db.listSignatures(); } catch { }
+  const card = h("div", { class: "card", id: "notice-admin" }, h("h2", {}, "📢 " + evL("급여 공지 동의", "Payroll notice — agreement")));
+  for (const n of NOTICES) {
+    let acks = []; try { acks = await db.listNoticeAcks(n.id); } catch { return null; }
+    const emps = S.employees.filter(e => e.active && !e.info?.no_payroll);
+    const yes = emps.filter(e => acks.some(a => a.employee_id === e.id && a.agreed_at)), notYet = emps.filter(e => !yes.includes(e));
+    const fmt = a => new Date(a).toLocaleString(undefined, { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    card.append(h("div", { style: "border-top:1px dashed var(--line);padding-top:6px;margin-top:6px" }, h("b", {}, `${n.title.ko} · ${n.id.slice(0, 10)}`), h("span", { class: "muted" }, ` · ${evL("동의", "agreed")} ${yes.length}/${emps.length}`),
+      ...yes.map(e => { const a = acks.find(x => x.employee_id === e.id);
+        return h("div", { class: "row", style: "align-items:center;padding:4px 0" }, h("span", {}, "✅ " + e.name), h("small", { class: "muted" }, " " + fmt(a.agreed_at)), h("span", { class: "sp" }),
+          h("button", { class: "btn sm", type: "button", onclick: () => printNotice(n, e, sigs[e.id], a.agreed_at) }, "🖨 " + evL("동의서", "Agreement"))); }),
+      notYet.length ? h("p", { class: "muted", style: "margin:6px 0 0;font-size:13px" }, "⏳ " + evL("아직 동의 안 함: ", "Not agreed yet: ") + notYet.map(e => { const a = acks.find(x => x.employee_id === e.id);
+        return e.name + (a?.disagree_n ? ` (${evL("미동의", "disagreed")} ${a.disagree_n})` : ""); }).join(", ")) : null));
+  }
+  return card;
+}
 function renderStaffHome() {
   const v = EMP.data, emp = v.employee;
   if (!EMP.preview && !emp.intro_seen_at) return renderIntro();
@@ -847,7 +930,8 @@ function renderStaffHome() {
       mySilCard(v),
       my13Card(v, emp),
       myInfoCard(emp)])));
-  if (!EMP.newShown) { EMP.newShown = true; whatsNewSheet(false); }
+  if (!EMP.newShown) { EMP.newShown = true;   // 📢 notice first, then what's new
+    checkNotices().then(shown => { if (shown) EMP.afterNotice = () => whatsNewSheet(false); else whatsNewSheet(false); }); }
 }
 const addD = (d, n) => { const x = new Date(d + "T00:00:00"); x.setDate(x.getDate() + n); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
 const planLabel = (v, req) => v === "off" ? (req ? "Off(R)" : t("off")) : v === "sil" ? "SIL" : SHIFT_LABEL(v);   // req = approved day-off request (owner 11/6)
@@ -2407,7 +2491,7 @@ function signedPrintUI(onClose) {   // onClose: inside a sheet (⋯ menu) · non
 async function renderReq() {
   const main = document.getElementById("main");
   main.append(h("div", { class: "card" }, h("h2", {}, "📋 " + evL("요청", "Requests")), h("small", { class: "muted" }, evL("직원이 보낸 것 중 사장님 확인이 필요한 것 — 받음 확인 · 휴가 신청 · 출퇴근 사유 · 13월급 요청.", "Everything from the staff that needs you — received pay · leave · clock-in/out reasons · 13th month requests."))),
-    await recvCard(), await silReqCard(), await reviewCard(), await due13Card());
+    await noticeAdminCard(), await recvCard(), await silReqCard(), await reviewCard(), await due13Card());
 }
 async function renderPrint() {
   const main = document.getElementById("main");
