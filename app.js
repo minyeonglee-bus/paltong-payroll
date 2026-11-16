@@ -961,7 +961,7 @@ function myRecvCard(v) {
   }
   if (ask13) {
     const amt = x13?.amount ?? ack.amount;
-    const vSel = sel([["CASH", "Cash"], ["GCASH", "GCash"], ["MAYA", "Maya"], ["METROBANK", "Metrobank"]], x13?.paid_via && x13.paid_via !== "SAVINGBOX" ? x13.paid_via : "CASH", { id: "recv-13-via" });
+    const vSel = sel([["CASH", "Cash"], ["GCASH", "GCash"], ["MAYA", "Maya"]], x13?.paid_via && x13.paid_via !== "SAVINGBOX" ? x13.paid_via : "CASH", { id: "recv-13-via" });
     const label = `13th month ₱${money(amt)}`;
     card.append(h("div", { class: "row", style: "align-items:center;flex-wrap:wrap;padding:8px 0;border-top:1px dashed var(--line)" },
       h("div", {}, h("b", {}, `13th month · ${year}`), h("div", { class: "muted" }, x13?.paid_on ? evL("지급 기록", "Recorded paid") + " " + fmtLvDay(x13.paid_on) : ack.pay_date ? fmtLvDay(ack.pay_date) : fmtLvDay(`${year}-12-24`))),
@@ -1819,7 +1819,7 @@ async function renderPay() {
     if (!locked || !P.id || !P.result) return refresh();
     try { await db.savePayroll({ id: P.id, result: { ...P.result, payout: payoutOf(P, P.result, emp) }, ...(P.status === "paid" ? { paid_via: P.pay_via } : {}) }); toast(t("saved")); await re(); } catch (e) { toast(errMsg(e)); }
   }
-  const payViaSel = sel(PAY_VIAS, P.pay_via || "CASH", { disabled: !owner, onchange: e => { P.pay_via = e.target.value; savePayout(); } });
+  const payViaSel = sel(PAY_OPTS, P.pay_via || "CASH", { disabled: !owner, onchange: e => { P.pay_via = e.target.value; savePayout(); } });
   const splitIn = h("input", { type: "number", id: "pSplit", value: P.pay_split, step: 100, min: 0, disabled: !owner, oninput: e => { P.pay_split = +e.target.value || 0; if (!locked) refresh(); }, onchange: () => { if (locked) savePayout(); } });
   const ded = h("div", { class: "card" }, h("h2", {}, t("deductions")),
     h("div", { class: "grid2" }, adjFields),
@@ -1864,7 +1864,7 @@ async function renderPay() {
   }
   function markPaid() {
     const dIn = h("input", { type: "date", id: "paidOn", value: today() });
-    const vIn = sel([["CASH", "Cash"], ["GCASH", "GCash"], ["MAYA", "Maya"], ["METROBANK", "Metrobank"], ["SAVINGBOX", "Saving box"]], P.paid_via || P.pay_via || "CASH", { id: "paidVia" });
+    const vIn = sel(PAY_OPTS, P.paid_via || P.pay_via || "CASH", { id: "paidVia" });
     const close = sheet([h("h3", {}, t("markPaid")), h("div", { class: "grid2" }, field(t("paidOn"), dIn), field(t("paidVia"), vIn)),
       h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", onclick: () => close() }, t("cancel")), h("button", { class: "btn primary", onclick: async () => { close(); await save(true, { paid_on: dIn.value, paid_via: vIn.value }); } }, t("markPaid")))]);
   }
@@ -2310,7 +2310,8 @@ function govFor(emp, base, end) {
   return g;
 }
 /* ---- payout: how the net is handed over (cash / GCash / bank, optionally split) ---- */
-const PAY_VIAS = [["CASH", "Cash"], ["GCASH", "GCash"], ["MAYA", "Maya"], ["METROBANK", "Metrobank"], ["SAVINGBOX", "Saving box"]];
+const PAY_VIAS = [["CASH", "Cash"], ["GCASH", "GCash"], ["MAYA", "Maya"], ["METROBANK", "Metrobank"], ["SAVINGBOX", "Saving box"]];   // 라벨용 (예전 기록)
+const PAY_OPTS = PAY_VIAS.filter(([v]) => v !== "METROBANK");   // 2026-11-16: Metrobank 삭제 (사장님) — 고르는 칸에서 뺌
 const viaLabel = v => (PAY_VIAS.find(x => x[0] === v) || [v, v])[1];
 function payoutOf(P, R, emp) {
   const via = P.pay_via || P.paid_via || "CASH", net = +R.net || 0, split = Math.min(net, Math.max(0, +P.pay_split || 0));
@@ -2482,7 +2483,7 @@ function resign13Box(e) {
 function pay13(e, year, total, amount, monthAvg = 0, oneYear = false, pre = {}) {   // pre: {date, via, amount} from the staff's "받았어요"
   const dIn = h("input", { type: "date", id: "p13On", value: pre.date || today() });
   const def = pre.amount ?? (oneYear === true && monthAvg ? monthAvg : amount);   // 1년 이상 → 월평균, 1년 미만·퇴사 정산 → ÷12
-  const vIn = sel([["CASH", "Cash"], ["GCASH", "GCash"], ["MAYA", "Maya"], ["METROBANK", "Metrobank"], ["SAVINGBOX", "Saving box"]], pre.via || "CASH", { id: "p13Via" });
+  const vIn = sel(PAY_OPTS, pre.via || "CASH", { id: "p13Via" });
   const aIn = h("input", { type: "number", id: "p13Amt", value: def, step: 1, min: 0 });
   const close = sheet([h("h3", {}, `${e.name} · ${year} ${t("tab_13")}`), h("p", { class: "muted" }, oneYear === true ? `${t("c13_avg")} ₱${money(monthAvg)}` : oneYear === false ? `${t("c13_total")} ₱${money(total)} ÷ 12 = ₱${money(amount)}` : `${t("c13_total")} ₱${money(total)} ÷ 12 = ₱${money(amount)} · ${t("c13_avg")} ₱${money(monthAvg)}`),
     oneYear === null && monthAvg ? h("div", { class: "row", style: "gap:6px" }, h("button", { class: "btn sm ghost", type: "button", onclick: () => { aIn.value = amount; } }, "÷12"), h("button", { class: "btn sm ghost", type: "button", onclick: () => { aIn.value = monthAvg; } }, t("c13_avg"))) : null,
