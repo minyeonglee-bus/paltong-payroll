@@ -223,3 +223,8 @@ export async function listPunchesAll(from, to) {
   return must(await sb.from("pr_punches").select("*").neq("status", "void").gte("punched_at", a.toISOString()).lt("punched_at", b.toISOString()).order("punched_at"));
 }
 export async function updatePunch(id, patch) { return must(await sb.from("pr_punches").update({ ...patch, source: "admin" }).eq("id", id).select().single()); }
+// 🔁 교대 확인 차이 (pr_cash_handover.sql) — 직원 답하기 / 사장님 결정·지정
+export async function empCashList(no, pin) { return must(await sb.rpc("pr_emp_cash_list", { p_no: String(no).trim(), p_pin: String(pin) })) || []; }
+export async function empCashAnswer(no, pin, id, choice, reason) { return must(await sb.rpc("pr_emp_cash_answer", { p_no: String(no).trim(), p_pin: String(pin), p_issue: id, p_choice: choice, p_reason: reason || null })); }
+export async function ownerDecideCash(id, decision, note) { return must(await sb.rpc("pr_cash_owner_decide", { p_issue: id, p_decision: decision, p_note: note || null })); }
+export async function handoverAssign(id, employeeId) { return must(await sb.rpc("pr_cash_handover_assign", { p_issue: id, p_employee: employeeId })); }

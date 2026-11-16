@@ -56,7 +56,13 @@ const I18N = {
     pickEmp: "직원을 먼저 고르세요", deleted: "삭제됨", weekendHelp: "금·토 = 주말",
     fromSched: "캐시북 스케줄 불러오기", fromPunch: "앱 출퇴근 불러오기", punchLoaded: "앱 출퇴근에서 {n}일 채웠어요{x}", punchIncomplete: " · {n}일은 출근/퇴근 한쪽이 없어서 비워뒀어요", punchNone: "이 기간 앱 출퇴근 기록이 없어요", punchList: "앱 출퇴근 기록 (이 기간)", punchAdd: "기록 추가", punchIn: "출근", punchOut: "퇴근", punchAt: "시각", punchAdmin: "관리자 입력",
     clock: "출퇴근", clockHelp: "출근할 때 · 퇴근할 때 눌러주세요. 이 기록이 급여 근무시간 기준이에요.", clockedIn: "출근 중 · {t}부터", clockedOut: "퇴근함 · {t}", notIn: "아직 출근 전", clockDone: "{k} 기록됨 {t}", clockDup: "방금 이미 눌렀어요", clockRecent: "최근 기록", schedLoaded: "캐시북 스케줄에서 {n}일 불러왔어요", schedNone: "이 기간 캐시북 스케줄에 이 직원이 없어요", fillAll: "전체 채우기", tapOff: "쉬는 날은 날짜를 눌러 휴무로 (다시 누르면 근무)",
-    cbTitle: "캐시북 부족분 · 현금 · GCash · Maya (확인 필요)", cbHelp: "책임은 마감한 사람이 아니라 그 주문을 완료(결제 받은) 직원이에요 — 주문 앱 기록으로 추천해요. 중간마감·마감에서 센 현금, 또는 GCash·Maya 잔고 사진이 장부보다 모자라면 여기 들어와요. GCash·Maya는 다음 마감까지 이어지는 같은 부족분은 한 번만, 새로 늘어난 금액만 들어와요. 자동으로 빠지지 않아요 — 조사 후 책임 웨이터를 지정하고, 가불·부족분에서 '본인 책임 확인'과 '서면 동의'를 둘 다 체크해야 급여에서 공제돼요.", cbNone: "확인할 부족분이 없어요", cbDone: "처리한 것", cbMid: "중간마감", cbFinal: "마감", cbCounted: "센 현금", cbReal: "잔고 사진", cbBook: "장부", cbBy: "센 사람", cbReason: "사유", cbDuty: "근무", is_open: "확인 필요", is_assigned: "웨이터 지정됨", is_dismissed: "해결됨 (공제 안 함)",
+    cbTitle: "캐시북 부족분 · 현금 · GCash · Maya (확인 필요)", cbHelp: "🔁 교대 확인(2026-11-16~): 직원은 장부와 다르면 마감할 수 없고, 교대자가 '차이 넘기기'를 하면 임시저장한 근무자 책임으로 여기 들어와요 → 근무자가 급여 앱에서 이유 적기(사장님 결정) / 급여 차감(본인 동의) / 바로 채우기를 골라요. 아래는 사장님 계정 마감 등 예전 방식: 책임은 마감한 사람이 아니라 그 주문을 완료(결제 받은) 직원이에요 — 주문 앱 기록으로 추천해요. 중간마감·마감에서 센 현금, 또는 GCash·Maya 잔고 사진이 장부보다 모자라면 여기 들어와요. GCash·Maya는 다음 마감까지 이어지는 같은 부족분은 한 번만, 새로 늘어난 금액만 들어와요. 자동으로 빠지지 않아요 — 조사 후 책임 웨이터를 지정하고, 가불·부족분에서 '본인 책임 확인'과 '서면 동의'를 둘 다 체크해야 급여에서 공제돼요.", cbNone: "확인할 부족분이 없어요", cbDone: "처리한 것", cbMid: "중간마감", cbFinal: "마감", cbCounted: "센 현금", cbReal: "잔고 사진", cbBook: "장부", cbBy: "센 사람", cbReason: "사유", cbDuty: "근무", is_open: "확인 필요", is_assigned: "웨이터 지정됨", is_dismissed: "해결됨 (공제 안 함)", is_wait_emp: "근무자 답 대기", is_wait_owner: "사장님 결정 필요", is_wait_fill: "채움 대기", is_filled: "채움 완료", is_noted: "기록됨",
+    ho_tag: "🔁 교대 확인", ho_worker: "근무자 {w}", ho_checker: "확인 {c}", ho_empReason: "근무자 이유", ho_choice_deduct: "본인 선택: 급여 차감", ho_choice_fill: "본인 선택: 바로 채우기", ho_choice_unknown: "이유 모름", ho_noEmp: "급여 앱 직원을 못 찾았어요 — 책임 직원을 지정하면 그 직원에게 넘어가요",
+    ho_assign: "이 직원에게 넘기기", ho_decideT: "근무자가 이유를 적었어요 — 결정해 주세요", ho_waive: "면제 (차감 안 함)", ho_charge: "직원 부담 (급여 차감·채우기 선택)", ho_decNote: "메모 (선택)", ho_over: "초과", ho_short: "부족",
+    mc_title: "🧾 캐시북 차이 — 내 책임 (교대 확인)", mc_help: "내가 임시저장한 마감을 교대자가 다시 확인했는데 장부와 달랐어요. 틀린 금액은 근무자(임시저장한 사람) 책임이에요.", mc_line: "{d} {s} · {a} {k} ₱{m}", mc_by: "확인한 교대자: {c}",
+    mc_know: "✍️ 이유를 알아요", mc_unknown: "🤷 이유 모름", mc_reasonL: "틀린 이유", mc_reasonPh: "예: 손님에게 거스름돈 ₱100 더 줌 / 지출 입력을 빠뜨림", mc_send: "보내기", mc_sent: "보냈어요 · 사장님이 확인해요", mc_needR: "이유를 적어 주세요",
+    mc_pickT: "어떻게 할까요?", mc_deduct: "💸 급여에서 차감", mc_fill: "💵 바로 채워둘게요", mc_deductQ: "₱{m}을 급여에서 차감하는 데 동의할까요? (본인 동의로 기록돼요)", mc_fillQ: "지금 매장 {a}에 ₱{m}을 채워 주세요. 돈을 받은 직원이 캐시북에서 확인하면 끝나요.", mc_overQ: "이유 모름으로 기록할까요? (초과는 차감 없음)",
+    mc_ownerCharge: "사장님이 직원 부담으로 정했어요 — 급여 차감 또는 바로 채우기를 골라 주세요.", mc_done: "처리했어요", mc_st_wait_owner: "사장님 확인 중", mc_st_wait_fill: "채움 대기 — 돈을 넣고 근무 중인 직원에게 '돈 받았어요'를 눌러 달라고 하세요", mc_st_filled: "채움 완료", mc_st_assigned: "급여 차감", mc_st_dismissed: "면제 (차감 안 함)", mc_st_noted: "기록됨",
     cbLaw: "근무 중이었다는 이유만으로 나눠서 빼면 안 돼요. 본인에게 설명할 기회를 주고, 책임이 확인된 한 사람에게만 지정하세요. 지정 후 가불·부족분에서 '본인 책임 확인'과 '서면 동의 받음'을 체크해야 공제돼요.", cbWho: "책임 직원 (주문 완료한 직원)", cbSug: "추천: {n}", cbSugWhy: "주문 완료 직원 기준 — 마감한 사람이 아니에요", cbSales: "지난 마감 이후 {a} 매출 · 주문 완료 직원", cbExact: "금액 일치", cbNoSales: "이 기간 {a} 매출 없음 — 직접 확인해 주세요", cbNoStaff: "직원 기록 없음", cbAssign: "이 직원의 부족분으로 넣기 (미확인)", cbAssigned: "부족분에 넣었어요 — 확인·동의 체크 후 공제돼요", cbDismissLbl: "찾았거나 장부 실수였다면 (메모)", cbFoundPh: "예: 다음날 서랍에서 찾음 / 매출 입력 실수", cbDismiss: "해결됨 — 공제 안 함", notDeducted: "공제 전 (확인·동의 필요)",
     asStaff: "직원", asAdmin: "관리자", empNo: "직원 번호", pin: "PIN (숫자)", pinFirst: "처음이면 PIN 0000", pinWrong: "번호 또는 PIN이 틀려요", pinLocked: "5번 틀려서 10분 동안 잠겼어요",
     newPinTitle: "내 PIN 등록", newPinHelp: "처음 로그인이에요. 나만 아는 숫자 4~6자리로 PIN을 새로 정해주세요 (0000 안 됨).", newPin: "새 PIN", newPin2: "새 PIN 다시", pinMismatch: "두 PIN이 달라요", pinBad: "숫자 4~6자리로 정해주세요 (0000 안 됨)", pinSaved: "PIN을 등록했어요",
@@ -119,7 +125,13 @@ const I18N = {
     pickEmp: "Pick an employee first", deleted: "Deleted", weekendHelp: "Fri · Sat = weekend",
     fromSched: "Load Cash Book schedule", fromPunch: "Load app clock-ins", punchLoaded: "Filled {n} days from app clock-ins{x}", punchIncomplete: " · {n} days left empty (missing in or out)", punchNone: "No app clock-ins for this period", punchList: "App clock-ins (this period)", punchAdd: "Add record", punchIn: "In", punchOut: "Out", punchAt: "Time", punchAdmin: "entered by admin",
     clock: "Clock in / out", clockHelp: "Tap when you arrive and when you leave. These records are the basis of your paid hours.", clockedIn: "Clocked in · since {t}", clockedOut: "Clocked out · {t}", notIn: "Not clocked in yet", clockDone: "{k} recorded {t}", clockDup: "Already tapped a moment ago", clockRecent: "Recent", clockToday: "Today", schedLoaded: "Loaded {n} days from the Cash Book schedule", schedNone: "This employee isn’t on the Cash Book schedule for this period", fillAll: "Fill all", tapOff: "Tap a date to make it a day off (tap again to work)",
-    cbTitle: "Cash Book shortages · cash · GCash · Maya (to check)", cbHelp: "Responsibility goes to the employee who completed (took payment for) the order, not whoever did the closing — suggested from the order app. When counted cash, or the GCash / Maya balance photo, at a mid-close or close is less than the book, it lands here. For GCash / Maya the same shortage carried to the next checkpoints comes in once; only a new increase adds another. Nothing is deducted automatically — investigate, assign the responsible waiter, then tick both 'responsibility established' and 'written authorization' in Advances & shortages before it comes off pay.", cbNone: "No shortages to check", cbDone: "Handled", cbMid: "Mid-close", cbFinal: "Close", cbCounted: "Counted", cbReal: "Balance photo", cbBook: "Book", cbBy: "Counted by", cbReason: "Reason", cbDuty: "On duty", is_open: "To check", is_assigned: "Waiter assigned", is_dismissed: "Resolved (no deduction)",
+    cbTitle: "Cash Book shortages · cash · GCash · Maya (to check)", cbHelp: "🔁 Shift check (from 2026-11-16): staff cannot close when the book doesn't match; the next shift hands the difference over and it lands here as the responsibility of the worker who saved the draft → the worker chooses in the payroll app: write a reason (you decide) / salary deduction (own consent) / refill now. Older flow below (e.g. closes saved with the owner account): responsibility goes to the employee who completed (took payment for) the order, not whoever did the closing — suggested from the order app. When counted cash, or the GCash / Maya balance photo, at a mid-close or close is less than the book, it lands here. For GCash / Maya the same shortage carried to the next checkpoints comes in once; only a new increase adds another. Nothing is deducted automatically — investigate, assign the responsible waiter, then tick both 'responsibility established' and 'written authorization' in Advances & shortages before it comes off pay.", cbNone: "No shortages to check", cbDone: "Handled", cbMid: "Mid-close", cbFinal: "Close", cbCounted: "Counted", cbReal: "Balance photo", cbBook: "Book", cbBy: "Counted by", cbReason: "Reason", cbDuty: "On duty", is_open: "To check", is_assigned: "Waiter assigned", is_dismissed: "Resolved (no deduction)", is_wait_emp: "Waiting for the worker", is_wait_owner: "Your decision needed", is_wait_fill: "Waiting for refill", is_filled: "Refilled", is_noted: "Recorded",
+    ho_tag: "🔁 Shift check", ho_worker: "worker {w}", ho_checker: "checked by {c}", ho_empReason: "Worker's reason", ho_choice_deduct: "chose salary deduction", ho_choice_fill: "chose to refill now", ho_choice_unknown: "doesn't know why", ho_noEmp: "No payroll employee matched — pick the responsible employee and it goes to them",
+    ho_assign: "Send to this employee", ho_decideT: "The worker wrote a reason — please decide", ho_waive: "Waive (no deduction)", ho_charge: "Employee pays (salary deduction or refill)", ho_decNote: "Note (optional)", ho_over: "over", ho_short: "short",
+    mc_title: "🧾 Cash Book difference — my responsibility (shift check)", mc_help: "The next shift re-checked the close you saved as a draft and it did not match the book. Anything wrong is the worker's (whoever saved the draft) responsibility.", mc_line: "{d} {s} · {a} {k} ₱{m}", mc_by: "Checked by: {c}",
+    mc_know: "✍️ I know why", mc_unknown: "🤷 I don't know why", mc_reasonL: "Why it was wrong", mc_reasonPh: "e.g. gave a customer ₱100 extra change / forgot to enter an expense", mc_send: "Send", mc_sent: "Sent · the owner will check", mc_needR: "Please write the reason",
+    mc_pickT: "What do you want to do?", mc_deduct: "💸 Deduct from my salary", mc_fill: "💵 I'll put the money back now", mc_deductQ: "Agree to deduct ₱{m} from your salary? (recorded as your own consent)", mc_fillQ: "Put ₱{m} back into the restaurant {a} now. It is done when the staff who receives it confirms in the Cash Book.", mc_overQ: "Record as 'don't know why'? (no deduction for over)",
+    mc_ownerCharge: "The owner decided you pay — choose salary deduction or refill now.", mc_done: "Done", mc_st_wait_owner: "Owner is checking", mc_st_wait_fill: "Waiting for refill — put the money in and ask the staff on duty to tap 'Money received'", mc_st_filled: "Refilled", mc_st_assigned: "Salary deduction", mc_st_dismissed: "Waived (no deduction)", mc_st_noted: "Recorded",
     cbLaw: "Don’t split a shortage among everyone on duty. Give the waiter a chance to explain and assign it only to the one person found responsible. It is deducted only after you tick 'responsibility established' and 'written authorization on file'.", cbWho: "Responsible employee (who completed the order)", cbSug: "Suggested: {n}", cbSugWhy: "Based on who completed the order — not who did the closing", cbSales: "{a} sales since the last checkpoint · who completed each order", cbExact: "amount matches", cbNoSales: "No {a} sales in this window — check by hand", cbNoStaff: "no staff recorded", cbAssign: "Add as this employee’s shortage (unverified)", cbAssigned: "Added — deducted after verification & authorization", cbDismissLbl: "Found it / book mistake (note)", cbFoundPh: "e.g. found in drawer next day / sale entered wrong", cbDismiss: "Resolved — no deduction", notDeducted: "not deducted (needs verification & consent)",
     asStaff: "Staff", asAdmin: "Admin", empNo: "Employee no.", pin: "PIN (numbers)", pinFirst: "First time? PIN is 0000", pinWrong: "Wrong number or PIN", pinLocked: "Locked for 10 minutes after 5 wrong tries",
     newPinTitle: "Set your PIN", newPinHelp: "First sign-in. Choose your own 4–6 digit PIN (not 0000).", newPin: "New PIN", newPin2: "New PIN again", pinMismatch: "The PINs don’t match", pinBad: "Use 4–6 digits (not 0000)", pinSaved: "PIN saved",
@@ -698,6 +710,12 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-16", ko: [
+      "🧾 캐시북 마감 규칙: 장부와 1페소라도 다르면 마감할 수 없어요. 근무자(중간마감 = 오전 파트, 마감 = 저녁 파트)는 임시저장만 하고, 교대자가 현금을 다시 세고 잔고 사진을 다시 찍어서 마감해요.",
+      "🔁 교대자가 확인했는데 다르면 그 차이는 임시저장한 근무자 책임이에요. 근무자 앱 홈 맨 위에 카드가 떠요: 이유를 알면 적기(사장님이 결정) · 이유 모름 → 💸 급여에서 차감 또는 💵 바로 채워두기."],
+    en: [
+      "🧾 Cash Book closing rule: if it is off from the book by even ₱1, you cannot close. The worker (mid-close = morning part, close = evening part) only saves a draft; the next shift counts the cash again, retakes the balance photos and closes.",
+      "🔁 If the next shift finds a difference, it is the responsibility of the worker who saved the draft. A card shows at the top of that worker's Home: write the reason if you know it (the owner decides) · don't know → 💸 deduct from salary or 💵 put the money back now."] },
   { id: "2026-11-14f", ko: ["⏳ 출퇴근 사유에서 다른 직원(교대자·심부름 시킨 사람)을 골랐는데 그 직원이 아직 확인하지 않았으면 홈 맨 위에 카드가 떠요. 확인이 안 되면 인정되지 않으니 그 직원에게 빨리 확인해 달라고 요청하세요."],
     en: ["⏳ If you picked a coworker for a clock-in/out reason (next/previous shift, or who asked for an errand) and they have not confirmed yet, a card shows at the top of Home. It is not accepted until they confirm, so ask them to confirm soon."] },
   { id: "2026-11-14e", ko: [
@@ -811,6 +829,7 @@ function renderStaffHome() {
     h("main", { id: "main" }, myRecvCard(v), ...(EMP.tab === "adv" && !emp.info?.no_payroll ? myAdvTab(v, emp) : EMP.tab === "docs" ? myDocsTab(v, emp) : emp.info?.no_payroll ? [
       // Mina (manager, paid outside the restaurant payroll): no pay / advance / 13th / approval cards
       myEventCard(), clockCard(), h("div", { class: "card" }, h("h2", {}, t("myShifts")), shifts), mySchedCard(v, emp), myInfoCard(emp)] : [
+      myCashCard(),
       myWaitCard(v),
       my13DateCard(v),
       mySilSelf(v.sil_sum, true),
@@ -1674,7 +1693,8 @@ async function loadPay(P) {
     const led = await db.listLedger({ employeeId: P.employee_id });
     const inPeriod = l => periodForDate(l.biz_date).start === P.start;
     P.ledger = led.filter(l => (P.id && l.payroll_id === P.id) || (!l.payroll_id && inPeriod(l)));
-    if (emp.position !== "waiter") P.ledger = P.ledger.filter(l => l.kind !== "shortage");
+    if (emp.position !== "waiter") P.ledger = P.ledger.filter(l => l.kind !== "shortage" || l.self_req_at);   // 교대 확인: 본인이 고른 급여 차감은 직책 상관없이
+
   } else { P.days = dates.map(d => emptyDay(d)); P.ledger = []; }
 }
 function payOpts(P) {
@@ -2065,20 +2085,83 @@ async function bdayCard() {
 }
 // 캐시북 중간마감·마감 현금 부족 → 조사 후 책임 웨이터 지정 (자동 공제 아님)
 const acctName = a => ({ GCASH: "GCash", MAYA: "Maya" })[a] || (lang === "ko" ? "현금" : "Cash");
+// 🔁 교대 확인 차이 — 직원 본인 (pr_cash_handover.sql)
+function myCashCard() {
+  const slot = h("div", { id: "my-cash" });
+  if (EMP.preview) return slot;
+  db.empCashList(EMP.no, EMP.pin).then(rows => { slot.textContent = ""; if (rows?.length) slot.append(myCashBody(rows)); }).catch(() => {});
+  return slot;
+}
+function myCashBody(rows) {
+  const act = rows.filter(r => r.status === "wait_emp"), rest = rows.filter(r => r.status !== "wait_emp");
+  const line = r => tf("mc_line", { d: r.biz_date.slice(5).replace("-", "/"), s: r.stage === "mid" ? t("cbMid") : t("cbFinal"), a: acctName(r.acct), k: r.kind === "over" ? t("ho_over") : t("ho_short"), m: money(r.amount) });
+  const answer = async (r, choice, reason) => {
+    try { await db.empCashAnswer(EMP.no, EMP.pin, r.id, choice, reason || null); toast(choice === "reason" ? t("mc_sent") : t("mc_done")); }
+    catch (e) { toast(errMsg(e)); }
+    const slot = document.getElementById("my-cash"); if (slot) slot.replaceWith(myCashCard());
+  };
+  const pick = r => {
+    if (r.kind === "over") return confirmSheet(t("mc_overQ"), () => answer(r, "unknown"), { ask: true });
+    const close = sheet([h("h3", {}, t("mc_pickT")), h("p", { class: "muted" }, line(r)),
+      h("div", { style: "display:grid;gap:8px" },
+        h("button", { class: "btn primary", id: "mc-deduct", onclick: () => { close(); confirmSheet(tf("mc_deductQ", { m: money(r.amount) }), () => answer(r, "deduct"), { ask: true }); } }, t("mc_deduct")),
+        h("button", { class: "btn primary", id: "mc-fill", onclick: () => { close(); confirmSheet(tf("mc_fillQ", { m: money(r.amount), a: acctName(r.acct) }), () => answer(r, "fill"), { ask: true }); } }, t("mc_fill")),
+        h("button", { class: "btn", onclick: () => close() }, t("cancel")))]);
+  };
+  const know = r => {
+    const ta = h("textarea", { id: "mc-reason", rows: 3, placeholder: t("mc_reasonPh") });
+    const close = sheet([h("h3", {}, t("mc_know")), h("p", { class: "muted" }, line(r)), field(t("mc_reasonL"), ta),
+      h("div", { class: "row" }, h("button", { class: "btn", onclick: () => close() }, t("cancel")), h("span", { class: "sp" }),
+        h("button", { class: "btn primary", id: "mc-send", onclick: () => { const v = ta.value.trim(); if (v.length < 2) return toast(t("mc_needR")); close(); answer(r, "reason", v); } }, t("mc_send")))]);
+  };
+  return h("div", { class: "card", style: act.length ? "border:2px solid var(--red, #c0392b)" : "" }, h("h2", {}, t("mc_title")),
+    act.length ? h("small", { class: "muted" }, t("mc_help")) : null,
+    ...act.map(r => h("div", { class: "item", "data-mc": r.id, style: "display:block" },
+      h("div", { class: "t" }, h("b", {}, line(r))), h("div", { class: "s" }, tf("mc_by", { c: r.checker || "—" })),
+      r.owner_decided ? h("div", { class: "s", style: "font-weight:700" }, t("mc_ownerCharge")) : null,
+      h("div", { class: "row", style: "margin-top:8px;flex-wrap:wrap;gap:6px" },
+        r.owner_decided ? null : h("button", { class: "btn", type: "button", id: "mc-know-" + r.id, onclick: () => know(r) }, t("mc_know")),
+        h("button", { class: "btn primary", type: "button", id: "mc-unk-" + r.id, onclick: () => pick(r) }, r.owner_decided ? t("mc_pickT") : t("mc_unknown"))))),
+    rest.length ? h("div", { class: "list" }, rest.map(r => h("div", { class: "item" }, h("div", { class: "t" }, line(r)),
+      h("div", { class: "s" }, t("mc_st_" + r.status) + (r.emp_reason ? " · " + r.emp_reason : "") + (r.resolved_note ? " · " + r.resolved_note : ""))))) : null);
+}
 async function cashIssuesCard() {
   let rows = []; try { rows = await db.listCashIssues(); } catch { return h("span"); }
-  const open = rows.filter(r => r.status === "open"), done = rows.filter(r => r.status !== "open").slice(0, 10);
+  const isOpen = r => r.status === "open" || r.status === "wait_owner";
+  const open = rows.filter(isOpen), done = rows.filter(r => !isOpen(r)).slice(0, 15);
   const stg = r => r.stage === "mid" ? t("cbMid") : t("cbFinal");
-  const item = r => h("div", { class: "item", "data-issue": r.id, onclick: () => r.status === "open" && issueForm(r) },
-    h("div", { class: "t" }, `${r.biz_date} · ${stg(r)} · `, h("b", {}, acctName(r.acct)), " ", h("span", { class: "pill " + (r.status === "open" ? "draft" : r.status === "assigned" ? "waiter" : "paid") }, t("is_" + r.status))),
+  const item = r => h("div", { class: "item", "data-issue": r.id, onclick: () => r.handover ? (r.status === "open" ? handoverAssignForm(r) : r.status === "wait_owner" ? handoverDecideForm(r) : null) : r.status === "open" && issueForm(r) },
+    h("div", { class: "t" }, `${r.biz_date} · ${stg(r)} · `, h("b", {}, acctName(r.acct)), " ", r.handover ? h("span", { class: "pill waiter" }, t("ho_tag")) : null, " ", h("span", { class: "pill " + (isOpen(r) ? "draft" : r.status === "assigned" ? "waiter" : "paid") }, t("is_" + r.status))),
+    r.handover ? h("div", { class: "s", style: "font-weight:700;color:var(--ink)" }, [tf("ho_worker", { w: r.counted_by || "—" }), tf("ho_checker", { c: r.checker || "—" }),
+      r.emp_choice === "deduct" ? t("ho_choice_deduct") : r.emp_choice === "fill" ? t("ho_choice_fill") : r.emp_choice === "unknown" ? t("ho_choice_unknown") : null,
+      r.emp_reason && r.emp_choice !== "unknown" ? t("ho_empReason") + ": " + r.emp_reason : null].filter(Boolean).join(" · ")) : null,
     h("div", { class: "s" }, `${(r.acct || "CASH") === "CASH" ? t("cbCounted") : t("cbReal")} ₱${money(r.counted)} / ${t("cbBook")} ₱${money(r.expected)}` + (r.counted_by ? ` · ${t("cbBy")} ${r.counted_by}` : "") + (r.reason ? ` · ${t("cbReason")}: ${r.reason}` : "") + (r.on_duty?.length ? ` · ${t("cbDuty")}: ${r.on_duty.join(", ")}` : "") + (r.resolved_note ? ` · ${r.resolved_note}` : "")),
     r.suggested ? h("div", { class: "s", style: "font-weight:700;color:var(--ink)" }, "🙋 " + tf("cbSug", { n: r.suggested })) : null,
-    h("div", { class: "m money neg" }, "−" + money(r.amount)));
+    h("div", { class: "m money " + (r.kind === "over" ? "pos" : "neg") }, (r.kind === "over" ? "+" : "−") + money(r.amount)));
   return h("div", { class: "card", id: "cash-issues" },
     h("div", { class: "row" }, h("h2", {}, t("cbTitle")), h("span", { class: "sp" }), open.length ? h("span", { class: "pill draft" }, open.length) : null),
     h("small", { class: "muted" }, t("cbHelp")),
     open.length ? h("div", { class: "list" }, open.map(item)) : h("span", { class: "muted" }, t("cbNone")),
     done.length ? h("details", {}, h("summary", { class: "muted" }, t("cbDone")), h("div", { class: "list" }, done.map(item))) : null);
+}
+function handoverAssignForm(r) {
+  const people = S.employees.filter(e => !e.info?.no_payroll && e.active && !e.resigned_on && e.name !== "test");
+  const emp = sel([["", "—"], ...people.map(e => [e.id, e.name])], "", { id: "hoEmp" });
+  const close = sheet([h("h3", {}, `${r.biz_date} · ${acctName(r.acct)} −₱${money(r.amount)} · ${t("ho_tag")}`), h("p", { class: "muted" }, t("ho_noEmp")),
+    field(t("cbWho"), emp, tf("ho_worker", { w: r.counted_by || "—" })),
+    h("div", { class: "row" }, h("button", { class: "btn", onclick: () => close() }, t("cancel")), h("span", { class: "sp" }),
+      h("button", { class: "btn primary", id: "hoAssign", onclick: async () => { if (!emp.value) return toast(t("pickEmp"));
+        try { await db.handoverAssign(r.id, emp.value); toast(t("saved")); close(); render(); } catch (e) { toast(errMsg(e)); } } }, t("ho_assign")))]);
+}
+function handoverDecideForm(r) {
+  const note = h("input", { type: "text", id: "hoNote" });
+  const go = async d => { try { await db.ownerDecideCash(r.id, d, note.value.trim()); toast(t("saved")); close(); render(); } catch (e) { toast(errMsg(e)); } };
+  const close = sheet([h("h3", {}, t("ho_decideT")), h("p", {}, `${r.biz_date} · ${r.stage === "mid" ? t("cbMid") : t("cbFinal")} · ${acctName(r.acct)} −₱${money(r.amount)}`),
+    h("p", { class: "muted" }, tf("ho_worker", { w: r.counted_by || "—" }) + " · " + tf("ho_checker", { c: r.checker || "—" })),
+    h("div", { class: "card", style: "margin:0 0 10px" }, h("b", {}, t("ho_empReason") + ": "), r.emp_reason || "—"),
+    field(t("ho_decNote"), note),
+    h("div", { style: "display:grid;gap:8px" }, h("button", { class: "btn", id: "hoWaive", onclick: () => go("waive") }, t("ho_waive")),
+      h("button", { class: "btn primary", id: "hoCharge", onclick: () => go("charge") }, t("ho_charge")), h("button", { class: "btn", onclick: () => close() }, t("cancel")))]);
 }
 function issueForm(r) {
   const people = S.employees.filter(e => !e.info?.no_payroll && (e.active && !e.resigned_on && e.name !== "test"));
