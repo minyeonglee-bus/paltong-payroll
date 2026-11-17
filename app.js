@@ -716,6 +716,8 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-17h", ko: ["💰 퇴사한 직원의 13th month는 근무 기간과 상관없이 법대로 계산해요: 올해 기본급 합계 ÷ 12 (12월까지 예상은 넣지 않아요)."],
+    en: ["💰 For employees who resigned, the 13th month is computed by law regardless of length of service: total basic pay this year ÷ 12 (no estimate up to December)."] },
   { id: "2026-11-17g", ko: ["🤒 홈에 '결석 알리기' 버튼이 생겼어요. 병가·경조사는 증빙 사진(진단서, 부고 등)을 올리면 확인서 → 사장님 확인 후 유급 1일 (SIL 안 써요). 증빙이 없으면 사유서 → 무단결근 (무급, 그 달 개근휴가 없음). 증빙은 7일 안에 나중에 올려도 돼요."],
     en: ["🤒 New 'Report absence' button on Home. Sick or bereavement: attach a proof photo (medical certificate, death notice…) → confirmation, paid 1 day after the manager approves (SIL not used). No proof → explanation letter → unexcused absence (unpaid, no monthly paid vacation that month). You can add the proof later, within 7 days."] },
   { id: "2026-11-17f", positions: ["waiter"], ko: ["💵🏦 캐시북 하루 마감: 포스(서랍)는 전부 장수로 세서 장부와 맞추고, 세이빙박스는 오늘 넣는 돈만 장수로 세요. 박스 전체는 Mina가 확인해요. 공지에 동의해 주세요."],
@@ -1148,7 +1150,7 @@ function proj13(periods, year, emp) {
   const avg = got.length ? got.reduce((a, x) => a + x.basic, 0) / got.length : 0;
   const last = got.length ? got[got.length - 1].start : null;
   const rest = [];
-  for (let m = 1; m <= 12; m++) for (const half of [1, 2]) { const pp = periodOf(year, m, half); if (last && pp.start > last) rest.push({ start: pp.start, end: pp.end, basic: Math.round(avg * 100) / 100, est: true }); }
+  for (let m = 1; m <= 12; m++) for (const half of [1, 2]) { const pp = periodOf(year, m, half); if (last && pp.start > last && !resigned13(emp, year)) rest.push({ start: pp.start, end: pp.end, basic: Math.round(avg * 100) / 100, est: true }); }
   const rows = [...got, ...rest];
   const total = Math.round((rows.reduce((a, x) => a + x.basic, 0) + before) * 100) / 100;
   const by12 = Math.round(total / 12 * 100) / 100, monthAvg = Math.round(avg * 2 * 100) / 100;
@@ -2881,7 +2883,7 @@ async function render13() {
     const drafts = mine.filter(r => r.status !== "paid").length;
     tbl.append(h("tr", {},
       h("td", {}, e.name, drafts ? h("small", { class: "muted" }, ` · ${drafts} ${t("draft")}`) : null,
-        h("div", {}, h("small", { class: oneYear === null ? "err" : "muted" }, oneYear === null ? t("c13_noHire") : `${t("emp_hired")} ${e.hired_on} · ${t(oneYear ? "my13_1yr" : "my13_under")}`)),
+        h("div", {}, h("small", { class: oneYear === null ? "err" : "muted" }, oneYear === null ? t("c13_noHire") : `${t("emp_hired")} ${e.hired_on} · ${resigned13(e, year) ? evL("퇴사 정산 · ÷12", "Final pay · ÷12") : t(oneYear ? "my13_1yr" : "my13_under")}`)),
         e.resigned_on ? h("div", {}, h("small", { class: "muted" }, tf("resignedTag", { d: e.resigned_on }) + " · " + (p?.paid_on ? tf("accessUntil", { d: addDays(p.paid_on, 7) }) : tf("resignDue", { d: addDays(e.resigned_on, 30) })))) : null),
       h("td", { class: "r" }, mine.length), h("td", { class: "r" }, money(basicApp)), h("td", { class: "r" }, money(before)), h("td", { class: "r" }, money(total)),
       h("td", { class: "r" }, showBy12 ? h("b", {}, money(amount)) : h("span", { class: "muted" }, "—")), h("td", { class: "r" }, showAvg ? h("b", {}, money(monthAvg)) : h("span", { class: "muted" }, "—")), h("td", { class: "r muted" }, money(proj)),
@@ -2892,8 +2894,10 @@ async function render13() {
   main.append(h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_13")), h("span", { class: "sp" }), h("span", { class: "muted" }, t("y13")), yIn),
     h("small", { class: "muted" }, t("y13help")), h("div", { class: "tbl" }, tbl), h("small", { class: "muted" }, t("c13_projHelp"))));
 }
+function resigned13(e, year) { return !!e?.resigned_on && e.resigned_on.startsWith(year + "-"); }
 /* 1년 기준: 저장된 입사일 → 그해 12월 24일(지급 기한)까지 365일 이상. 입사일 없으면 null */
-function oneYear13(e, year) { return e.hired_on ? (new Date(year, 11, 24) - new Date(e.hired_on + "T00:00:00")) >= 365 * 86400000 : null; }
+function oneYear13(e, year) { if (resigned13(e, year)) return false;   // 퇴사 정산은 근속과 상관없이 법대로 ÷12 (사장님 11/17, Erika)
+  return e.hired_on ? (new Date(year, 11, 24) - new Date(e.hired_on + "T00:00:00")) >= 365 * 86400000 : null; }
 function calc13(e, year, rows) {
   const mine = rows.filter(r => r.employee_id === e.id);
   const basicApp = mine.reduce((a, r) => a + (+r.result?.basicFor13th || 0), 0);
