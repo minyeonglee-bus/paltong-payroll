@@ -23,7 +23,7 @@ select json_build_object(
 4. Run `save.sql` against the database.
 
 Anything already saved for the target week is kept (day-off requests `off` / `sil`, owner edits); only empty days are planned.
-One-off demand changes go in `overrides.json`. Store-closed days go in its `"closed"` list (2026-12-31 day and 2027-01-01, owner 2026-11-10):
+One-off demand changes go in `overrides.json`. `"fewer": {"Lilian": "2026-11-22"}` = that person works as few days as possible from that date (owner 2026-11-17; remove the line to undo). Store-closed days go in its `"closed"` list (2026-12-31 day and 2027-01-01, owner 2026-11-10):
 no regular shifts are planned there, only saved rows (the New Year event shifts staff pick in the app, `pr_event_resp`) are kept.
 
 # Re-plan after approved leave (auto, every day 09:40)

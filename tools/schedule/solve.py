@@ -29,6 +29,13 @@ Rules (owner, 2026-11-03):
     (Jonel and Genifer excluded — owner 2026-11-04)
 Hard rules that cannot all be met are relaxed with large penalties and reported in "issues".
 
+Fewer days for one person (owner 2026-11-17: "Lilian as few days as possible from next week"):
+  overrides.json "fewer": {"Lilian": "2026-11-22"}  (name: from date)
+  * every working day of that person from that date costs WT["fewer"] (more than any off-pattern penalty,
+    less than leaving a shift empty or running hall with 2 on a Fri/Sat) -> teammates take the shifts first
+  * her own off-pattern penalties (back-to-back offs, 1-day runs, more than 2 offs a week) are dropped and
+    she is left out of the day-shift fair share. Hard rules stay (10h rest, max 6 in a row, 1 off a week).
+
 Re-plan mode (owner 2026-11-04 — approved leave fills itself; see replan.py):
   "replan": true, "current": {name: {day: shift}}, "exempt": {name: {day: true}}
   * approved leave days (exempt) do not count toward the 2-offs-per-week cap and may sit next to other offs
@@ -37,7 +44,7 @@ Re-plan mode (owner 2026-11-04 — approved leave fills itself; see replan.py):
     (an uncovered shift is allowed only with a very large penalty and is reported)
 """
 import json, sys, datetime as dt
-WT = {"offpair": 200, "oneday": 150, "change": 20, "keep": 15, "uncovered": 5000, "fair": 25}
+WT = {"offpair": 200, "oneday": 150, "change": 20, "keep": 15, "uncovered": 5000, "fair": 25, "fewer": 250}
 FAIR_SKIP = {"Jonel", "Genifer"}   # fixed 8-18 / prefers 8-20 — not part of the day-shift share
 from ortools.sat.python import cp_model
 
@@ -96,6 +103,10 @@ def solve_team(team, people, days, hol, hist, fixed, overrides, current=None, ex
     W = {(p, i): m.NewBoolVar("") for p in people for i in D}
     Y = {i: m.NewBoolVar("") for i in D} if hall else {}
 
+    fewer = {p: dt.date.fromisoformat(v) for p, v in overrides.get("fewer", {}).items() if p in people}
+    def few(p, j=None):   # j = day index (None: any day of the plan)
+        return p in fewer and (days[-1] if j is None else days[j]) >= fewer[p]
+
     def soft(lit, w, tag):
         pen.append(w * lit); tags.append((lit, tag))
 
@@ -106,6 +117,10 @@ def solve_team(team, people, days, hol, hist, fixed, overrides, current=None, ex
             if f is not None:
                 if is_work(f): m.Add(X[p, i, f] == 1)
                 else: m.Add(W[p, i] == 0)
+    for p in fewer:
+        for i in D:
+            if few(p, i) and not is_work(fixed.get(p, {}).get(days[i].isoformat()) or ""):
+                soft(W[p, i], WT["fewer"], "")
     for i in D:
         for s in shifts:
             tot = sum(X[p, i, s] for p in people)
@@ -146,6 +161,7 @@ def solve_team(team, people, days, hol, hist, fixed, overrides, current=None, ex
             def given(j):  # history day, a fixed day off/SIL, a closed day (or approved leave in re-plan mode)
                 return j < n0 or fixed.get(p, {}).get(days[j - n0].isoformat()) is not None or ex(p, days[j - n0]) or (j - n0) in closed
             if given(a) and given(a + 1): continue
+            if few(p, max(a + 1 - n0, 0)): continue
             b = m.NewBoolVar("")
             m.AddBoolOr([v for v in (x, y) if not isinstance(v, int)] + [b])
             soft(b, WT["offpair"], f"{p} 2 days off in a row from {(days[0] + dt.timedelta(days=a - n0)):%m/%d}")
@@ -155,6 +171,7 @@ def solve_team(team, people, days, hol, hist, fixed, overrides, current=None, ex
             if isinstance(y, int) and y == 0: continue
             if (isinstance(x, int) and x == 1) or (isinstance(z, int) and z == 1): continue
             if any(0 <= j - n0 < len(days) and (j - n0) in closed for j in (a, a + 2)): continue   # next to a closed day
+            if few(p, min(max(a + 1 - n0, 0), len(days) - 1)): continue
             b = m.NewBoolVar("")
             lits = [v for v in (x, z) if not isinstance(v, int)]
             m.AddBoolOr(lits + ([y.Not()] if not isinstance(y, int) else []) + [b])
@@ -188,6 +205,7 @@ def solve_team(team, people, days, hol, hist, fixed, overrides, current=None, ex
             cl = sum(1 for i in blk if i in closed and not is_work(fixed.get(p, {}).get(days[i].isoformat()) or ""))
             if len(blk) + (7 - len(blk) if before is not None else 0) >= 7:   # whole week visible
                 m.Add(offs + (before or 0) >= 1)
+            if few(p, blk[-1]): return
             over = m.NewBoolVar("")
             m.Add(offs - cl + (before or 0) <= 2 + 5 * over)
             soft(over, 100, f"{p} more than 2 days off in week of {days[blk[0]] - dt.timedelta(days=(days[blk[0]].weekday() + 1) % 7):%m/%d}")
@@ -208,7 +226,7 @@ def solve_team(team, people, days, hol, hist, fixed, overrides, current=None, ex
                 elif not is_work(cur): soft(W[p, i], WT["keep"], "")
     # fair share of day shifts (owner 2026-11-04: "Wilbert takes all the day shifts — spread them"):
     # day shifts in the last 14 days of history + this plan; penalise the gap between the most and the fewest in the team
-    share = [p for p in people if p not in FAIR_SKIP]
+    share = [p for p in people if p not in FAIR_SKIP and not few(p)]
     if len(share) > 1 and any(is_day(s) for s in shifts):
         cnt = {}
         for p in share:
