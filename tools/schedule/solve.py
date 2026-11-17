@@ -34,7 +34,8 @@ Fewer days for one person (owner 2026-11-17: "Lilian as few days as possible fro
   * every working day of that person from that date costs WT["fewer"] (more than any off-pattern penalty,
     less than leaving a shift empty or running hall with 2 on a Fri/Sat) -> teammates take the shifts first
   * her own off-pattern penalties (back-to-back offs, 1-day runs, more than 2 offs a week) are dropped and
-    she is left out of the day-shift fair share. Hard rules stay (10h rest, max 6 in a row, 1 off a week).
+    she is left out of the day-shift fair share.
+  * on hall Fri/Sat (3 on duty) she gets the shortest shift, 20-4 (owner 2026-11-17). Hard rules stay (10h rest, max 6 in a row, 1 off a week).
 
 Re-plan mode (owner 2026-11-04 — approved leave fills itself; see replan.py):
   "replan": true, "current": {name: {day: shift}}, "exempt": {name: {day: true}}
@@ -137,6 +138,10 @@ def solve_team(team, people, days, hol, hist, fixed, overrides, current=None, ex
                 miss = m.NewBoolVar("")          # a shift may stay empty only as a last resort (reported)
                 m.Add(tot + miss == req); m.Add(tot <= 1)
                 soft(miss, WT["uncovered"], f"{team} {s} not covered {days[i]:%m/%d}")
+        if hall and want3[i]:
+            for p in fewer:
+                if few(p, i) and not fixed.get(p, {}).get(days[i].isoformat()):
+                    soft(W[p, i] - X[p, i, "20-4"], 100, f"{p} not on 20-4 {days[i]:%m/%d}")
         if hall and want3[i]: soft(Y[i].Not(), 300, f"hall 2 on duty {days[i]:%m/%d} (3 wanted)")
         if hall and (not want3[i] or i in closed): m.Add(Y[i] == 0)
 
