@@ -713,6 +713,8 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-17f", ko: ["💵🏦 캐시북 하루 마감 화면이 '포스 (서랍)'와 '세이빙박스' 두 칸으로 나뉘었어요. 박스는 돈을 옮기기 전에 따로 세요. 공지에 동의해 주세요."],
+    en: ["💵🏦 The Cash Book Close day screen now has two parts: 'POS (cash drawer)' and 'Saving box'. Count the box separately, before moving money. Please agree to the notice."] },
   { id: "2026-11-17e", ko: ["💸 캐시북에 수리·청소·기사 같은 지출이 올라오면 '수리 맞나요?'가 모두에게 떠요. 한 명이 답하면 끝나요. 수리면 어떤 수리인지 골라 주세요."],
     en: ["💸 When the Cash Book has an expense that looks like a repair (repair, cleaning, technician…), everyone sees 'Is this a repair?'. One answer closes it. If it is a repair, pick which one."] },
   { id: "2026-11-17d", ko: ["🏷 스케줄·급여명세서에서 SIL(법정 유급휴가)과 MPV(개근휴가, 계약서 3.2조)를 따로 보여줘요."],
@@ -807,6 +809,23 @@ function whatsNewSheet(all) {
    (Documents tab / owner Requests tab). Disagree → "contact the manager", closes for now and shows again the next
    time the app is opened (or comes back after 30 min). A new notice = a new entry with a new id at the top. ---- */
 const NOTICES = [
+  { id: "2026-11-17-dayclose", title: { en: "Day Close — POS & Saving Box", ko: "하루 마감 — 포스 · 세이빙박스" },
+    en: [
+      "The Cash Book 'Close day' screen now has 2 separate parts: 💵 POS (cash drawer) and 🏦 Saving box. Do not mix them. Drawer money goes in the POS part, saving box money goes in the Saving box part.",
+      "💵 POS: count ALL the cash in the drawer (use 'Count by bills & coins' or type the total). Red 'short/over' means the count does not match the book. Enter the float to leave (usually ₱30,000). The app shows how much to move to the saving box.",
+      "🏦 Saving box: BEFORE moving any money, count ALL the money inside the saving box (use its own bill counter or type the total). ✓ = matches. Red = does not match, and you cannot close.",
+      "Take photos of the GCash and Maya balance screens.",
+      "The worker only presses 'Save draft'. You cannot finish your own close. The next shift opens it, counts the drawer and the box again themselves, retakes the photos, then saves the close.",
+      "If the next shift's count is different, they press '🔁 Hand over the difference'. The difference becomes the responsibility of the worker who saved the draft.",
+      "After the close is saved, move the money shown from the drawer to the saving box."],
+    ko: [
+      "캐시북 '하루 마감' 화면이 💵 포스 (서랍)와 🏦 세이빙박스 두 칸으로 나뉘었어요. 섞지 마세요. 서랍 돈은 포스 칸에, 박스 돈은 세이빙박스 칸에 넣어요.",
+      "💵 포스: 서랍 돈을 전부 세세요 ('지폐 세기'를 쓰거나 합계를 직접 입력). 빨간 '부족/초과'는 장부와 다르다는 뜻이에요. 남길 시재(보통 ₱30,000)를 넣으면 박스로 옮길 금액이 나와요.",
+      "🏦 세이빙박스: 돈을 옮기기 전에 박스 안의 돈을 전부 세세요 (박스 전용 지폐 세기 또는 합계 입력). ✓ = 맞음. 빨간색 = 다름, 마감할 수 없어요.",
+      "GCash·Maya 잔고 화면 사진을 찍으세요.",
+      "근무자는 '임시저장'만 눌러요. 자기 마감은 직접 끝낼 수 없어요. 다음 교대자가 열어서 서랍과 박스를 직접 다시 세고, 사진도 다시 찍고 마감을 저장해요.",
+      "교대자가 센 금액이 다르면 '🔁 차이 넘기기'를 눌러요. 차이는 임시저장한 근무자 책임이 돼요.",
+      "마감 저장 후 화면에 나온 금액만큼 서랍에서 세이빙박스로 옮기세요."] },
   { id: "2026-11-17-equip", title: { en: "Equipment & Stock Policy", ko: "장비 · 재고 규칙" },
     en: [
       "If kitchen equipment, aircon or anything else the business needs or uses breaks down, or there is a stock problem, report it right away in the app (Home → 🔧 Repairs → Needs repair). If the repair costs less than ₱10,000, call a technician and get it fixed right away. You do not need to wait for the owner's approval. If it is ₱10,000 or more, enter the amount in the app — the owner is notified.",
