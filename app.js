@@ -713,7 +713,7 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
-  { id: "2026-11-17f", ko: ["💵🏦 캐시북 하루 마감: 포스(서랍)는 전부 장수로 세서 장부와 맞추고, 세이빙박스는 오늘 넣는 돈만 장수로 세요. 박스 전체는 Mina가 확인해요. 공지에 동의해 주세요."],
+  { id: "2026-11-17f", positions: ["waiter"], ko: ["💵🏦 캐시북 하루 마감: 포스(서랍)는 전부 장수로 세서 장부와 맞추고, 세이빙박스는 오늘 넣는 돈만 장수로 세요. 박스 전체는 Mina가 확인해요. 공지에 동의해 주세요."],
     en: ["💵🏦 Cash Book Close day: count the whole drawer bill by bill to match the book; for the saving box count only today's money going in. Mina checks the whole box. Please agree to the notice."] },
   { id: "2026-11-17e", ko: ["💸 캐시북에 수리·청소·기사 같은 지출이 올라오면 '수리 맞나요?'가 모두에게 떠요. 한 명이 답하면 끝나요. 수리면 어떤 수리인지 골라 주세요."],
     en: ["💸 When the Cash Book has an expense that looks like a repair (repair, cleaning, technician…), everyone sees 'Is this a repair?'. One answer closes it. If it is a repair, pick which one."] },
@@ -797,7 +797,8 @@ const WHATS_NEW = [
 const newSeenKey = () => "pr_new_seen_" + (EMP.no || "");
 function whatsNewSheet(all) {
   let seen = ""; try { seen = localStorage.getItem(newSeenKey()) || ""; } catch (e) {}
-  const list = all ? WHATS_NEW : WHATS_NEW.filter(n => n.id > seen); if (!list.length) return false;
+  const mine = WHATS_NEW.filter(n => forEmp(n, EMP.data?.employee));
+  const list = all ? mine : mine.filter(n => n.id > seen); if (!list.length) return false;
   const done = () => { try { localStorage.setItem(newSeenKey(), WHATS_NEW[0].id); } catch (e) {} close(); };
   const close = sheet([h("h3", {}, "🆕 " + t("new_title")),
     ...list.map(n => h("div", { style: "margin-bottom:10px" }, h("b", {}, n.id), h("ul", { style: "margin:4px 0 0;padding-left:20px;line-height:1.5" }, (n[lang] || n.en).map(x => h("li", { style: "margin-bottom:4px" }, x))))),
@@ -809,7 +810,7 @@ function whatsNewSheet(all) {
    (Documents tab / owner Requests tab). Disagree → "contact the manager", closes for now and shows again the next
    time the app is opened (or comes back after 30 min). A new notice = a new entry with a new id at the top. ---- */
 const NOTICES = [
-  { id: "2026-11-17-dayclose", title: { en: "Day Close — POS & Saving Box", ko: "하루 마감 — 포스 · 세이빙박스" },
+  { id: "2026-11-17-dayclose", positions: ["waiter"], title: { en: "Day Close — POS & Saving Box", ko: "하루 마감 — 포스 · 세이빙박스" },
     en: [
       "The Cash Book 'Close day' screen has 2 parts: 💵 POS (cash drawer) and 🏦 Saving box. You enter how many of EACH bill and coin (₱1000, 500, 200, 100, 50, 20, 10, 5, 1). The totals fill in automatically — you cannot type a total. Centavos are not counted.",
       "💵 POS: count ALL the cash in the drawer. It must match the book exactly. The app checks: drawer + today's cash expenses (receipts) − today's cash sales = the ₱30,000 start float.",
@@ -843,12 +844,14 @@ const NOTICES = [
       "급여, 13th month, SIL, 오버타임, 공휴일 수당 등 법으로 정해진 돈은 영향이 없어요."] }];
 const noticeText = n => n.title.en + "\n" + n.en.map((x, i) => `${i + 1}. ${x}`).join("\n");
 const noticeAgreed = id => (EMP.notices || []).find(a => a.notice_id === id && a.agreed_at);
+// positions가 있으면 그 직책 직원에게만 (예: 하루 마감 공지 = 홀 직원 waiter만)
+const forEmp = (n, emp) => !n.positions || n.positions.includes(emp?.position);
 async function checkNotices() {
   if (EMP.preview) return false;
   let r; try { r = await db.empNoticeGet(EMP.no, EMP.pin); } catch { return false; }
   if (!r?.ok) return false;
   EMP.notices = r.acks || []; EMP.noticeLater ||= {};
-  const n = NOTICES.find(n => !noticeAgreed(n.id) && !(EMP.noticeLater[n.id] > Date.now() - 30 * 60000));
+  const n = NOTICES.find(n => forEmp(n, EMP.data?.employee) && !noticeAgreed(n.id) && !(EMP.noticeLater[n.id] > Date.now() - 30 * 60000));
   if (!n || document.querySelector("#notice-pop")) return !!n;
   noticeSheet(n); return true;
 }
@@ -894,7 +897,7 @@ async function noticeAdminCard() {
   const card = h("div", { class: "card", id: "notice-admin" }, h("h2", {}, "📢 " + evL("급여 공지 동의", "Payroll notice — agreement")));
   for (const n of NOTICES) {
     let acks = []; try { acks = await db.listNoticeAcks(n.id); } catch { return null; }
-    const emps = S.employees.filter(e => e.active && !e.info?.no_payroll);
+    const emps = S.employees.filter(e => e.active && !e.info?.no_payroll && forEmp(n, e));
     const yes = emps.filter(e => acks.some(a => a.employee_id === e.id && a.agreed_at)), notYet = emps.filter(e => !yes.includes(e));
     const fmt = a => new Date(a).toLocaleString(undefined, { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
     card.append(h("div", { style: "border-top:1px dashed var(--line);padding-top:6px;margin-top:6px" }, h("b", {}, `${n.title.ko} · ${n.id.slice(0, 10)}`), h("span", { class: "muted" }, ` · ${evL("동의", "agreed")} ${yes.length}/${emps.length}`),
