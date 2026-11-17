@@ -18,7 +18,7 @@ const I18N = {
     employee: "직원", period: "급여 기간", first: "1 – 15일", second: "16 – 30일", month: "월",
     daily: "일급", monthlyRate: "월급 (초과근무 포함)", breakH: "식사 휴게 (시간/일)", allowDay: "정비비 (₱/근무일)",
     roster: "보름치 시프트 표", off: "휴무", wkend: "주말",
-    type_regular: "근무", type_half: "반일 (½)", type_rest: "휴무일 근무 (130%)", type_special: "특별공휴일 근무 (+30%)", type_specialRest: "특별공휴일+휴무일 (150%)", type_holiday: "정규공휴일 근무 (+1일)", type_holidayRest: "정규공휴일+휴무일 (260%)", type_holidayOff: "정규공휴일 쉼 (1일)", type_sil: "유급휴가 (1일)", type_absent: "결근 (공제)", type_off: "휴무",
+    type_regular: "근무", type_half: "반일 (½)", type_rest: "휴무일 근무 (130%)", type_special: "특별공휴일 근무 (+30%)", type_specialRest: "특별공휴일+휴무일 (150%)", type_holiday: "정규공휴일 근무 (+1일)", type_holidayRest: "정규공휴일+휴무일 (260%)", type_holidayOff: "정규공휴일 쉼 (1일)", type_sil: "유급휴가 (1일)", type_excused: "병가·경조사 (유급 1일)", type_absent: "무단결근 (무급·공제)", type_off: "휴무",
     fill: "채우기", fillHelp: "\"앱 출퇴근 불러오기\"를 누르면 직원이 앱에서 누른 출근·퇴근 시각이 날짜별 타임카드로 들어와요 (기준). 없는 날은 시프트로 채우거나 캐시북 스케줄을 불러오고, 쉬는 날은 날짜를 눌러 휴무로.",
     restDay: "주 휴무 요일", dow: ["일", "월", "화", "수", "목", "금", "토"],
     custom: "타임카드 (직접 입력)", inT: "출근", outT: "퇴근", otDay: "OT", otAuto: "비우면 시프트에서 자동 (10h 기본 + 1h 휴게 제외, 나머지가 OT · 12h = OT 1h) · 카드 숫자를 넣으면 그 값",
@@ -87,7 +87,7 @@ const I18N = {
     employee: "Employee", period: "Pay period", first: "1st – 15th", second: "16th – 30th", month: "Month",
     daily: "Daily rate", monthlyRate: "Monthly salary (OT-inclusive)", breakH: "Meal break (hrs/day)", allowDay: "Maintenance (₱/duty day)",
     roster: "Half-month shift roster", off: "Off", wkend: "Weekend",
-    type_regular: "Worked", type_half: "Half day (½)", type_rest: "Rest day worked (130%)", type_special: "Special holiday worked (+30%)", type_specialRest: "Special holiday + rest day (150%)", type_holiday: "Regular holiday worked (+1 day)", type_holidayRest: "Regular holiday + rest day (260%)", type_holidayOff: "Regular holiday off (1 day)", type_sil: "Paid leave (1 day)", type_absent: "Absent (deducted)", type_off: "Off",
+    type_regular: "Worked", type_half: "Half day (½)", type_rest: "Rest day worked (130%)", type_special: "Special holiday worked (+30%)", type_specialRest: "Special holiday + rest day (150%)", type_holiday: "Regular holiday worked (+1 day)", type_holidayRest: "Regular holiday + rest day (260%)", type_holidayOff: "Regular holiday off (1 day)", type_sil: "Paid leave (1 day)", type_excused: "Excused absence — sick / bereavement (paid 1 day)", type_absent: "Unexcused absence (unpaid)", type_off: "Off",
     fill: "Fill", fillHelp: "\"Load app clock-ins\" fills each date with the in/out times the employee tapped in the app (the attendance record). Fill the rest with a shift or the Cash Book schedule; tap a date to make it a day off.",
     restDay: "Weekly rest day", dow: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
     custom: "Time card (enter times)", inT: "In", outT: "Out", otDay: "OT", otAuto: "Empty = from the shift (10h base + 1h break, the rest is OT · 12h = 1h OT) · type the card figure to override",
@@ -539,6 +539,9 @@ function myDocsTab(v, emp) {
       list(paid.map(p => item(periodLabel(p.period_start, p.period_end), (p.status === "paid" ? t("paid") + " " + (p.paid_on || "") : t("sharedStaff")) + " · ₱" + money(p.result.net), () => openSlip(p))))),
     h("div", { class: "card" }, h("h2", {}, t("docs_letters")),
       list(letters.map(p => item(`${isConf(p) ? t("lt_conf") : t("lt_ex")} · ${fmtDT(p.punched_at)}`, "“" + p.reason + "”", () => docSheet(letterDoc(p, v.signature), letterName(p)))))),
+    (() => { const c = h("div", { class: "card", id: "my-abs-docs" }); const fill = rows => { c.innerHTML = ""; c.append(h("h2", {}, "🤒 " + evL("결석 확인서·사유서", "Absence letters")),
+        list(rows.map(a => item(`${absIsConf(a) ? t("lt_conf") : t("lt_ex")} · ${absDayL(a.day)}`, absKindL(a.kind) + " · " + absStL(a), () => docSheet(absDoc(a, me, v.signature), absDocName(a, me)))))); };
+      if (EMP.abs) fill(EMP.abs); else loadMyAbs().then(fill); return c; })(),
     h("div", { class: "card" }, h("h2", {}, t("docs_adv")),
       list(advs.map(l => item(`${l.biz_date} · ₱${money(l.amount)}`, l.deducted ? t("led_deducted") : t("led_pending"), () => printAdvance(l, emp, v.signature))))),
     NOTICES.some(n => noticeAgreed(n.id)) ? h("div", { class: "card", id: "my-notices" }, h("h2", {}, "📢 " + evL("공지 동의서", "Notice agreements")),
@@ -713,6 +716,8 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-17g", ko: ["🤒 홈에 '결석 알리기' 버튼이 생겼어요. 병가·경조사는 증빙 사진(진단서, 부고 등)을 올리면 확인서 → 사장님 확인 후 유급 1일 (SIL 안 써요). 증빙이 없으면 사유서 → 무단결근 (무급, 그 달 개근휴가 없음). 증빙은 7일 안에 나중에 올려도 돼요."],
+    en: ["🤒 New 'Report absence' button on Home. Sick or bereavement: attach a proof photo (medical certificate, death notice…) → confirmation, paid 1 day after the manager approves (SIL not used). No proof → explanation letter → unexcused absence (unpaid, no monthly paid vacation that month). You can add the proof later, within 7 days."] },
   { id: "2026-11-17f", positions: ["waiter"], ko: ["💵🏦 캐시북 하루 마감: 포스(서랍)는 전부 장수로 세서 장부와 맞추고, 세이빙박스는 오늘 넣는 돈만 장수로 세요. 박스 전체는 Mina가 확인해요. 공지에 동의해 주세요."],
     en: ["💵🏦 Cash Book Close day: count the whole drawer bill by bill to match the book; for the saving box count only today's money going in. Mina checks the whole box. Please agree to the notice."] },
   { id: "2026-11-17e", ko: ["💸 캐시북에 수리·청소·기사 같은 지출이 올라오면 '수리 맞나요?'가 모두에게 떠요. 한 명이 답하면 끝나요. 수리면 어떤 수리인지 골라 주세요."],
@@ -1107,6 +1112,7 @@ function renderStaffHome() {
       mentionsCard(v),
       myEstCard(emp, v),
       clockCard(),
+      myAbsCard(v, emp),
       h("div", { class: "card" }, h("h2", {}, t("myPay")), payList),
       h("div", { class: "card" }, h("h2", {}, t("myLedger")), ledList),
       h("div", { class: "card" }, h("h2", {}, t("myShifts")), shifts),
@@ -1575,6 +1581,162 @@ async function reviewCard() {
   if (done.length) card.append(h("details", {}, h("summary", { class: "muted" }, t("rv_done") + ` (${done.length})`), h("div", { class: "list" }, done.map(line))));
   return card;
 }
+/* ================= 결석 알리기 (owner 2026-11-17) =================
+   staff: scheduled day + reason → proof photo (sick / bereavement) = 확인서, owner approves → paid 1 day (not SIL, not unexcused)
+          no proof (or personal) = 사유서 → unexcused absence (unpaid, monthly deducted, no MPV). Proof can be added later (7 days).
+   payroll: applyAbsences marks the day excused / absent when there is no clock-in that day. */
+const ABS_KIND = { sick: ["🤒", "병가", "Sick"], family: ["🕯", "경조사", "Bereavement / family"], personal: ["🙋", "개인 사유", "Personal reason"] };
+const absKindL = k => (ABS_KIND[k] || ABS_KIND.personal)[0] + " " + evL((ABS_KIND[k] || ABS_KIND.personal)[1], (ABS_KIND[k] || ABS_KIND.personal)[2]);
+const absIsConf = a => a.status === "pending" || a.status === "approved";
+const absStL = a => a.status === "approved" ? evL("확인서 승인 · 유급", "Approved · paid") : a.status === "pending" ? evL("확인서 · 사장님 확인 대기", "Confirmation · waiting for the manager")
+  : a.status === "rejected" ? evL("반려 · 무단결근", "Rejected · unexcused") : evL("사유서 · 무단결근", "Explanation · unexcused");
+const absPill = a => h("span", { class: "pill " + (a.status === "approved" ? "paid" : a.status === "pending" ? "draft" : "late") }, absStL(a));
+const absDayL = d => `${+d.slice(5, 7)}/${+d.slice(8)} (${t("dow")[new Date(d + "T00:00:00").getDay()]})`;
+const absErr = e => ({ abs_range: evL("결석은 3일 전 ~ 7일 뒤 날짜만 알릴 수 있어요 (증빙은 7일 안에)", "Only from 3 days ago to 7 days ahead (proof within 7 days)"),
+  abs_noshift: evL("그날은 스케줄이 없어요", "No shift scheduled that day"), abs_worked: evL("그날은 이미 출근 기록이 있어요", "You already clocked in that day"),
+  abs_decided: evL("이미 처리된 결석이에요. 관리자에게 문의하세요.", "Already decided. Please ask the manager."), abs_locked: evL("그 기간 급여가 이미 확정됐어요. 관리자에게 문의하세요.", "That payroll is already final. Please ask the manager."),
+  bad_proof: evL("사진을 다시 올려 주세요 (최대 3장)", "Please attach the photo again (up to 3)"), need_sig: t("adv_needSig") })[e] || pinErr(e, "noData");
+// photo → JPEG data URL, longest side ≤ 1400px, under ~850 KB
+async function absShrink(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = url; });
+    let max = 1400, q = 0.72, out = "";
+    for (let k = 0; k < 6; k++) {
+      const s = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement("canvas"); c.width = Math.round(img.naturalWidth * s); c.height = Math.round(img.naturalHeight * s);
+      const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+      out = c.toDataURL("image/jpeg", q); if (out.length < 850000) return out;
+      max = Math.round(max * 0.8); q = Math.max(0.5, q - 0.08);
+    }
+    return out;
+  } finally { URL.revokeObjectURL(url); }
+}
+function absPhotoPicker(photos, onChange) {
+  const box = h("div", { class: "row", style: "gap:6px;flex-wrap:wrap;margin-top:6px" });
+  const input = h("input", { type: "file", accept: "image/*", multiple: true, style: "display:none", onchange: async e => {
+    const files = [...e.target.files].slice(0, 3 - photos.length); e.target.value = "";
+    for (const f of files) { try { photos.push(await absShrink(f)); } catch { toast(evL("사진을 읽을 수 없어요", "Could not read the photo")); } }
+    draw(); onChange(); } });
+  const draw = () => { box.innerHTML = "";
+    photos.forEach((p, i) => box.append(h("div", { style: "position:relative" }, h("img", { src: p, style: "width:84px;height:84px;object-fit:cover;border-radius:6px;border:1px solid var(--line)" }),
+      h("button", { class: "btn sm", type: "button", style: "position:absolute;top:-6px;right:-6px;padding:0 7px", onclick: () => { photos.splice(i, 1); draw(); onChange(); } }, "✕"))));
+    if (photos.length < 3) box.append(h("button", { class: "btn", type: "button", id: "abs-photo", style: "height:84px", onclick: () => input.click() }, "📷 " + evL("증빙 사진", "Proof photo"))); };
+  draw(); return h("div", {}, input, box);
+}
+async function loadMyAbs() { try { const r = await db.empAbsences(EMP.no, EMP.pin); EMP.abs = r.ok ? r.rows || [] : []; } catch { EMP.abs = EMP.abs || []; } return EMP.abs; }
+function myAbsCard(v, emp) {
+  const card = h("div", { class: "card", id: "my-abs" });
+  const draw = () => { card.innerHTML = ""; const rows = EMP.abs || []; const td = today();
+    card.append(h("div", { class: "row" }, h("h2", {}, "🤒 " + evL("결석", "Absence")), h("span", { class: "sp" }),
+        h("button", { class: "btn primary", type: "button", id: "abs-btn", onclick: () => absSheet(v, null, draw) }, evL("결석 알리기", "Report absence"))),
+      h("small", { class: "muted" }, evL("병가·경조사는 증빙 사진(진단서, 부고 등)을 올리면 확인서 → 사장님 확인 후 유급이에요. 증빙이 없으면 사유서 → 무단결근 (무급, 그 달 개근휴가 없음). 증빙은 결석일부터 7일 안에 나중에 올려도 돼요.",
+        "Sick or bereavement: attach a proof photo (medical certificate, death notice…) → confirmation, paid after the manager approves. No proof → explanation letter → unexcused absence (unpaid, no monthly paid vacation that month). You can add the proof later, within 7 days.")),
+      rows.length ? h("div", { class: "list", style: "margin-top:8px" }, rows.slice(0, 8).map(a => h("div", { class: "item", style: "display:block" },
+        h("div", { class: "row", style: "align-items:center;gap:6px;flex-wrap:wrap" }, h("b", {}, absDayL(a.day)), h("span", {}, absKindL(a.kind)), absPill(a), h("span", { class: "sp" }),
+          a.status === "noted" && a.kind !== "personal" && a.day >= addD(td, -7) ? h("button", { class: "btn sm primary", type: "button", onclick: () => absSheet(v, a, draw) }, "📷 " + evL("증빙 올리기", "Add proof")) : null,
+          a.day >= td && (a.status === "noted" || a.status === "pending") ? h("button", { class: "btn sm ghost", type: "button", onclick: () => confirmSheet(evL("결석 알림을 취소할까요?", "Cancel this absence?"), async () => {
+            try { const r = await db.empAbsenceCancel(EMP.no, EMP.pin, a.id); if (!r.ok) throw new Error(absErr(r.err)); await loadMyAbs(); draw(); } catch (e) { toast(errMsg(e)); } }, { ask: true }) }, evL("취소", "Cancel")) : null,
+          h("button", { class: "btn sm", type: "button", onclick: () => docSheet(absDoc(a, emp, v.signature), absDocName(a, emp)) }, "🖨 " + (absIsConf(a) ? t("lt_conf") : t("lt_ex")))),
+        a.decided_note ? h("div", { class: "muted", style: "font-size:13px" }, "💬 " + a.decided_note) : null))) : null); };
+  if (EMP.abs) draw(); else { draw(); loadMyAbs().then(draw); }
+  return card;
+}
+// new absence (cur = null) or add proof to an existing one
+function absSheet(v, cur, done) {
+  const td = today(); const taken = new Set((EMP.abs || []).map(a => String(a.day)));
+  const days = cur ? [String(cur.day)] : (v.schedule || []).filter(r => r.day >= addD(td, -3) && r.day <= addD(td, 7) && r.shift && !/^(off|sil)$/.test(r.shift) && !taken.has(String(r.day)))
+    .map(r => String(r.day)).sort();
+  const shOf = d => (v.schedule || []).find(r => String(r.day) === d)?.shift;
+  const st = { day: cur ? String(cur.day) : (days.includes(td) ? td : days[0] || null), kind: cur ? cur.kind : null, photos: [] };
+  const body = h("div");
+  const chip = (on, label, fn, id) => h("button", { class: "btn" + (on ? " primary" : ""), type: "button", id, onclick: fn }, label);
+  const note = h("textarea", { rows: 2, maxlength: 200, placeholder: evL("메모 (선택)", "Note (optional)"), style: "width:100%" });
+  const result = h("div", { style: "margin-top:10px;padding:10px;border-radius:8px;font-weight:700" });
+  const showResult = () => { const conf = st.kind && st.kind !== "personal" && st.photos.length > 0;
+    result.style.background = conf ? "#e8f7ec" : "#fdecec"; result.style.color = conf ? "#11632b" : "#8a1c1c";
+    result.textContent = !st.kind ? "" : conf ? "✅ " + evL("확인서 → 사장님이 확인하면 유급 1일 (SIL 안 씀)", "Confirmation → paid 1 day once the manager approves (SIL not used)")
+      : "⚠️ " + evL("사유서 → 무단결근: 그날 무급, 그 달 개근휴가 없음", "Explanation letter → unexcused absence: unpaid, no monthly paid vacation that month");
+    result.hidden = !st.kind; };
+  const draw = () => { body.innerHTML = "";
+    if (!days.length) { body.append(h("p", { class: "muted" }, evL("3일 전 ~ 7일 뒤 중 알릴 수 있는 근무일이 없어요.", "No scheduled work day from 3 days ago to 7 days ahead."))); return; }
+    body.append(h("label", { style: "font-weight:700" }, evL("어느 날?", "Which day?")),
+      h("div", { class: "row", style: "gap:6px;flex-wrap:wrap;margin:6px 0 12px" }, days.map(d => chip(st.day === d, `${absDayL(d)} · ${SHIFT_LABEL(shOf(d) || cur?.plan_shift || "")}`, () => { if (!cur) { st.day = d; draw(); } }))),
+      h("label", { style: "font-weight:700" }, evL("이유", "Reason")),
+      h("div", { class: "row", style: "gap:6px;flex-wrap:wrap;margin:6px 0 12px" }, Object.keys(ABS_KIND).filter(k => !cur || k !== "personal").map(k => chip(st.kind === k, absKindL(k), () => { st.kind = k; if (k === "personal") st.photos.length = 0; draw(); }, "abs-k-" + k))),
+      st.kind && st.kind !== "personal" ? h("div", {}, h("label", { style: "font-weight:700" }, evL("증빙 사진 (최대 3장)", "Proof photo (up to 3)")),
+        h("small", { class: "muted", style: "display:block" }, st.kind === "sick" ? evL("진단서·처방전·병원 영수증 등", "Medical certificate, prescription, hospital receipt…") : evL("부고·사망진단서·청첩장 등", "Death notice / certificate, invitation…")),
+        absPhotoPicker(st.photos, showResult)) : null,
+      cur ? null : h("div", { style: "margin-top:10px" }, note), result);
+    showResult(); };
+  draw();
+  const send = async () => {
+    if (!st.day) return toast(evL("날짜를 골라 주세요", "Pick the day")); if (!st.kind) return toast(evL("이유를 골라 주세요", "Pick the reason"));
+    if (cur && !st.photos.length) return toast(evL("사진을 올려 주세요", "Attach a photo"));
+    const conf = st.kind !== "personal" && st.photos.length > 0;
+    confirmSheet(`${absDayL(st.day)} · ${absKindL(st.kind)} — ` + (conf ? evL("확인서로 보낼까요? 사장님 확인 후 유급이에요.", "Send as a confirmation? Paid after the manager approves.")
+      : evL("증빙 없이 보낼까요? 무단결근(사유서)으로 처리돼요.", "Send without proof? It is recorded as an unexcused absence (explanation letter).")), async () => {
+      try { const r = await db.empAbsence(EMP.no, EMP.pin, st.day, st.kind, cur ? null : note.value, conf ? st.photos : []); if (!r.ok) throw new Error(absErr(r.err));
+        close(); toast(r.status === "pending" ? evL("보냈어요 · 사장님 확인 대기", "Sent · waiting for the manager") : evL("보냈어요 · 사유서", "Sent · explanation letter"));
+        await loadMyAbs(); done && done(); } catch (e) { toast(errMsg(e)); } }, { ask: true }); };
+  const close = sheet([h("h3", {}, cur ? "📷 " + evL("증빙 올리기", "Add proof") : "🤒 " + evL("결석 알리기", "Report absence")), body,
+    h("div", { class: "row", style: "margin-top:12px" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => close() }, t("close")),
+      days.length ? h("button", { class: "btn primary", type: "button", id: "abs-send", onclick: send }, evL("보내기", "Send")) : null)]);
+}
+const absDocName = (a, e) => `${absIsConf(a) ? "Confirmation" : "Explanation letter"} (absence) - ${e?.info?.full_name || e?.name || ""} - ${a.day}`;
+function absDoc(a, e, sig) {
+  e = e || {}; const name = e.info?.full_name || e.name || "";
+  const row = (x, y) => h("tr", {}, h("th", { style: "text-align:left;width:38%;padding:6px;border:1px solid #999;background:#f3f3f3" }, x), h("td", { style: "padding:6px;border:1px solid #999" }, y));
+  const kindEn = { sick: "Sick leave", family: "Bereavement / family emergency", personal: "Personal reason" }[a.kind] || "";
+  const conf = absIsConf(a);
+  return h("div", { class: "slip", style: "font-family:Arial,sans-serif;color:#000;background:#fff;padding:24px;max-width:720px" },
+    h("h2", { style: "text-align:center;margin:0 0 4px" }, conf ? "CONFIRMATION OF ABSENCE / 확인서" : "EXPLANATION LETTER — ABSENCE / 사유서"), h("div", { style: "text-align:center;margin-bottom:16px" }, "Paltong"),
+    h("table", { style: "width:100%;border-collapse:collapse;font-size:14px" },
+      row("Employee name", name), row("Position", e.position || ""),
+      row("Date of absence", new Date(a.day + "T00:00:00").toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric", weekday: "short" })),
+      row("Scheduled shift", a.plan_shift ? SHIFT_LABEL(a.plan_shift) : "—"), row("Reason", kindEn),
+      row("Proof attached", (a.proof_n ?? (a.proof || []).length) ? `${a.proof_n ?? a.proof.length} photo(s)${a.proof_at ? " · " + fmtD(a.proof_at) : ""}` : "None"),
+      row("Status", a.status === "approved" ? "Approved — excused absence, paid 1 day" : a.status === "pending" ? "Waiting for approval" : a.status === "rejected" ? "Rejected — unexcused absence" : "Noted — unexcused absence (no proof)")),
+    h("h3", { style: "margin:18px 0 6px" }, "Note / 메모"), h("div", { style: "border:1px solid #999;min-height:70px;padding:10px;white-space:pre-wrap;font-size:14px" }, [a.note, a.decided_note ? "Manager: " + a.decided_note : ""].filter(Boolean).join("\n")),
+    h("p", { style: "font-size:13px;margin:14px 0 0" }, conf
+      ? "I was absent on the date above for the reason stated and I attached proof. I understand the day is paid as an excused absence only if the manager approves the proof; otherwise it is an unexcused absence."
+      : "I confirm that I was absent on the date above without proof. I understand this is an unexcused absence: the day is not paid (monthly salary: deducted) and I do not earn the monthly paid vacation (Contract §3.2) for that month."),
+    h("div", { style: "display:flex;gap:40px;margin-top:36px" }, sigLine("Employee signature / Date", sig, fmtD(a.created_at)),
+      sigLine("Manager signature" + (mgrName() ? " / " + mgrName() : "") + " / Date", a.status === "approved" || a.status === "rejected" ? mgrSig() : null, a.decided_at ? fmtD(a.decided_at) : "")));
+}
+// payroll: absence days with no clock-in → excused (approved) / absent (everything else, incl. waiting)
+function applyAbsences(days, list) {
+  const by = Object.fromEntries((list || []).map(a => [String(a.day), a]));
+  for (const d of days || []) { const a = by[d.date]; delete d.abs;
+    if (!a || d.prevPaid || d.card || d.sepPay) continue;
+    d.shift = ""; d.ot = null; d.type = a.status === "approved" ? "excused" : "absent"; d.abs = a.status; }
+  return days;
+}
+const absTag = d => d.abs === "approved" ? "🤒 " + evL("결석 · 확인서 승인", "absent · approved") : d.abs === "pending" ? "⏳ " + evL("결석 · 확인 대기", "absent · waiting") : d.abs ? "🚫 " + evL("무단결근", "unexcused") : "";
+/* ---- owner: absences with proof → approve / reject ---- */
+async function absenceCard() {
+  const card = h("div", { class: "card", id: "abs-review" }, h("h2", {}, "🤒 " + evL("결석 확인", "Absences")),
+    h("small", { class: "muted" }, evL("증빙 사진이 있는 병가·경조사 = 확인서 → 승인하면 유급 1일 (SIL 안 씀, 개근휴가 유지), 반려하면 무단결근. 증빙 없는 결석은 사유서로 자동 무단결근 (기록만). 급여 화면에 자동 반영돼요.",
+      "Sick / bereavement with a proof photo = confirmation → approve = paid 1 day (no SIL, keeps the monthly paid vacation), reject = unexcused. No proof = explanation letter, unexcused automatically. Payroll picks it up automatically.")));
+  let rows = []; try { rows = await db.listAbsences({ from: addD(today(), -45), withProof: true }); } catch (e) { card.append(h("p", { class: "muted" }, errMsg(e))); return card; }
+  const big = src => sheet([h("img", { src, style: "width:100%;height:auto;border-radius:6px" }), h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => document.getElementById("sheetRoot").innerHTML = "" }, t("close")))]);
+  const decide = (a, ok) => { const memo = h("input", { type: "text", maxlength: 200, placeholder: evL("메모 (선택)", "Note (optional)"), style: "width:100%" });
+    const close = sheet([h("h3", {}, `${a.employees?.name} · ${absDayL(a.day)} — ` + (ok ? evL("승인 (유급 1일)", "Approve (paid 1 day)") : evL("반려 (무단결근)", "Reject (unexcused)"))), memo,
+      h("div", { class: "row", style: "margin-top:10px" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => close() }, t("cancel")),
+        h("button", { class: "btn " + (ok ? "primary" : "danger"), type: "button", onclick: async () => { try { const r = await db.absenceDecide(a.id, ok, memo.value); if (!r.ok) throw new Error(t("noData")); close(); render(); } catch (e) { toast(errMsg(e)); } } }, ok ? evL("승인", "Approve") : evL("반려", "Reject")))]); };
+  const line = a => h("div", { class: "item", style: "display:block" },
+    h("div", { class: "row", style: "align-items:center;gap:6px;flex-wrap:wrap" }, h("b", {}, a.employees?.name || "?"), h("span", {}, absDayL(a.day) + (a.plan_shift ? " · " + SHIFT_LABEL(a.plan_shift) : "")), h("span", {}, absKindL(a.kind)), absPill(a), h("span", { class: "sp" }),
+      (a.proof || []).length && a.status !== "approved" ? h("button", { class: "btn sm primary", type: "button", onclick: () => decide(a, true) }, evL("승인", "Approve")) : null,
+      (a.proof || []).length && a.status !== "rejected" ? h("button", { class: "btn sm", type: "button", onclick: () => decide(a, false) }, evL("반려", "Reject")) : null,
+      h("button", { class: "btn sm", type: "button", onclick: () => docSheet(absDoc(a, a.employees, sigOf(a.employee_id)), absDocName(a, a.employees)) }, "🖨 " + (absIsConf(a) ? t("lt_conf") : t("lt_ex")))),
+    (a.proof || []).length ? h("div", { class: "row", style: "gap:6px;margin-top:6px" }, a.proof.map(p => h("img", { src: p, style: "width:72px;height:72px;object-fit:cover;border-radius:6px;border:1px solid var(--line);cursor:pointer", onclick: () => big(p) }))) : null,
+    a.note || a.decided_note ? h("div", { class: "muted", style: "font-size:13px" }, [a.note ? "“" + a.note + "”" : "", a.decided_note ? "💬 " + a.decided_note : ""].filter(Boolean).join(" · ")) : null);
+  const pend = rows.filter(a => a.status === "pending"), done = rows.filter(a => a.status !== "pending");
+  if (pend.length) card.style.border = "2px solid var(--gold)";
+  card.append(pend.length ? h("div", { class: "list" }, pend.map(line)) : h("p", { class: "muted" }, evL("확인할 결석이 없어요", "No absences to check")));
+  if (done.length) card.append(h("details", {}, h("summary", { class: "muted" }, evL("최근 결석", "Recent absences") + ` (${done.length})`), h("div", { class: "list" }, done.map(line))));
+  return card;
+}
 const CONF_MODES = ["work", "cover", "relief", "delivery", "errand", "boss"];   // 확인서 (work reasons) — the rest are 사유서
 const isConf = p => CONF_MODES.includes(p.mode) || (p.mode === "personal" && p.kind === "in" && (p.dev_min ?? 0) < 0);
 const letterName = p => `${isConf(p) ? "Confirmation" : "Explanation letter"} - ${p.employees?.info?.full_name || p.employees?.name || ""} - ${fmtD(p.punched_at)}`;
@@ -1657,6 +1819,7 @@ function myEstCard(emp, v) {
   const planBy = Object.fromEntries((v.schedule || []).map(r => [r.day, r.shift]));
   const paidBefore = new Set((v.payrolls || []).flatMap(p => (p.result?.rows || []).filter(r => !r.carry && (DAY_TYPES[r.type]?.worked || r.type === "sil" || +r.amount > 0)).map(r => r.date)));
   const days = [...(per.carry || []).filter(d => !paidBefore.has(d)).map(d => ({ ...planDay(d, planBy[d]), date: d, carry: true })), ...datesBetween(per.start, per.end).map(d => planDay(d, planBy[d]))];
+  applyAbsences(days, EMP.abs || []);
   applyHolidays(days, HOL);
   const worked = paidDays(days).filter(d => DAY_TYPES[d.type]?.worked || d.type === "sil");
   if (!worked.length) return null;
@@ -1779,11 +1942,11 @@ async function pendingBar() {
       h("button", { class: "btn sm primary", type: "button", onclick: async () => { try { await pushEnable(); toast(t("push_done")); render(); } catch (e) { toast(errMsg(e)); } } }, t("push_on")),
       h("button", { class: "btn sm ghost", type: "button", style: "color:#fff", onclick: ev => { lsSet("pr_push_later", "1"); ev.currentTarget.parentNode.remove(); } }, t("push_later"))));
   let p = null; try { p = await db.pendingCounts(); } catch { return; }
-  if (!p || !(+p.leave + +p.punch + +p.cash + +(p.recv || 0))) return;
+  if (!p || !(+p.leave + +p.punch + +p.cash + +(p.recv || 0) + +(p.absence || 0))) return;
   const go = (tab, id) => { S.tab = tab; render(); setTimeout(() => document.getElementById(id)?.scrollIntoView({ block: "start", behavior: "smooth" }), 400); };
   const chip = (n, k, tab, id) => +n ? h("button", { class: "btn sm", type: "button", style: "background:#fff;color:#111", onclick: () => go(tab, id) }, tf(k, { n })) : null;
   bar.append(h("div", { style: "display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 14px;background:var(--gold, #f5b800);color:#111;font-weight:700" },
-    h("span", {}, t("pend_title")), chip(p.leave, "pend_leave", "req", "sil-req-admin"), chip(p.punch, "pend_punch", "req", "punch-review"), chip(p.cash, "pend_cash", "ledger", "cash-issues"),
+    h("span", {}, t("pend_title")), +p.absence ? h("button", { class: "btn sm", type: "button", style: "background:#fff;color:#111", onclick: () => go("req", "abs-review") }, evL(`🤒 결석 ${p.absence}`, `🤒 Absence ${p.absence}`)) : null, chip(p.leave, "pend_leave", "req", "sil-req-admin"), chip(p.punch, "pend_punch", "req", "punch-review"), chip(p.cash, "pend_cash", "ledger", "cash-issues"),
     +p.recv ? h("button", { class: "btn sm", type: "button", style: "background:#fff;color:#111", onclick: () => go("req", "recv-admin") }, evL(`📥 받음 확인 ${p.recv}`, `📥 Received ${p.recv}`)) : null));
 }
 function menu() {
@@ -1834,7 +1997,7 @@ const monthly = P.pay_type === "monthly";
   if (monthly && R.builtInOt) row(tf("basicSplit", { b: money(R.monthlyBasic / 2), o: money(R.builtInOt) }), "");
   if (monthly && R.otPay) row(`${t("otExtra")} (${R.otHours}h)`, money(R.otPay)); else if (monthly && R.otHours) row(`${t("otIncl")} · ${R.otHours}h`, "0.00"); else if (R.otPay) row(paper ? `${tf("ot", { h: R.hoursPerDay || 10 })} ${R.otHours}h × ₱${money(R.hourly)}` : `${t("otC")} (${R.otHours}h)`, money(R.otPay));
   if (R.ndPay) row(`${t("nd")} (${R.ndHours}h)`, money(R.ndPay));
-  if (R.silPay - (R.mpvPay || 0) > 0) row(`${t("silPay")} · SIL (${R.silDays - (R.mpvDays || 0)})`, money(R.silPay - (R.mpvPay || 0))); if (R.mpvPay) row(`${evL("개근휴가", "Monthly paid vacation")} · MPV (${R.mpvDays})`, money(R.mpvPay)); if (R.holidayOffPay) row(t("holOff"), money(R.holidayOffPay));
+  if (R.silPay - (R.mpvPay || 0) > 0) row(`${t("silPay")} · SIL (${R.silDays - (R.mpvDays || 0)})`, money(R.silPay - (R.mpvPay || 0))); if (R.mpvPay) row(`${evL("개근휴가", "Monthly paid vacation")} · MPV (${R.mpvDays})`, money(R.mpvPay)); if (R.holidayOffPay) row(t("holOff"), money(R.holidayOffPay)); if (R.excusedPay) row(`${evL("병가·경조사 (확인서)", "Excused absence (proof)")} (${R.excusedDays})`, money(R.excusedPay));
   if (R.allowance) row(tf("allowance", { d: R.daysWorked, a: money(P.allowance_per_day ?? (R.daysWorked ? R.allowance / R.daysWorked : 0)) }), money(R.allowance));
   // ledger items (advances / shortage / other / bonus) itemized by date when we have them (live payroll or saved with the result)
   const items = (R.ledgerItems || P.ledger || []).filter(l => l.kind !== "shortage" || (l.verified && l.authorized));
@@ -1959,6 +2122,8 @@ async function loadPay(P) {
     }
     // open payroll: app clock-ins (with the manager's approve / reject) go on the schedule automatically
     if (P.status !== "paid" && !P.shared_at) { try { applyPunchRows(P, await db.listPunches(P.employee_id, P.carry[0] || P.start, P.end)); } catch { } }
+    // 결석 알리기: no clock-in that day → excused (proof approved) / absent (owner 2026-11-17)
+    if (P.status !== "paid" && !P.shared_at) { try { applyAbsences(P.days, await db.listAbsences({ employeeId: P.employee_id, from: P.carry[0] || P.start, to: P.end })); } catch { } }
     // New Year event days (12/31 shift, 1/1 store duty) are paid separately, never in the regular cutoff (owner 2026-11-10)
     if (P.status !== "paid" && !P.shared_at) for (const d of P.days) if (EV_DAYS.has(d.date) && (d.shift || DAY_TYPES[d.type]?.worked)) {
       d.card = (d.card ? d.card + " · " : "") + evL("별도 지급", "paid separately"); d.shift = ""; d.type = "off"; d.sepPay = true; }
@@ -2022,10 +2187,10 @@ async function renderPay() {
     for (const d of P.days) {
       const dt = new Date(d.date + "T00:00:00"); const dow = dt.getDay(); const wk = dow === 5 || dow === 6;   // 주말 = 금·토
       const toggle = () => { if (locked) return; if (d.type === "off") { d.shift = d.shift || P.fillShift; d.type = "regular"; } else { d.shift = ""; d.type = "off"; d.ot = null; } drawRoster(); refresh(); };
-      const tag = d.type === "sil" && P.mpv?.has(d.date) ? "MPV · " + evL("개근휴가", "monthly paid vacation") : HOL[d.date] && !d.carry ? "🎌 " + (HOL[d.date].kind === "regular" ? t("holReg") : t("holSp")) : d.carry ? (paidDays([d]).length ? t("carryIn") : t("carryInNone")) : carriesOver(d.date, d.shift) ? t("carryOut") : "";
+      const tag = d.abs ? absTag(d) : d.type === "sil" && P.mpv?.has(d.date) ? "MPV · " + evL("개근휴가", "monthly paid vacation") : HOL[d.date] && !d.carry ? "🎌 " + (HOL[d.date].kind === "regular" ? t("holReg") : t("holSp")) : d.carry ? (paidDays([d]).length ? t("carryIn") : t("carryInNone")) : carriesOver(d.date, d.shift) ? t("carryOut") : "";
       const lbl = h("div", { class: "d", role: "button", title: t("off"), style: locked ? "" : "cursor:pointer", onclick: toggle }, t("dow")[dow], h("b", {}, (d.carry ? +d.date.slice(5, 7) + "/" : "") + +d.date.slice(8)), tag && h("small", { class: "carryTag" }, tag));
       const sh = DAY_TYPES[d.type]?.worked ? shiftHours(d.shift, P.break_hours) : null;
-      const cls = "day" + (d.carry ? " carry" : "") + (!d.carry && carriesOver(d.date, d.shift) ? " carryOut" : "") + (HOL[d.date] ? " hol" : "") + (d.type === "off" ? " off" : "") + (d.type === "sil" ? " sil" : "") + (/holiday|special|absent/.test(d.type) ? " hol" : "") + (wk ? " wknd" : "");
+      const cls = "day" + (d.carry ? " carry" : "") + (!d.carry && carriesOver(d.date, d.shift) ? " carryOut" : "") + (HOL[d.date] ? " hol" : "") + (d.type === "off" ? " off" : "") + (d.type === "sil" || d.type === "excused" ? " sil" : "") + (/holiday|special|absent/.test(d.type) ? " hol" : "") + (wk ? " wknd" : "");
       const shiftCtl = shiftPicker(d, locked, (redraw = true) => { if (redraw || d.carry || +d.date.slice(8) === 30) drawRoster(); else { refreshHrs(d); const o = rosterEl.querySelector(`.otin[data-d="${d.date}"] input`); if (o) o.placeholder = String(paperOt(shiftHours(d.shift, 0), +S.settings.hours_per_day || 10, P.break_hours)); } refresh(); }, P.fillShift);
       const typeSel = sel(dayTypesFor(schemeOf(emp), P.pay_type).map(k => [k, t("type_" + k)]), d.type, { disabled: locked, "aria-label": "day type", onchange: e => { d.type = e.target.value; if (!DAY_TYPES[d.type].worked) d.shift = ""; else if (!d.shift) d.shift = P.fillShift; drawRoster(); refresh(); } });
       const hrsEl = h("div", { class: "hrs", "data-d": d.date }, hrsText(sh));
@@ -2680,7 +2845,7 @@ function signedPrintUI(onClose) {   // onClose: inside a sheet (⋯ menu) · non
 async function renderReq() {
   const main = document.getElementById("main");
   main.append(h("div", { class: "card" }, h("h2", {}, "📋 " + evL("요청", "Requests")), h("small", { class: "muted" }, evL("직원이 보낸 것 중 사장님 확인이 필요한 것 — 받음 확인 · 휴가 신청 · 출퇴근 사유 · 13월급 요청.", "Everything from the staff that needs you — received pay · leave · clock-in/out reasons · 13th month requests."))),
-    await equipAdminCard(), await noticeAdminCard(), await recvCard(), await silReqCard(), await reviewCard(), await due13Card());
+    await equipAdminCard(), await noticeAdminCard(), await recvCard(), await absenceCard(), await silReqCard(), await reviewCard(), await due13Card());
 }
 async function renderPrint() {
   const main = document.getElementById("main");

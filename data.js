@@ -243,3 +243,13 @@ export async function empCashList(no, pin) { return must(await sb.rpc("pr_emp_ca
 export async function empCashAnswer(no, pin, id, choice, reason) { return must(await sb.rpc("pr_emp_cash_answer", { p_no: String(no).trim(), p_pin: String(pin), p_issue: id, p_choice: choice, p_reason: reason || null })); }
 export async function ownerDecideCash(id, decision, note) { return must(await sb.rpc("pr_cash_owner_decide", { p_issue: id, p_decision: decision, p_note: note || null })); }
 export async function handoverAssign(id, employeeId) { return must(await sb.rpc("pr_cash_handover_assign", { p_issue: id, p_employee: employeeId })); }
+// 결석 알리기 (owner 2026-11-17): proof → 확인서 (owner approves, paid) · none → 사유서 (unexcused)
+export async function empAbsence(no, pin, day, kind, note, proof) { return must(await sb.rpc("pr_emp_absence", { p_no: String(no).trim(), p_pin: String(pin), p_day: day, p_kind: kind, p_note: note || null, p_proof: proof || [] })); }
+export async function empAbsenceCancel(no, pin, id) { return must(await sb.rpc("pr_emp_absence_cancel", { p_no: String(no).trim(), p_pin: String(pin), p_id: id })); }
+export async function empAbsences(no, pin) { if (PREVIEW) return { ok: true, rows: await listAbsences({ employeeId: PREVIEW, from: new Date(Date.now() - 60 * 864e5).toISOString().slice(0, 10) }) }; return must(await sb.rpc("pr_emp_absences", { p_no: String(no).trim(), p_pin: String(pin) })); }
+export async function listAbsences({ from, to, employeeId, withProof = false } = {}) {
+  let q = sb.from("pr_absences").select(withProof ? "*, employees:pr_employees(name, position, info)" : "id, employee_id, day, plan_shift, kind, note, status, proof_at, decided_at, decided_note, created_at, employees:pr_employees(name, position, info)").neq("status", "void").order("day", { ascending: false });
+  if (from) q = q.gte("day", from); if (to) q = q.lte("day", to); if (employeeId) q = q.eq("employee_id", employeeId);
+  return must(await q);
+}
+export async function absenceDecide(id, ok, note) { return must(await sb.rpc("pr_absence_decide", { p_id: id, p_ok: !!ok, p_note: note || null })); }

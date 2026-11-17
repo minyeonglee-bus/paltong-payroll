@@ -158,3 +158,10 @@ if (ps2("18-4", "18:12-04:00", 60, true) !== "18-4" || ps2("18-4", "18:12-04:00"
 // SIL vs MPV (monthly paid vacation, owner 2026-11-17): both paid 1 day, MPV counted separately inside silPay
 { const r = computePayroll([{ date: "2026-11-20", shift: "", type: "sil" }, { date: "2026-11-22", shift: "", type: "sil", mpv: true }], { daily: 700 });
   assert.equal(r.silPay, 1400); assert.equal(r.silDays, 2); assert.equal(r.mpvPay, 700); assert.equal(r.mpvDays, 1); console.log("mpv tests OK"); }
+
+// absence (owner 2026-11-17): proof approved → excused = paid 1 day, not SIL, not absent · no proof → absent (daily unpaid, monthly deducted)
+{ const r = computePayroll([{ date: "2026-11-20", shift: "", type: "excused" }, { date: "2026-11-21", shift: "", type: "absent" }], { daily: 700 });
+  assert.equal(r.excusedPay, 700); assert.equal(r.excusedDays, 1); assert.equal(r.silDays, 0); assert.equal(r.absentDays, 1); assert.equal(r.absentDed, 0); assert.equal(r.gross, 700);
+  const m = compute([{ date: "2026-11-20", shift: "", type: "excused" }, { date: "2026-11-21", shift: "", type: "absent" }], { payType: "monthly", monthly: 30000, monthlyBasic: 25945 });
+  assert.equal(m.excusedPay, 0); near(m.absentDed, 25945 / MONTHLY_FACTOR, "monthly absent"); assert.equal(m.absentDays, 1);
+  console.log("absence tests OK"); }

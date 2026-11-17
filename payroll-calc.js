@@ -46,15 +46,16 @@ export const DAY_TYPES = {
   holidayRest: { pay: 2.60, ot: 3.38, worked: true },
   holidayOff:  { pay: 1.00, ot: 0,    worked: false, paidDay: true }, // regular holiday not worked → 1 daily (e.g. 1/1)
   sil:         { pay: 1.00, ot: 0,    worked: false, paidDay: true }, // SIL / paid leave → 1 daily
-  absent:      { pay: 0,    ot: 0,    worked: false, absent: true },  // unexcused absence (monthly: deducted)
+  excused:     { pay: 1.00, ot: 0,    worked: false, paidDay: true }, // absence with proof approved (sick / bereavement) → 1 daily, not SIL (owner 11/17)
+  absent:      { pay: 0,    ot: 0,    worked: false, absent: true },  // unexcused absence (monthly: deducted; daily: unpaid, counted)
   off:         { pay: 0,    ot: 0,    worked: false },
 };
 // which day types each scheme offers in the roster
 export const DAY_TYPES_FOR = {
-  contract: { daily:   ["regular", "rest", "special", "specialRest", "holiday", "holidayRest", "holidayOff", "sil", "off"],
-              monthly: ["regular", "rest", "special", "specialRest", "holiday", "holidayRest", "holidayOff", "sil", "absent", "off"] },
-  paper:    { daily:   ["regular", "half", "special", "holiday", "holidayOff", "sil", "off"],
-              monthly: ["regular", "half", "special", "holiday", "holidayOff", "sil", "absent", "off"] },
+  contract: { daily:   ["regular", "rest", "special", "specialRest", "holiday", "holidayRest", "holidayOff", "sil", "excused", "absent", "off"],
+              monthly: ["regular", "rest", "special", "specialRest", "holiday", "holidayRest", "holidayOff", "sil", "excused", "absent", "off"] },
+  paper:    { daily:   ["regular", "half", "special", "holiday", "holidayOff", "sil", "excused", "absent", "off"],
+              monthly: ["regular", "half", "special", "holiday", "holidayOff", "sil", "excused", "absent", "off"] },
 };
 export const dayTypesFor = (scheme, payType) => (DAY_TYPES_FOR[scheme] || DAY_TYPES_FOR.contract)[payType === "monthly" ? "monthly" : "daily"];
 
@@ -110,8 +111,8 @@ export function computePayroll(days, opts) {
   const latePenalty = paper && opts.latePenalty !== false;
   const ndRate = paper ? 0 : ND_RATE;
 
-  let basic = 0, premium = 0, otPay = 0, ndPay = 0, silPay = 0, holidayOffPay = 0, absentDed = 0;
-  let daysWorked = 0, halfDays = 0, hoursWorked = 0, otHours = 0, ndHours = 0, silDays = 0, holidayOffDays = 0, absentDays = 0, mpvDays = 0, mpvPay = 0;
+  let basic = 0, premium = 0, otPay = 0, ndPay = 0, silPay = 0, holidayOffPay = 0, absentDed = 0, excusedPay = 0;
+  let daysWorked = 0, halfDays = 0, hoursWorked = 0, otHours = 0, ndHours = 0, silDays = 0, holidayOffDays = 0, absentDays = 0, mpvDays = 0, mpvPay = 0, excusedDays = 0;
   const rows = [];
   for (const d of days || []) {
     const t = DAY_TYPES[d.type] || DAY_TYPES.regular;
@@ -121,7 +122,7 @@ export function computePayroll(days, opts) {
     let base = 0, extra = 0, otp = 0, ndp = 0;
     if (t.paidDay) {
       if (!isMonthly) base = daily;                       // monthly: already inside the fixed salary
-      if (d.type === "sil") { silPay += base; silDays++; if (d.mpv) { mpvPay += base; mpvDays++; } /* mpv = monthly paid vacation §3.2, part of silPay */ } else { holidayOffPay += base; holidayOffDays++; }
+      if (d.type === "sil") { silPay += base; silDays++; if (d.mpv) { mpvPay += base; mpvDays++; } /* mpv = monthly paid vacation §3.2, part of silPay */ } else if (d.type === "excused") { excusedPay += base; excusedDays++; } else { holidayOffPay += base; holidayOffDays++; }
     } else if (t.absent) {
       absentDays++; if (isMonthly) absentDed += daily;    // monthly: pro-rata deduction
     } else if (t.worked && (paper || sh.reg > 0)) {
@@ -148,7 +149,7 @@ export function computePayroll(days, opts) {
   const late = lateMinutes * perMin;
   const penalty = latePenalty ? late : 0;                 // paper: 벌금 = same amount as the late deduction
   const incentive = +opts.incentive || 0, bonus = +opts.bonus || 0;
-  const gross = basic + premium + otPay + ndPay + silPay + holidayOffPay + allowance + incentive + bonus - late - absentDed;
+  const gross = basic + premium + otPay + ndPay + silPay + excusedPay + holidayOffPay + allowance + incentive + bonus - late - absentDed;
 
   const monthly = isMonthly ? monthlyRate : daily * MONTHLY_FACTOR;
   const share = opts.govShare === 0.5 ? 0.5 : opts.govShare === 0 ? 0 : 1;   // 0 = not this payroll (monthly amount taken on the 30th)
@@ -164,13 +165,13 @@ export function computePayroll(days, opts) {
 
   return {
     scheme, payType, hourly: r2(hourly), dailyEquiv: r2(daily), perMinute: r2(perMin), monthly: r2(monthly), hoursPerDay: hpd,
-    daysWorked, halfDays, hoursWorked: r2(hoursWorked), otHours: r2(otHours), ndHours: r2(ndHours), silDays, holidayOffDays, absentDays, lateMinutes, rows, mpvDays, mpvPay: r2(mpvPay),
+    daysWorked, halfDays, hoursWorked: r2(hoursWorked), otHours: r2(otHours), ndHours: r2(ndHours), silDays, holidayOffDays, absentDays, lateMinutes, rows, mpvDays, mpvPay: r2(mpvPay), excusedDays, excusedPay: r2(excusedPay),
     basic: r2(basic), premium: r2(premium), otPay: r2(otPay), ndPay: r2(ndPay), silPay: r2(silPay), holidayOffPay: r2(holidayOffPay),
     allowance: r2(allowance), absentDed: r2(absentDed), late: r2(late), penalty: r2(penalty), incentive: r2(incentive), bonus: r2(bonus), gross: r2(gross),
     sss, philhealth, pagibig, advances: r2(advances), shortage: r2(shortage), otherDeduction: r2(otherDeduction),
     deductions: r2(deductions), net: Math.ceil(r2(gross - deductions)), // net paid in whole pesos, rounded up
     monthlyBasic: r2(monthlyBasic), builtInOt: r2(isMonthly ? (monthlyRate - monthlyBasic) / 2 : 0),
-    basicFor13th: r2((isMonthly ? monthlyBasic / 2 : basic) + silPay - late - absentDed), // 13th month = basic wage only: no built-in OT, allowance, OT, night diff, holiday extra, bonus
+    basicFor13th: r2((isMonthly ? monthlyBasic / 2 : basic) + silPay + excusedPay - late - absentDed), // 13th month = basic wage only: no built-in OT, allowance, OT, night diff, holiday extra, bonus
   };
 }
 
