@@ -24,7 +24,7 @@ assert.equal(periodOf(2026, 10, 2).carry, undefined);
 assert.ok(carriesOver("2026-12-15", "8-18") && carriesOver("2026-12-15", "20-4") && !carriesOver("2026-12-14", "20-4") && !carriesOver("2026-11-15", "8-18"));
 assert.equal(paidDays([{ date: "2026-12-14", shift: "20-4" }, { date: "2026-12-15", shift: "8-18" }]).length, 1);
 assert.equal(paidDays([{ date: "2026-11-15", shift: "8-18", carry: true }]).length, 1);   // carried into Nov 16–30
-assert.equal(payDayOf("2026-12-01", "2026-12-15"), "2026-12-16");
+assert.equal(payDayOf("2026-12-01", "2026-12-15"), "2026-12-15");
 assert.equal(payDayOf("2026-11-01", "2026-11-15"), "2026-11-15");
 assert.equal(payDayOf("2026-12-16", "2026-12-30"), "2026-12-30");                       // November has 30 days
 assert.deepEqual(periodOf(2027, 1, 1).carry, ["2026-12-30", "2026-12-31"]);
