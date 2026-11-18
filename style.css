@@ -158,6 +158,7 @@ table.sched th.today,table.sched tr.today td{background:var(--warn-soft);color:v
 table.sched td.nm{text-align:left;font-weight:800;font-size:13px;color:var(--fg);position:sticky;left:0;z-index:1;background:var(--paper)}
 table.sched td.nm small{display:block;font-weight:400}
 table.sched td.off{background:var(--bg);color:var(--muted)}
+.reqoff{color:#6A3FB5!important;font-weight:800}
 table.sched td.inc{background:var(--warn-soft);color:var(--fg);box-shadow:inset 0 0 0 2px var(--warn)}
 table.sched td.inc .act{color:var(--warn)}
 table.sched .act{font-family:var(--mono);font-weight:600}
@@ -228,3 +229,9 @@ tr.sum.neg td{border-bottom:2px solid var(--fg)}
 .slip .sig:has(.sigImg){margin-top:60px}
 #batchPrint .slip.mini .sig .sigImg{max-height:20px}
 #batchPrint .slip.mini .sig:has(.sigImg){margin-top:24px}
+
+/* 🖨 사인 완료 서류 한번에 인쇄: one document per page, payslips 2×3 per A4 after them */
+@media print{
+  body.print-signed #printOne .docPage{page-break-after:always;break-after:page}
+  body.print-signed #printOne #batchPrint{display:grid;grid-template-columns:1fr 1fr;gap:0;width:194mm;font-size:9px}
+}

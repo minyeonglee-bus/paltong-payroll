@@ -26,7 +26,7 @@
 export const SHIFTS = ["8-18", "18-4", "8-20", "20-4", "22-8", "20-8", "20-6", "22-6", "22-4", "10-20", "12-22"];
 const toMin = x => { if (x == null || x === "") return NaN; const [h, m = "0"] = String(x).split(":"); return (+h) * 60 + (+m); };
 export const parseShift = v => { if (!v) return null; const [a, b] = String(v).split("-"); const s = toMin(a), e = toMin(b); return isNaN(s) || isNaN(e) ? null : { start: s, end: e }; };
-export const SHIFT_LABEL = v => { const p = parseShift(v); if (!p) return v; const f = m => `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; return `${f(p.start)}–${f(p.end)}`; };
+export const SHIFT_LABEL = v => { const p = parseShift(v); if (!p) return v; const f = m => `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; return `${f(p.start)}–${f(p.end)}${p.end > 1440 ? " (+1)" : ""}`; };
 export const isPreset = v => SHIFTS.includes(v);
 export const MONTHLY_FACTOR = 313 / 12; // 6-day week → 313 paid days a year
 export const HOURS_PER_DAY = 10;        // paper: a day = 10h shift; OT hourly = daily ÷ 10
@@ -46,15 +46,16 @@ export const DAY_TYPES = {
   holidayRest: { pay: 2.60, ot: 3.38, worked: true },
   holidayOff:  { pay: 1.00, ot: 0,    worked: false, paidDay: true }, // regular holiday not worked → 1 daily (e.g. 1/1)
   sil:         { pay: 1.00, ot: 0,    worked: false, paidDay: true }, // SIL / paid leave → 1 daily
-  absent:      { pay: 0,    ot: 0,    worked: false, absent: true },  // unexcused absence (monthly: deducted)
+  excused:     { pay: 1.00, ot: 0,    worked: false, paidDay: true }, // absence with proof approved (sick / bereavement) → 1 daily, not SIL (owner 11/17)
+  absent:      { pay: 0,    ot: 0,    worked: false, absent: true },  // unexcused absence (monthly: deducted; daily: unpaid, counted)
   off:         { pay: 0,    ot: 0,    worked: false },
 };
 // which day types each scheme offers in the roster
 export const DAY_TYPES_FOR = {
-  contract: { daily:   ["regular", "rest", "special", "specialRest", "holiday", "holidayRest", "holidayOff", "sil", "off"],
-              monthly: ["regular", "rest", "special", "specialRest", "holiday", "holidayRest", "holidayOff", "sil", "absent", "off"] },
-  paper:    { daily:   ["regular", "half", "special", "holiday", "holidayOff", "sil", "off"],
-              monthly: ["regular", "half", "special", "holiday", "holidayOff", "sil", "absent", "off"] },
+  contract: { daily:   ["regular", "rest", "special", "specialRest", "holiday", "holidayRest", "holidayOff", "sil", "excused", "absent", "off"],
+              monthly: ["regular", "rest", "special", "specialRest", "holiday", "holidayRest", "holidayOff", "sil", "excused", "absent", "off"] },
+  paper:    { daily:   ["regular", "half", "special", "holiday", "holidayOff", "sil", "excused", "absent", "off"],
+              monthly: ["regular", "half", "special", "holiday", "holidayOff", "sil", "excused", "absent", "off"] },
 };
 export const dayTypesFor = (scheme, payType) => (DAY_TYPES_FOR[scheme] || DAY_TYPES_FOR.contract)[payType === "monthly" ? "monthly" : "daily"];
 
@@ -110,8 +111,8 @@ export function computePayroll(days, opts) {
   const latePenalty = paper && opts.latePenalty !== false;
   const ndRate = paper ? 0 : ND_RATE;
 
-  let basic = 0, premium = 0, otPay = 0, ndPay = 0, silPay = 0, holidayOffPay = 0, absentDed = 0;
-  let daysWorked = 0, halfDays = 0, hoursWorked = 0, otHours = 0, ndHours = 0, silDays = 0, holidayOffDays = 0, absentDays = 0;
+  let basic = 0, premium = 0, otPay = 0, ndPay = 0, silPay = 0, holidayOffPay = 0, absentDed = 0, excusedPay = 0;
+  let daysWorked = 0, halfDays = 0, hoursWorked = 0, otHours = 0, ndHours = 0, silDays = 0, holidayOffDays = 0, absentDays = 0, mpvDays = 0, mpvPay = 0, excusedDays = 0;
   const rows = [];
   for (const d of days || []) {
     const t = DAY_TYPES[d.type] || DAY_TYPES.regular;
@@ -121,7 +122,7 @@ export function computePayroll(days, opts) {
     let base = 0, extra = 0, otp = 0, ndp = 0;
     if (t.paidDay) {
       if (!isMonthly) base = daily;                       // monthly: already inside the fixed salary
-      if (d.type === "sil") { silPay += base; silDays++; } else { holidayOffPay += base; holidayOffDays++; }
+      if (d.type === "sil") { silPay += base; silDays++; if (d.mpv) { mpvPay += base; mpvDays++; } /* mpv = monthly paid vacation §3.2, part of silPay */ } else if (d.type === "excused") { excusedPay += base; excusedDays++; } else { holidayOffPay += base; holidayOffDays++; }
     } else if (t.absent) {
       absentDays++; if (isMonthly) absentDed += daily;    // monthly: pro-rata deduction
     } else if (t.worked && (paper || sh.reg > 0)) {
@@ -148,7 +149,7 @@ export function computePayroll(days, opts) {
   const late = lateMinutes * perMin;
   const penalty = latePenalty ? late : 0;                 // paper: 벌금 = same amount as the late deduction
   const incentive = +opts.incentive || 0, bonus = +opts.bonus || 0;
-  const gross = basic + premium + otPay + ndPay + silPay + holidayOffPay + allowance + incentive + bonus - late - absentDed;
+  const gross = basic + premium + otPay + ndPay + silPay + excusedPay + holidayOffPay + allowance + incentive + bonus - late - absentDed;
 
   const monthly = isMonthly ? monthlyRate : daily * MONTHLY_FACTOR;
   const share = opts.govShare === 0.5 ? 0.5 : opts.govShare === 0 ? 0 : 1;   // 0 = not this payroll (monthly amount taken on the 30th)
@@ -164,17 +165,20 @@ export function computePayroll(days, opts) {
 
   return {
     scheme, payType, hourly: r2(hourly), dailyEquiv: r2(daily), perMinute: r2(perMin), monthly: r2(monthly), hoursPerDay: hpd,
-    daysWorked, halfDays, hoursWorked: r2(hoursWorked), otHours: r2(otHours), ndHours: r2(ndHours), silDays, holidayOffDays, absentDays, lateMinutes, rows,
+    daysWorked, halfDays, hoursWorked: r2(hoursWorked), otHours: r2(otHours), ndHours: r2(ndHours), silDays, holidayOffDays, absentDays, lateMinutes, rows, mpvDays, mpvPay: r2(mpvPay), excusedDays, excusedPay: r2(excusedPay),
     basic: r2(basic), premium: r2(premium), otPay: r2(otPay), ndPay: r2(ndPay), silPay: r2(silPay), holidayOffPay: r2(holidayOffPay),
     allowance: r2(allowance), absentDed: r2(absentDed), late: r2(late), penalty: r2(penalty), incentive: r2(incentive), bonus: r2(bonus), gross: r2(gross),
     sss, philhealth, pagibig, advances: r2(advances), shortage: r2(shortage), otherDeduction: r2(otherDeduction),
     deductions: r2(deductions), net: Math.ceil(r2(gross - deductions)), // net paid in whole pesos, rounded up
     monthlyBasic: r2(monthlyBasic), builtInOt: r2(isMonthly ? (monthlyRate - monthlyBasic) / 2 : 0),
-    basicFor13th: r2((isMonthly ? monthlyBasic / 2 : basic) + silPay - late - absentDed), // 13th month = basic wage only: no built-in OT, allowance, OT, night diff, holiday extra, bonus
+    basicFor13th: r2((isMonthly ? monthlyBasic / 2 : basic) + silPay + excusedPay - late - absentDed), // 13th month = basic wage only: no built-in OT, allowance, OT, night diff, holiday extra, bonus
   };
 }
 
-/** pay periods: 1–15 and 16–30 (Feb: 16–28/29). In a 31-day month the 16–30 payroll covers work up to the 29th's night shift
+/** pay periods: 1–15 and 16–30 (Feb: 16–28/29).
+ *  owner 2026-11-18: the 1–15 payroll is paid on the 16th and covers work up to the 14th's night shift (clock-out on the
+ *  morning of the 15th); everything on the 15th (day or night) is paid in the 16–30 payroll (carried in, from Nov 16–30 on).
+ *  In a 31-day month the 16–30 payroll covers work up to the 29th's night shift
  *  (clock-out on the morning of the 30th); everything on the 30th (day or night) and the 31st is paid in the next 1–15 payroll
  *  (carried over, 소급 이월) — the 30th payroll is handed out before that work is done. */
 const pad2 = n => String(n).padStart(2, "0");
@@ -187,20 +191,27 @@ export function periodForDate(dateStr) {
 }
 export function periodOf(y, m, half) {
   const last = lastDay(y, m);
-  if (half !== 1) return { start: `${y}-${pad2(m)}-16`, end: `${y}-${pad2(m)}-${pad2(Math.min(last, 30))}`, half: 2, monthEnd: `${y}-${pad2(m)}-${pad2(last)}` };
+  if (half !== 1) return { start: `${y}-${pad2(m)}-16`, end: `${y}-${pad2(m)}-${pad2(Math.min(last, 30))}`, half: 2, monthEnd: `${y}-${pad2(m)}-${pad2(last)}`,
+    ...(`${y}-${pad2(m)}` >= "2026-11" ? { carry: [`${y}-${pad2(m)}-15`] } : {}) };   // the 15th (paid with the 16–30 payroll)
   const py = m === 1 ? y - 1 : y, pm = m === 1 ? 12 : m - 1;
   const carry = lastDay(py, pm) === 31 ? [`${py}-${pad2(pm)}-30`, `${py}-${pad2(pm)}-31`] : [];   // previous month's 30th + 31st
   return { start: `${y}-${pad2(m)}-01`, end: `${y}-${pad2(m)}-15`, half: 1, carry };
 }
 /** shift that crosses midnight (18-4, 20-6, 22-8 …) */
 export const isNightShift = v => { const p = parseShift(v); return !!p && p.end <= p.start; };
-/** this date is paid in the next payroll: anything on the 30th or 31st of a 31-day month (the 16–30 pay ends with the 29th's night shift) */
+/** pay day: 1–15 payroll → the 16th (from Dec 2026; before that the 15th) · 16–30 payroll → its last day */
+export function payDayOf(start, end) {
+  return +start.slice(8) === 1 && start >= "2026-12-01" ? start.slice(0, 8) + "16" : end;
+}
+/** this date is paid in the next payroll: the 15th (the 1–15 pay ends with the 14th's night shift, from Dec 2026;
+ *  Nov 15 was settled by hand: in the 1–15 payroll for some, carried into Nov 16–30 for the others),
+ *  anything on the 30th or 31st of a 31-day month (the 16–30 pay ends with the 29th's night shift) */
 export function carriesOver(date, shift) {
   const [y, m, d] = date.split("-").map(Number);
-  return d === 31 || (d === 30 && lastDay(y, m) === 31);
+  return d === 31 || (d === 30 && lastDay(y, m) === 31) || (d === 15 && date >= "2026-12-15");
 }
 /** the roster days that count in this payroll: own days minus the ones carried out, plus carried-in rows (carry: true) */
-export const paidDays = days => (days || []).filter(d => d.carry ? carriesOver(d.date, d.shift) || +d.date.slice(8) === 31 : !carriesOver(d.date, d.shift));
+export const paidDays = days => (days || []).filter(d => d.carry ? carriesOver(d.date, d.shift) || [15, 31].includes(+d.date.slice(8)) : !carriesOver(d.date, d.shift));
 export function fmtDate(d) { const pad = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
 export function datesBetween(start, end) {
   const out = []; const d = new Date(start + "T00:00:00"); const e = new Date(end + "T00:00:00");

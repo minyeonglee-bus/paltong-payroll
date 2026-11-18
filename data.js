@@ -11,8 +11,22 @@ function friendly(error) {
 }
 export const idToEmail = id => { id = String(id || "").trim().toLowerCase(); return id.includes("@") ? id : `${id}@paltong.app`; };
 
+// Phones on weak mobile data often drop a request before it reaches the server ("TypeError: Failed to fetch").
+// Retry those automatically — but only for reads and for staff writes the server already guards against doubling
+// (one-time / locked values), so a retried request can never create a second punch, advance, etc.
+const RETRY_RPC = new Set(["pr_emp_view", "pr_emp_token", "pr_emp_set_hired", "pr_emp_set_sil", "pr_emp_intro_done", "pr_emp_ack", "pr_emp_ack13", "pr_emp_req13", "pr_emp_set_signature", "pr_emp_event_get", "pr_emp_event_set", "pr_emp_recv", "pr_emp_jobs", "pr_emp_notice_get", "pr_emp_equip_list"]);
+async function retryFetch(input, init = {}) {
+  const url = typeof input === "string" ? input : input.url, method = String(init.method || "GET").toUpperCase();
+  const rpc = (url.match(/\/rest\/v1\/rpc\/([a-z0-9_]+)/) || [])[1];
+  const safe = method === "GET" || method === "HEAD" || (method === "POST" && RETRY_RPC.has(rpc));
+  for (let i = 0; ; i++) {
+    try { return await fetch(input, init); }
+    catch (e) { if (!safe || i >= 2 || !(e instanceof TypeError) || init.signal?.aborted) throw e; await new Promise(r => setTimeout(r, i ? 2500 : 1000)); }
+  }
+}
+
 export async function init() {
-  sb = createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } });
+  sb = createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true }, global: { fetch: retryFetch } });
   const { data } = await sb.auth.getSession();
   return !!data.session;
 }
@@ -28,7 +42,9 @@ export async function changePassword(pw) { must(await sb.auth.updateUser({ passw
 export async function me() {
   const { data } = await sb.auth.getUser(); if (!data.user) return null;
   const row = must(await sb.from("staff").select("*").eq("user_id", data.user.id).maybeSingle());
-  return row ? { ...row, email: data.user.email } : { user_id: data.user.id, name: data.user.email, role: "staff", email: data.user.email };
+  // print-only payroll login (pr_print_users.sql — Mina, manager): only the 🖨 인쇄 tab
+  let printer = false; try { printer = !!must(await sb.from("pr_print_users").select("user_id").eq("user_id", data.user.id).maybeSingle()); } catch { }
+  return row ? { ...row, email: data.user.email, printer } : { user_id: data.user.id, name: data.user.email, role: "staff", email: data.user.email, printer };
 }
 
 export async function getSettings() { return must(await sb.from("pr_settings").select("*").eq("id", 1).single()); }
@@ -75,6 +91,10 @@ export async function listPayrolls({ from, to, employeeId, status } = {}) {
   if (status) q = q.eq("status", status);
   return must(await q);
 }
+/** owner: payslips the staff confirmed ("확인했어요" = signed), pay period ending between two dates */
+export async function listAckedPayrolls(from, to) {
+  return must(await sb.from("pr_payrolls").select("*, employees:pr_employees(name, position, info)").not("ack_at", "is", null).gte("period_end", from).lte("period_end", to).order("period_start").limit(2000));
+}
 export async function savePayroll(row) {
   return row.id ? must(await sb.from("pr_payrolls").update(row).eq("id", row.id).select().single())
                 : must(await sb.from("pr_payrolls").insert(row).select().single());
@@ -82,7 +102,11 @@ export async function savePayroll(row) {
 export async function deletePayroll(id) { must(await sb.from("pr_payrolls").delete().eq("id", id)); }
 
 // ---------- 직원 본인 보기 (번호 + PIN, 로그인 계정 없이) ----------
-export async function empView(no, pin) { return must(await sb.rpc("pr_emp_view", { p_no: String(no).trim(), p_pin: String(pin) })); }
+// 관리자 미리보기 (owner 2026-11-14): 직원 화면을 읽기 전용으로 — 버튼은 PIN 오류로 실패
+let PREVIEW = null;
+export function setPreview(id) { PREVIEW = id || null; }
+export async function admEmpView(id) { return must(await sb.rpc("pr_adm_emp_view", { p_emp: id })); }
+export async function empView(no, pin) { if (PREVIEW) return admEmpView(PREVIEW); return must(await sb.rpc("pr_emp_view", { p_no: String(no).trim(), p_pin: String(pin) })); }
 export async function empAck(no, pin, start) { return must(await sb.rpc("pr_emp_ack", { p_no: String(no).trim(), p_pin: String(pin), p_period_start: start })); }
 export async function empSetPin(no, oldPin, newPin) { return must(await sb.rpc("pr_emp_set_pin", { p_no: String(no).trim(), p_old: String(oldPin), p_new: String(newPin) })); }
 export async function empUpdateInfo(no, pin, info, birthday) { return must(await sb.rpc("pr_emp_update_info", { p_no: String(no).trim(), p_pin: String(pin), p_info: info, p_birthday: birthday })); }
@@ -104,17 +128,51 @@ export async function cashbookShifts(from, to) {
   return plan.concat(must(cb).filter(r => !has.has(key(r))));
 }
 
+// 승인된 "휴무" 신청 (사장님 11/6: 신청 휴무는 Off(R)로 따로 표시) — 관리자만 읽힘(RLS), 아니면 빈 목록
+// approved monthly paid vacation (MPV, contract §3.2) — stored as 'sil' in the plan, shown as MPV (owner 11/17)
+export async function reqMpvDays(from, to, employeeId) {
+  let q = sb.from("pr_sil_req").select("day, employee_id, pr_employees(name)").eq("status", "approved").eq("kind", "mpv").gte("day", from).lte("day", to);
+  if (employeeId) q = q.eq("employee_id", employeeId);
+  const r = await q; if (r.error) return [];
+  return (r.data || []).filter(x => x.pr_employees).map(x => String(x.pr_employees.name).trim().toLowerCase() + "|" + x.day);
+}
+export async function reqOffDays(from, to) {
+  const r = await sb.from("pr_sil_req").select("day, pr_employees(name)").eq("status", "approved").eq("kind", "off").gte("day", from).lte("day", to);
+  if (r.error) return [];
+  return (r.data || []).filter(x => x.pr_employees).map(x => String(x.pr_employees.name).trim().toLowerCase() + "|" + x.day);
+}
+
 // ---------- 13th-month pay ----------
 export async function listThirteenth(year) { return must(await sb.from("pr_thirteenth").select("*").eq("year", year)); }
 export async function saveThirteenth(row) {
   return must(await sb.from("pr_thirteenth").upsert(row, { onConflict: "employee_id,year" }).select().single());
 }
 export async function empAck13(no, pin, year, amount) { return must(await sb.rpc("pr_emp_ack13", { p_no: String(no).trim(), p_pin: String(pin), p_year: year, p_amount: amount })); }
+export async function empReq13(no, pin, year, amount, ok, note) { return must(await sb.rpc("pr_emp_req13", { p_no: String(no).trim(), p_pin: String(pin), p_year: year, p_amount: amount, p_ok: !!ok, p_note: note || null })); }
+export async function empDays13(no, pin, year) { return must(await sb.rpc("pr_emp_days13", { p_no: String(no).trim(), p_pin: String(pin), p_year: year })); }
+export async function empDate13(no, pin, year, day) { return must(await sb.rpc("pr_emp_date13", { p_no: String(no).trim(), p_pin: String(pin), p_year: year, p_date: day })); }
+// "받으셨나요?" (supabase/pr_recv.sql): staff confirm received pay → owner approves → paid + cash book
+export async function empRecv(no, pin, kind, key, via) { return must(await sb.rpc("pr_emp_recv", { p_no: String(no).trim(), p_pin: String(pin), p_kind: kind, p_key: String(key), p_via: via || null })); }
+export async function recvList() { return must(await sb.rpc("pr_recv_list")); }
+export async function recvDecide(id, ok) { return must(await sb.rpc("pr_recv_decide", { p_id: id, p_ok: !!ok })); }
+export async function recv13Back(empId, year) { return must(await sb.rpc("pr_recv13_back", { p_emp: empId, p_year: year })); }
 export async function listAck13(year) { return must(await sb.from("pr_13_ack").select("*").eq("year", year)); }
+export async function empCoe(no, pin, purpose, salary) { return must(await sb.rpc("pr_emp_coe", { p_no: String(no).trim(), p_pin: String(pin), p_purpose: purpose, p_salary: !!salary })); }
+export async function coeIssue(empId, purpose, salary) { return must(await sb.rpc("pr_coe_issue", { p_emp: empId, p_purpose: purpose, p_salary: !!salary })); }
+export async function empSetHired(no, pin, date) { return must(await sb.rpc("pr_emp_set_hired", { p_no: String(no).trim(), p_pin: String(pin), p_date: date })); }
 export async function empSetSil(no, pin, used) { return must(await sb.rpc("pr_emp_set_sil", { p_no: String(no).trim(), p_pin: String(pin), p_used: used })); }
+export async function empSetSilLeft(no, pin, left) { return must(await sb.rpc("pr_emp_set_sil_left", { p_no: String(no).trim(), p_pin: String(pin), p_left: left })); }
 export async function empToken(no, pin) { return must(await sb.rpc("pr_emp_token", { p_no: String(no).trim(), p_pin: String(pin) })); }
 export async function empLogout(no, token) { return must(await sb.rpc("pr_emp_logout", { p_no: String(no).trim(), p_token: String(token) })); }
 export async function empIntroDone(no, pin) { return must(await sb.rpc("pr_emp_intro_done", { p_no: String(no).trim(), p_pin: String(pin) })); }
+export async function empEquipList(no, pin) { return must(await sb.rpc("pr_emp_equip_list", { p_no: String(no).trim(), p_pin: String(pin) })); }
+export async function empEquipAct(no, pin, act, id, x = {}) { return must(await sb.rpc("pr_emp_equip_act", { p_no: String(no).trim(), p_pin: String(pin), p_act: act, p_id: id || null, p_cat: x.cat || null, p_item: x.item || null, p_date: x.date || null, p_cost: x.cost ?? null })); }
+export async function empEquipCb(no, pin, entry, ans, issue) { return must(await sb.rpc("pr_emp_equip_cb", { p_no: String(no).trim(), p_pin: String(pin), p_entry: entry, p_ans: ans, p_issue: issue || null })); }
+export async function equipAdmin() { return must(await sb.rpc("pr_equip_admin")); }
+export async function equipWaive(id, note) { return must(await sb.rpc("pr_equip_waive", { p_id: id, p_note: note || null })); }
+export async function empNoticeGet(no, pin) { return must(await sb.rpc("pr_emp_notice_get", { p_no: String(no).trim(), p_pin: String(pin) })); }
+export async function empNoticeAnswer(no, pin, id, agree, text) { return must(await sb.rpc("pr_emp_notice_answer", { p_no: String(no).trim(), p_pin: String(pin), p_notice: id, p_agree: !!agree, p_text: text || null })); }
+export async function listNoticeAcks(id) { return must(await sb.from("pr_notice_ack").select("*").eq("notice_id", id)); }
 export async function empSetSignature(no, pin, image) { return must(await sb.rpc("pr_emp_set_signature", { p_no: String(no).trim(), p_pin: String(pin), p_image: image })); }
 export async function empAdvance(no, pin, amount, reason, via) { return must(await sb.rpc("pr_emp_advance", { p_no: String(no).trim(), p_pin: String(pin), p_amount: amount, p_reason: reason || null, p_via: via })); }
 export async function listSignatures() { return Object.fromEntries(must(await sb.from("pr_signatures").select("employee_id, image, signed_at")).map(x => [x.employee_id, x])); }
@@ -146,6 +204,11 @@ export async function listPayrollsYear(year) {
 
 // ---------- 출퇴근 (직원이 앱에서 버튼 · 앱 기록이 근태 기준) ----------
 export async function punch(no, pin, kind, reason = null, loc = null) { return must(await sb.rpc("pr_punch3", { p_no: String(no).trim(), p_pin: String(pin), p_kind: kind, p_reason: reason, p_lat: loc?.lat ?? null, p_lng: loc?.lng ?? null })); }
+// ---------- 연말 특근 신청 (12/31 · 1/1, 근무 원함 / 휴무 원함 → 스케줄 자동 반영) ----------
+export async function empEventGet(no, pin, event) { return must(await sb.rpc("pr_emp_event_get", { p_no: String(no).trim(), p_pin: String(pin), p_event: event })); }
+export async function empEventSet(no, pin, event, day, choice) { return must(await sb.rpc("pr_emp_event_set", { p_no: String(no).trim(), p_pin: String(pin), p_event: event, p_day: day, p_choice: choice })); }
+export async function listEventResp(event) { return must(await sb.from("pr_event_resp").select("day, choice, updated_at, employee_id").eq("event", event)); }
+export async function empJobs(no, pin) { return must(await sb.rpc("pr_emp_jobs", { p_no: String(no).trim(), p_pin: String(pin) })); }   // rider: deliveries / errands from the order app (pr_letters_auto.sql)
 export async function mentionAck(no, pin, id, ok) { return must(await sb.rpc("pr_mention_ack", { p_no: String(no).trim(), p_pin: String(pin), p_punch: id, p_ok: ok })); }
 export async function registerStoreIp() { return must(await sb.rpc("pr_store_ip_register")); }
 /** owner: punches outside the schedule (pending first, then decided in the last `days` days) */
@@ -156,6 +219,11 @@ export async function listPunchReview(days = 30) {
 export async function decidePunch(id, status) {
   const { data: u } = await sb.auth.getUser();
   return must(await sb.from("pr_punches").update({ status, decided_at: new Date().toISOString(), decided_by: u?.user?.id || null }).eq("id", id).select().single());
+}
+/** owner: every explanation letter / confirmation (punch with a reason) between two Manila dates */
+export async function listLetters(from, to) {
+  const s = new Date(from + "T00:00:00+08:00").toISOString(), e = new Date(to + "T23:59:59.999+08:00").toISOString();
+  return must(await sb.from("pr_punches").select("*, employees:pr_employees!pr_punches_employee_id_fkey(name, position, info), other:pr_employees!pr_punches_other_emp_fkey(name)").neq("status", "void").not("reason", "is", null).gte("punched_at", s).lte("punched_at", e).order("punched_at").limit(2000));
 }
 /** owner: punches for a period (+ next-morning punches so an overnight shift's OUT is included) */
 export async function listPunches(employeeId, from, to) {
@@ -175,3 +243,18 @@ export async function listPunchesAll(from, to) {
   return must(await sb.from("pr_punches").select("*").neq("status", "void").gte("punched_at", a.toISOString()).lt("punched_at", b.toISOString()).order("punched_at"));
 }
 export async function updatePunch(id, patch) { return must(await sb.from("pr_punches").update({ ...patch, source: "admin" }).eq("id", id).select().single()); }
+// 🔁 교대 확인 차이 (pr_cash_handover.sql) — 직원 답하기 / 사장님 결정·지정
+export async function empCashList(no, pin) { return must(await sb.rpc("pr_emp_cash_list", { p_no: String(no).trim(), p_pin: String(pin) })) || []; }
+export async function empCashAnswer(no, pin, id, choice, reason) { return must(await sb.rpc("pr_emp_cash_answer", { p_no: String(no).trim(), p_pin: String(pin), p_issue: id, p_choice: choice, p_reason: reason || null })); }
+export async function ownerDecideCash(id, decision, note) { return must(await sb.rpc("pr_cash_owner_decide", { p_issue: id, p_decision: decision, p_note: note || null })); }
+export async function handoverAssign(id, employeeId) { return must(await sb.rpc("pr_cash_handover_assign", { p_issue: id, p_employee: employeeId })); }
+// 결석 알리기 (owner 2026-11-17): proof → 확인서 (owner approves, paid) · none → 사유서 (unexcused)
+export async function empAbsence(no, pin, day, kind, note, proof) { return must(await sb.rpc("pr_emp_absence", { p_no: String(no).trim(), p_pin: String(pin), p_day: day, p_kind: kind, p_note: note || null, p_proof: proof || [] })); }
+export async function empAbsenceCancel(no, pin, id) { return must(await sb.rpc("pr_emp_absence_cancel", { p_no: String(no).trim(), p_pin: String(pin), p_id: id })); }
+export async function empAbsences(no, pin) { if (PREVIEW) return { ok: true, rows: await listAbsences({ employeeId: PREVIEW, from: new Date(Date.now() - 60 * 864e5).toISOString().slice(0, 10) }) }; return must(await sb.rpc("pr_emp_absences", { p_no: String(no).trim(), p_pin: String(pin) })); }
+export async function listAbsences({ from, to, employeeId, withProof = false } = {}) {
+  let q = sb.from("pr_absences").select(withProof ? "*, employees:pr_employees(name, position, info)" : "id, employee_id, day, plan_shift, kind, note, status, proof_at, decided_at, decided_note, created_at, employees:pr_employees(name, position, info)").neq("status", "void").order("day", { ascending: false });
+  if (from) q = q.gte("day", from); if (to) q = q.lte("day", to); if (employeeId) q = q.eq("employee_id", employeeId);
+  return must(await q);
+}
+export async function absenceDecide(id, ok, note) { return must(await sb.rpc("pr_absence_decide", { p_id: id, p_ok: !!ok, p_note: note || null })); }

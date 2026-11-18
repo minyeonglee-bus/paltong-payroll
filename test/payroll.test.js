@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { computePayroll as compute, shiftHours, periodForDate, periodOf, datesBetween, MONTHLY_FACTOR, carriesOver, paidDays, isNightShift } from "../payroll-calc.js";
+import { computePayroll as compute, shiftHours, periodForDate, periodOf, datesBetween, MONTHLY_FACTOR, carriesOver, paidDays, isNightShift, payDayOf } from "../payroll-calc.js";
 const computePayroll = (d, o) => compute(d, { scheme: "paper", ...o });   // paper-method block below
 
 const near = (a, b, msg) => assert.ok(Math.abs(a - b) < 0.011, `${msg}: ${a} vs ${b}`);
@@ -18,7 +18,15 @@ assert.equal(periodForDate("2026-12-31").start, "2027-01-01");
 assert.equal(periodOf(2026, 2, 2).end, "2026-02-28");
 assert.equal(periodOf(2026, 11, 2).end, "2026-11-30");
 assert.deepEqual(periodOf(2026, 11, 1).carry, ["2026-10-30", "2026-10-31"]);
-assert.deepEqual(periodOf(2026, 12, 1).carry, []);                       // November has 30 days
+assert.deepEqual(periodOf(2026, 12, 1).carry, []);
+assert.deepEqual(periodOf(2026, 11, 2).carry, ["2026-11-15"]);              // owner 2026-11-18: the 15th goes in the 16–30 pay
+assert.equal(periodOf(2026, 10, 2).carry, undefined);
+assert.ok(carriesOver("2026-12-15", "8-18") && carriesOver("2026-12-15", "20-4") && !carriesOver("2026-12-14", "20-4") && !carriesOver("2026-11-15", "8-18"));
+assert.equal(paidDays([{ date: "2026-12-14", shift: "20-4" }, { date: "2026-12-15", shift: "8-18" }]).length, 1);
+assert.equal(paidDays([{ date: "2026-11-15", shift: "8-18", carry: true }]).length, 1);   // carried into Nov 16–30
+assert.equal(payDayOf("2026-12-01", "2026-12-15"), "2026-12-16");
+assert.equal(payDayOf("2026-11-01", "2026-11-15"), "2026-11-15");
+assert.equal(payDayOf("2026-12-16", "2026-12-30"), "2026-12-30");                       // November has 30 days
 assert.deepEqual(periodOf(2027, 1, 1).carry, ["2026-12-30", "2026-12-31"]);
 assert.ok(isNightShift("20-4") && isNightShift("22-8") && !isNightShift("8-18") && !isNightShift("12-22"));
 assert.ok(carriesOver("2026-10-30", "20-4") && carriesOver("2026-10-30", "8-18") && !carriesOver("2026-10-29", "20-4") && !carriesOver("2026-11-30", "20-4") && carriesOver("2026-10-31", "8-18"));
@@ -154,3 +162,14 @@ import { applyHolidays } from "../payroll-calc.js";
   console.log("holiday tests OK"); }
 // approved late clock-in = reason accepted → paid from the scheduled start; not approved → cut at the actual time
 if (ps2("18-4", "18:12-04:00", 60, true) !== "18-4" || ps2("18-4", "18:12-04:00") !== "18:12-04:00") throw new Error("late approved");
+
+// SIL vs MPV (monthly paid vacation, owner 2026-11-17): both paid 1 day, MPV counted separately inside silPay
+{ const r = computePayroll([{ date: "2026-11-20", shift: "", type: "sil" }, { date: "2026-11-22", shift: "", type: "sil", mpv: true }], { daily: 700 });
+  assert.equal(r.silPay, 1400); assert.equal(r.silDays, 2); assert.equal(r.mpvPay, 700); assert.equal(r.mpvDays, 1); console.log("mpv tests OK"); }
+
+// absence (owner 2026-11-17): proof approved → excused = paid 1 day, not SIL, not absent · no proof → absent (daily unpaid, monthly deducted)
+{ const r = computePayroll([{ date: "2026-11-20", shift: "", type: "excused" }, { date: "2026-11-21", shift: "", type: "absent" }], { daily: 700 });
+  assert.equal(r.excusedPay, 700); assert.equal(r.excusedDays, 1); assert.equal(r.silDays, 0); assert.equal(r.absentDays, 1); assert.equal(r.absentDed, 0); assert.equal(r.gross, 700);
+  const m = compute([{ date: "2026-11-20", shift: "", type: "excused" }, { date: "2026-11-21", shift: "", type: "absent" }], { payType: "monthly", monthly: 30000, monthlyBasic: 25945 });
+  assert.equal(m.excusedPay, 0); near(m.absentDed, 25945 / MONTHLY_FACTOR, "monthly absent"); assert.equal(m.absentDays, 1);
+  console.log("absence tests OK"); }
