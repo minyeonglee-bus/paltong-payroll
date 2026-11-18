@@ -1,5 +1,5 @@
 import * as db from "./data.js";
-import { applyHolidays, computePayroll, shiftHours, paperOt, pairPunches, SHIFTS, SHIFT_LABEL, isPreset, parseShift, DAY_TYPES, dayTypesFor, periodOf, periodForDate, datesBetween, fmtDate, addDays, isNightShift, carriesOver, paidDays, paidShift } from "./payroll-calc.js";
+import { applyHolidays, computePayroll, shiftHours, paperOt, pairPunches, SHIFTS, SHIFT_LABEL, isPreset, parseShift, DAY_TYPES, dayTypesFor, periodOf, periodForDate, datesBetween, fmtDate, addDays, isNightShift, carriesOver, paidDays, paidShift, payDayOf } from "./payroll-calc.js";
 
 /* ---------- i18n ---------- */
 const I18N = {
@@ -39,7 +39,7 @@ const I18N = {
     bonusHint: "계약서 6조 최고매출일 보너스 = 보름 중 매출 최고일 총매출 × 2% ÷ 그날 근무한 직원 수 (아래 버튼으로 캐시북+출퇴근에서 자동) · 주방 신메뉴 ₱500 (5조) · 생일 인센티브 ₱500 (3.4조, 직전 3개월 개근) · 개근 → 다음 달 유급휴가 1일 (3.2조)는 날짜 종류 '유급휴가'로",
     topBonus: "최고매출일 보너스 계산", topTitle: "최고매출일 보너스 (계약서 6조)", topDay: "최고매출일", topSales: "총매출", topPool: "풀 (2%)", topEach: "1인당", topStaff: "그날 근무 (출퇴근 기록 기준) — 체크 해제하면 제외", topSave: "보너스로 저장", topNone: "이 기간 캐시북 매출이 없어요", topDone: "{n}명에게 ₱{a} 보너스 저장했어요 (10/16 이후 급여에 자동 반영)", topExists: "이미 이 기간 최고매출일 보너스가 저장돼 있어요",
     hist_empty: "저장된 급여가 없어요. 급여 계산 탭에서 저장하세요.", total: "합계",
-    holReg: "정규 공휴일", holSp: "특별 휴일", hol_title: "공휴일 달력", hol_help: "여기 있는 날은 급여에 자동으로 들어가요. 일하면 특별 휴일 130% · 정규 공휴일 200% (휴무일에 일하면 150% / 260%), 정규 공휴일에 안 일하면 100% 지급. 새 휴일(예: 이드 알피트르)은 발표되면 추가해 주세요.", hol_add: "추가", carryIn: "↩ 이월", carryInNone: "제외", carryOut: "→ 다음 급여", carryHelp: "급여는 1–15일 · 16–30일. 31일이 있는 달의 16–30일 급여는 29일 야간 퇴근(30일 아침)까지예요. 30일 근무(주간·야간 모두)와 31일 근무는 다음 1–15일 급여에 자동으로 이월돼요 (↩ 표시 줄).",
+    holReg: "정규 공휴일", holSp: "특별 휴일", hol_title: "공휴일 달력", hol_help: "여기 있는 날은 급여에 자동으로 들어가요. 일하면 특별 휴일 130% · 정규 공휴일 200% (휴무일에 일하면 150% / 260%), 정규 공휴일에 안 일하면 100% 지급. 새 휴일(예: 이드 알피트르)은 발표되면 추가해 주세요.", hol_add: "추가", carryIn: "↩ 이월", carryInNone: "제외", carryOut: "→ 다음 급여", carryHelp: "급여는 1–15일(16일 지급) · 16–30일. 1–15일 급여는 14일 야간 퇴근(15일 아침)까지이고, 15일 근무(주간·야간 모두)는 16–30일 급여로 자동 이월돼요. 31일이 있는 달의 16–30일 급여는 29일 야간 퇴근(30일 아침)까지예요. 30일 근무(주간·야간 모두)와 31일 근무는 다음 1–15일 급여에 자동으로 이월돼요 (↩ 표시 줄).",
     tab_due: "지급 예정", due_help: "저장 안 해도 자동 계산: 캐시북 스케줄 + 앱 출퇴근(있는 날은 실제 시간) + 가불·보너스·부족분·법정공제. 급여 계산 탭에서 저장한 직원은 저장한 내용으로. 실수령 = 총급여 − 공제. 이름을 누르면 급여 계산 탭에서 열려요.",
     due_total: "지급 예정 합계", due_people: "{n}건", due_payday: "지급일 {d}", due_overdue: "지급일 지남", due_byVia: "지급 수단별",
     due_ppl: "{n}명", due_auto: "자동", due_saved: "저장됨", due_days: "근무", due_calc: "스케줄로 계산 중…", due_paidX: "지급 완료 {n}명 제외: {names}", due_prev: "이전 기간 미지급 (저장된 급여)", due_cnt: "인원", due_gross: "총급여", due_ded: "공제", due_net: "실수령", due_list: "직원별 명단", due_missingHelp: "저장해야 합계에 들어가요.",
@@ -48,7 +48,7 @@ const I18N = {
     contract: "계산 방식 (직원마다 직원 탭에서 선택)", contractText: [
       "【718 계약서 (2026-10-01 신계약 · Erika 제외)】 일급 ₱718 · 하루 8시간, 시급 = 일급 ÷ 8 · 시프트에서 8h 넘는 시간은 30분 단위 내림으로 초과근무 125% · 야간(22~06시) +10% (초과근무 시간도 포함 → 137.5%) · 휴무일 130% · 특별공휴일 130% · 정규공휴일 200%(쉬어도 100%) · 지각은 실제 미근무 분만 공제(벌금 없음)",
       "【기존 종이 방식 · 구 계약서 (Erika ₱750, 5개월 구 계약서)】 옛 일급 · 기본급 = 근무일 × 일급 (시프트 길이 무관, 반일 ½) · 하루 = 10시간 시프트 · 10시간 넘으면 1시간은 휴게(무급), 나머지가 초과근무 (12h 근무 = 10h 기본 + 1h 휴무 + 1h OT · 30분 단위) 또는 카드 숫자 직접 입력 · OT 1시간 = 일급 ÷ 10 (790 → 79) · 125%·야간 가산 없음 · 지각 = 분 × 일급 ÷ 10 ÷ 60 + 같은 금액 벌금 · 특별공휴일 +30% · 정규공휴일 +1일 (쉬어도 1일)",
-      "공통 — 지급일 15일·30일 · 유급휴가 1일 = 일급 · 라이더 오토바이 정비비 ₱100/근무일 급여 포함(13월급 제외) · 배달비는 당일 지급 (급여 X) · 가불(CA) 1~15일 → 15일, 16일~ → 30일 급여에서 공제 · 실수령 1페소 올림",
+      "공통 — 지급일 16일·30일 (1–15일 급여 = 14일 야간 퇴근까지, 15일 근무는 16–30일 급여) · 유급휴가 1일 = 일급 · 라이더 오토바이 정비비 ₱100/근무일 급여 포함(13월급 제외) · 배달비는 당일 지급 (급여 X) · 가불(CA) 1~15일 → 15일, 16일~ → 30일 급여에서 공제 · 실수령 1페소 올림",
       "주방 월급 계약 (Jonel) — ₱30,000 = 기본 25,945 + 포함 OT 4,055 (08~18시, 1h/일) · 일급 = 25,945×12÷313 = 994.70, 시급 124.34 · 반월 15,000 고정 · 18시 이후 OT 125%, 휴무일 근무 130%, 공휴일·야간 가산 별도 · 결근 994.70/일, 지각 2.07/분 공제 · 13월급은 기본 25,945 기준",
       "13월급 = 기본급(초과·야간·가산·정비비·인센티브 제외) 기준 · 1년 이상은 한 달 평균",
     ],
@@ -108,7 +108,7 @@ const I18N = {
     bonusHint: "Contract §6 highest-sales-day bonus = the period's top sales day × 2% ÷ staff who worked that day (button below computes it from the cash book + clock-ins) · kitchen new menu ₱500 (§5) · birthday incentive ₱500 (§3.4, 3 perfect months) · perfect month → 1 paid leave day (§3.2) as day type 'Paid leave'",
     topBonus: "Compute highest-sales-day bonus", topTitle: "Highest-sales-day bonus (contract §6)", topDay: "Highest-sales day", topSales: "Total sales", topPool: "Pool (2%)", topEach: "Each", topStaff: "On duty that day (from clock-ins) — untick to exclude", topSave: "Save as bonuses", topNone: "No cash book sales in this period", topDone: "Saved ₱{a} bonus for {n} staff (applied to the payroll of that period)", topExists: "A highest-sales-day bonus is already saved for this period",
     hist_empty: "No saved payrolls yet. Save one from the Payroll tab.", total: "Total",
-    holReg: "regular holiday", holSp: "special day", hol_title: "Holiday calendar", hol_help: "Days listed here are included in payroll automatically. Worked: special day 130% · regular holiday 200% (on a rest day 150% / 260%); a regular holiday not worked is paid 100%. Add new ones (e.g. Eid al-Fitr) when they are announced.", hol_add: "Add", carryIn: "↩ carried", carryInNone: "excluded", carryOut: "→ next pay", carryHelp: "Pay periods are 1–15 and 16–30. In a 31-day month the 16–30 pay covers work up to the 29th's night shift (clock-out on the morning of the 30th). All work on the 30th (day or night) and the 31st is carried into the next 1–15 payroll automatically (rows marked ↩).",
+    holReg: "regular holiday", holSp: "special day", hol_title: "Holiday calendar", hol_help: "Days listed here are included in payroll automatically. Worked: special day 130% · regular holiday 200% (on a rest day 150% / 260%); a regular holiday not worked is paid 100%. Add new ones (e.g. Eid al-Fitr) when they are announced.", hol_add: "Add", carryIn: "↩ carried", carryInNone: "excluded", carryOut: "→ next pay", carryHelp: "Pay periods are 1–15 (paid on the 16th) and 16–30. The 1–15 pay covers work up to the 14th's night shift (clock-out on the morning of the 15th); all work on the 15th (day or night) is carried into the 16–30 payroll automatically. In a 31-day month the 16–30 pay covers work up to the 29th's night shift (clock-out on the morning of the 30th). All work on the 30th (day or night) and the 31st is carried into the next 1–15 payroll automatically (rows marked ↩).",
     tab_due: "To pay", due_help: "Calculated automatically, nothing to save: Cash Book schedule + app clock-ins (actual times where present) + advances, bonuses, shortages, gov deductions. Staff already saved in the Payroll tab use what was saved. Net = gross − deductions. Tap a name to open it.",
     due_total: "Total to pay", due_people: "{n} payslips", due_payday: "Pay day {d}", due_overdue: "Past pay day", due_byVia: "By payout method",
     due_ppl: "{n} staff", due_auto: "auto", due_saved: "saved", due_days: "Worked", due_calc: "Calculating from the schedule…", due_paidX: "{n} already paid, not included: {names}", due_prev: "Earlier periods not paid yet (saved)", due_cnt: "Staff", due_gross: "Gross", due_ded: "Deductions", due_net: "Net pay", due_list: "Per employee", due_missingHelp: "Save them to include them in the total.",
@@ -117,7 +117,7 @@ const I18N = {
     contract: "How pay is computed (chosen per employee in the Staff tab)", contractText: [
       "[₱718 contract (new contracts 2026-10-01, all staff except Erika)] ₱718/day · 8h/day, hourly = daily ÷ 8 · shift hours over 8 (rounded down to ½h) = overtime 125% · night (10pm–6am) +10% · rest day 130% · special holiday 130% · regular holiday 200% (100% if off) · late = actual unworked minutes only (no penalty)",
       "[Paper method · old contract (Erika ₱750, 5-month old contract)] the old daily rate · basic = days worked × daily (shift length doesn't matter, half day ½) · a day = a 10-hour shift · past 10h the first hour is the unpaid break, the rest is overtime (12h shift = 10h base + 1h break + 1h OT, ½h steps) or type the card figure · OT hour = daily ÷ 10 (790 → 79) · no 125%, no night diff · late = minutes × daily ÷ 10 ÷ 60 + a penalty of the same amount · special holiday +30% · regular holiday +1 day (also when off)",
-      "Common — paydays 15th & 30th · paid leave 1 day = daily · rider motorcycle maintenance ₱100 per duty day in payroll (not in 13th month) · delivery fee paid same day (not payroll) · advance (CA) 1st–15th → 15th payroll, 16th on → 30th · net rounded up to the peso",
+      "Common — paydays 16th & 30th (the 1–15 pay covers up to the 14th's night shift; work on the 15th goes in the 16–30 pay) · paid leave 1 day = daily · rider motorcycle maintenance ₱100 per duty day in payroll (not in 13th month) · delivery fee paid same day (not payroll) · advance (CA) 1st–15th → 15th payroll, 16th on → 30th · net rounded up to the peso",
       "Kitchen monthly contract (Jonel) — ₱30,000 = basic 25,945 + built-in OT 4,055 (08–18, 1h/day) · daily = 25,945×12÷313 = 994.70, hourly 124.34 · fixed 15,000 per half · OT after 18:00 at 125%, rest day worked 130%, holiday and night extras on top · absence 994.70/day, tardiness 2.07/min · 13th month on the basic 25,945",
       "13th month on basic only (no OT, night diff, premiums, maintenance, incentives) · 1yr+ = one month average",
     ],
@@ -716,6 +716,8 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-18", ko: ["💵 급여 기간이 바뀌어요: 1–15일 급여는 16일에 받아요. 14일 야간 근무 퇴근(15일 아침)까지 들어가고, 15일 근무(주간·야간 모두)는 16–30일 급여에 들어가요. 16–30일 급여는 그대로예요. (11/15 근무를 이번 1–15일 급여에서 못 받은 사람은 11/16–30 급여에 들어가요.)"],
+    en: ["💵 Pay period change: the 1–15 pay is given on the 16th. It covers work up to the 14th's night shift (clock-out on the morning of the 15th); all work on the 15th (day or night) goes in the 16–30 pay. The 16–30 pay stays the same. (If your Nov 15 work was not in the Nov 1–15 pay, it is in the Nov 16–30 pay.)"] },
   { id: "2026-11-17h", ko: ["💰 퇴사한 직원의 13th month는 근무 기간과 상관없이 법대로 계산해요: 올해 기본급 합계 ÷ 12 (12월까지 예상은 넣지 않아요)."],
     en: ["💰 For employees who resigned, the 13th month is computed by law regardless of length of service: total basic pay this year ÷ 12 (no estimate up to December)."] },
   { id: "2026-11-17g", ko: ["🤒 홈에 '결석 알리기' 버튼이 생겼어요. 병가·경조사는 증빙 사진(진단서, 부고 등)을 올리면 확인서 → 사장님 확인 후 유급 1일 (SIL 안 써요). 증빙이 없으면 사유서 → 무단결근 (무급, 그 달 개근휴가 없음). 증빙은 7일 안에 나중에 올려도 돼요."],
@@ -1219,7 +1221,7 @@ function my13DateCard(v) {
 const RECV_FROM = "2026-11-15";
 function myRecvCard(v) {
   const td = today(), year = +td.slice(0, 4);
-  const pays = (v.payrolls || []).filter(p => (p.status === "paid" || p.shared) && p.result && p.period_end >= RECV_FROM && td >= p.period_end && !p.recv_at);
+  const pays = (v.payrolls || []).filter(p => (p.status === "paid" || p.shared) && p.result && p.period_end >= RECV_FROM && td >= payDayOf(p.period_start, p.period_end) && !p.recv_at);
   const ack = (v.ack13 || []).find(a => a.year === year), x13 = (v.thirteenth || []).find(x => x.year === year);
   const ask13 = ack && !ack.recv_at && ((ack.requested_at && ack.ok !== false && td >= (ack.pay_date || `${year}-12-24`) && (!x13?.paid_on || x13.paid_on >= "2026-11-12"))
     || (ack.recv_ask_at && x13?.paid_on));   // recv_ask_at: owner asked someone already paid to confirm (Lorence 11/13)
@@ -2093,11 +2095,12 @@ function applyPunchRows(P, rows) {
 async function carryRows(P, emp, saved, plan) {
   if (!P.carry.length) return [];
   const mine = Object.fromEntries((saved || []).filter(d => d.carry).map(d => [d.date, d]));
-  let prev = null; try { prev = await db.getPayroll(emp.id, P.carry[0].slice(0, 8) + "16"); } catch { }
-  if (prev && prev.status === "paid" && prev.period_end === P.carry[1]) return [];   // old 16–31 period: the 31st was already paid
+  // carried-in days come from the payroll just before: 16–30 → the 15th of the same month's 1–15 · 1–15 → last month's 30th/31st
+  let prev = null; try { prev = await db.getPayroll(emp.id, P.carry[0].slice(0, 8) + (+P.half === 2 ? "01" : "16")); } catch { }
+  if (+P.half !== 2 && prev && prev.status === "paid" && prev.period_end === P.carry[1]) return [];   // old 16–31 period: the 31st was already paid
   const prevBy = Object.fromEntries((prev?.days || []).map(d => [d.date, d]));
   const prevPaid = new Set(((prev?.status === "paid" || prev?.shared_at) ? prev?.result?.rows || [] : []).filter(r => !r.carry && (DAY_TYPES[r.type]?.worked || r.type === "sil" || +r.amount > 0)).map(r => r.date));
-  if (!plan && P.carry.some(d => !mine[d] && !prevBy[d])) { plan = {}; try { plan = Object.fromEntries((await db.cashbookShifts(P.carry[0], P.carry[1])).filter(r => String(r.staff_name || "").trim().toLowerCase() === String(emp.name).trim().toLowerCase() && r.shift).map(r => [r.day, r.shift])); } catch { } }
+  if (!plan && P.carry.some(d => !mine[d] && !prevBy[d])) { plan = {}; try { plan = Object.fromEntries((await db.cashbookShifts(P.carry[0], P.carry[P.carry.length - 1])).filter(r => String(r.staff_name || "").trim().toLowerCase() === String(emp.name).trim().toLowerCase() && r.shift).map(r => [r.day, r.shift])); } catch { } }
   return P.carry.map(date => carryNorm({ ...(mine[date] || prevBy[date] || planDay(date, (plan || {})[date])), date, carry: true, ...(prevPaid.has(date) ? { prevPaid: true } : {}) }));
 }
 async function loadPay(P) {
@@ -2193,7 +2196,7 @@ async function renderPay() {
       const lbl = h("div", { class: "d", role: "button", title: t("off"), style: locked ? "" : "cursor:pointer", onclick: toggle }, t("dow")[dow], h("b", {}, (d.carry ? +d.date.slice(5, 7) + "/" : "") + +d.date.slice(8)), tag && h("small", { class: "carryTag" }, tag));
       const sh = DAY_TYPES[d.type]?.worked ? shiftHours(d.shift, P.break_hours) : null;
       const cls = "day" + (d.carry ? " carry" : "") + (!d.carry && carriesOver(d.date, d.shift) ? " carryOut" : "") + (HOL[d.date] ? " hol" : "") + (d.type === "off" ? " off" : "") + (d.type === "sil" || d.type === "excused" ? " sil" : "") + (/holiday|special|absent/.test(d.type) ? " hol" : "") + (wk ? " wknd" : "");
-      const shiftCtl = shiftPicker(d, locked, (redraw = true) => { if (redraw || d.carry || +d.date.slice(8) === 30) drawRoster(); else { refreshHrs(d); const o = rosterEl.querySelector(`.otin[data-d="${d.date}"] input`); if (o) o.placeholder = String(paperOt(shiftHours(d.shift, 0), +S.settings.hours_per_day || 10, P.break_hours)); } refresh(); }, P.fillShift);
+      const shiftCtl = shiftPicker(d, locked, (redraw = true) => { if (redraw || d.carry || [15, 30].includes(+d.date.slice(8))) drawRoster(); else { refreshHrs(d); const o = rosterEl.querySelector(`.otin[data-d="${d.date}"] input`); if (o) o.placeholder = String(paperOt(shiftHours(d.shift, 0), +S.settings.hours_per_day || 10, P.break_hours)); } refresh(); }, P.fillShift);
       const typeSel = sel(dayTypesFor(schemeOf(emp), P.pay_type).map(k => [k, t("type_" + k)]), d.type, { disabled: locked, "aria-label": "day type", onchange: e => { d.type = e.target.value; if (!DAY_TYPES[d.type].worked) d.shift = ""; else if (!d.shift) d.shift = P.fillShift; drawRoster(); refresh(); } });
       const hrsEl = h("div", { class: "hrs", "data-d": d.date }, hrsText(sh));
       const otEl = DAY_TYPES[d.type]?.worked && !monthly && paper ? otInput(d, locked, refresh, +S.settings.hours_per_day || 10, P.break_hours) : null; if (otEl) otEl.dataset.d = d.date;

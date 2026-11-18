@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { computePayroll as compute, shiftHours, periodForDate, periodOf, datesBetween, MONTHLY_FACTOR, carriesOver, paidDays, isNightShift } from "../payroll-calc.js";
+import { computePayroll as compute, shiftHours, periodForDate, periodOf, datesBetween, MONTHLY_FACTOR, carriesOver, paidDays, isNightShift, payDayOf } from "../payroll-calc.js";
 const computePayroll = (d, o) => compute(d, { scheme: "paper", ...o });   // paper-method block below
 
 const near = (a, b, msg) => assert.ok(Math.abs(a - b) < 0.011, `${msg}: ${a} vs ${b}`);
@@ -18,7 +18,15 @@ assert.equal(periodForDate("2026-12-31").start, "2027-01-01");
 assert.equal(periodOf(2026, 2, 2).end, "2026-02-28");
 assert.equal(periodOf(2026, 11, 2).end, "2026-11-30");
 assert.deepEqual(periodOf(2026, 11, 1).carry, ["2026-10-30", "2026-10-31"]);
-assert.deepEqual(periodOf(2026, 12, 1).carry, []);                       // November has 30 days
+assert.deepEqual(periodOf(2026, 12, 1).carry, []);
+assert.deepEqual(periodOf(2026, 11, 2).carry, ["2026-11-15"]);              // owner 2026-11-18: the 15th goes in the 16–30 pay
+assert.equal(periodOf(2026, 10, 2).carry, undefined);
+assert.ok(carriesOver("2026-12-15", "8-18") && carriesOver("2026-12-15", "20-4") && !carriesOver("2026-12-14", "20-4") && !carriesOver("2026-11-15", "8-18"));
+assert.equal(paidDays([{ date: "2026-12-14", shift: "20-4" }, { date: "2026-12-15", shift: "8-18" }]).length, 1);
+assert.equal(paidDays([{ date: "2026-11-15", shift: "8-18", carry: true }]).length, 1);   // carried into Nov 16–30
+assert.equal(payDayOf("2026-12-01", "2026-12-15"), "2026-12-16");
+assert.equal(payDayOf("2026-11-01", "2026-11-15"), "2026-11-15");
+assert.equal(payDayOf("2026-12-16", "2026-12-30"), "2026-12-30");                       // November has 30 days
 assert.deepEqual(periodOf(2027, 1, 1).carry, ["2026-12-30", "2026-12-31"]);
 assert.ok(isNightShift("20-4") && isNightShift("22-8") && !isNightShift("8-18") && !isNightShift("12-22"));
 assert.ok(carriesOver("2026-10-30", "20-4") && carriesOver("2026-10-30", "8-18") && !carriesOver("2026-10-29", "20-4") && !carriesOver("2026-11-30", "20-4") && carriesOver("2026-10-31", "8-18"));
