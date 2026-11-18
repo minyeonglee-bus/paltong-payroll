@@ -215,6 +215,12 @@ export async function decidePunch(id, status) {
   const { data: u } = await sb.auth.getUser();
   return must(await sb.from("pr_punches").update({ status, decided_at: new Date().toISOString(), decided_by: u?.user?.id || null }).eq("id", id).select().single());
 }
+/** owner 2026-11-18: early clock-out because of sickness → approved, not an attendance problem (birthday incentive etc.);
+ *  pay still runs to the actual clock-out */
+export async function excusePunch(id) {
+  const { data: u } = await sb.auth.getUser();
+  return must(await sb.from("pr_punches").update({ status: "approved", mode: "sick", decided_at: new Date().toISOString(), decided_by: u?.user?.id || null }).eq("id", id).select().single());
+}
 /** owner: every explanation letter / confirmation (punch with a reason) between two Manila dates */
 export async function listLetters(from, to) {
   const s = new Date(from + "T00:00:00+08:00").toISOString(), e = new Date(to + "T23:59:59.999+08:00").toISOString();

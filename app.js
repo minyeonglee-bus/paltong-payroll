@@ -608,7 +608,7 @@ function myInfoCard(emp) {
       h("div", { class: "grid2" }, field(t("emp_name"), h("div", { style: "padding:9px 0" }, emp.name)), field(t("emp_bday"), bday), ...INFO_KEYS.map(k => field(t("i_" + k), inp[k]))),
       save),
     mySilSelf(EMP.data?.sil_sum),
-    h("div", { style: "margin-top:12px" }, h("button", { class: "btn sm", type: "button", id: "mi-intro", onclick: introSheet }, "🎬 " + t("intro_rewatch")), " ", h("button", { class: "btn sm", type: "button", id: "mi-new", onclick: () => whatsNewSheet(true) }, "🆕 " + t("new_title"))),
+    h("div", { style: "margin-top:12px" }, h("button", { class: "btn sm", type: "button", id: "mi-intro", onclick: introSheet }, "🎬 " + t("intro_rewatch")), " ", h("button", { class: "btn sm", type: "button", id: "mi-new", onclick: () => { EMP.tab = "board"; renderStaffHome(); window.scrollTo(0, 0); } }, "🆕 " + t("new_title"))),
     EMP.data?.signature ? h("div", { id: "mi-sig", style: "margin-top:14px;padding-top:12px;border-top:1px solid var(--line)" }, h("b", {}, t("sig_mine")), h("div", {}, sigImg(EMP.data.signature, "max-height:70px;background:#fff;border-radius:6px;padding:4px")), h("small", { class: "muted" }, tf("sig_on", { d: fmtD(EMP.data.signature.signed_at) }))) : null);
 }
 /* ---- staff: SIL days LEFT — re-entered once (owner 2026-11-14: "마지막이고 이번에 적는 것만 인정"), then locked (owner can still change it).
@@ -716,16 +716,127 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-18d", ko: ["🤒 병가·경조사로 결석을 알렸는데 증빙이 없으면 7일 동안 보류돼요. 결석일부터 7일 안에 증빙 사진을 올리면 확인서(사장님 확인 후 유급), 안 올리면 자동으로 무단결근이에요.",
+      "🤒 아파서 조퇴한 경우 사장님이 확인하면 근태 문제 없음으로 처리돼요 (생일 인센티브에 안 걸려요). 급여는 실제 퇴근 시간까지예요.",
+      "📢 새 '공지' 탭이 생겼어요. 지난 공지와 규정은 모두 거기서 볼 수 있어요. 중요한 새 공지만 팝업으로 떠요."],
+    en: ["🤒 If you report a sick / bereavement absence without proof, it is on hold for 7 days. Add a proof photo within 7 days of the absence for a confirmation (paid after the manager approves); otherwise it becomes an unexcused absence automatically.",
+      "🤒 If you leave early because you are sick and the manager confirms it, it is not counted as an attendance problem (no effect on the birthday incentive). Pay is up to your actual clock-out.",
+      "📢 New 'Notices' tab: all past notices and policies are there. Only important new notices pop up."] },
   { id: "2026-11-18c", ko: ["💵 급여 기간이 바뀌어요: 15일 급여는 그대로 15일에 받고, 14일 야간 근무 퇴근(15일 아침)까지 들어가요. 15일 근무(주간·야간 모두)는 16–30일 급여에 들어가요. 16–30일 급여는 그대로예요. (11/15 근무를 이번 1–15일 급여에서 못 받은 사람은 11/16–30 급여에 들어가요.)"],
     en: ["💵 Pay period change: the 15th pay is still given on the 15th and covers work up to the 14th's night shift (clock-out on the morning of the 15th); all work on the 15th (day or night) goes in the 16–30 pay. The 16–30 pay stays the same. (If your Nov 15 work was not in the Nov 1–15 pay, it is in the Nov 16–30 pay.)"] },
   { id: "2026-11-18b", ko: ["💰 13th month는 홈의 13th month 카드에서 금액을 확인하고 '요청'을 눌러야 받을 수 있어요. 요청하지 않으면 받을 날짜를 골랐어도 받을 수 없어요. 아직 요청 안 했으면 지금 확인하고 요청해 주세요."],
     en: ["💰 To receive your 13th month pay, check the amount in the 13th month card on Home and press 'Request'. If you do not request it, you will NOT receive it, even if you chose a date. If you have not requested yet, please check and request now."] },
+  // ---- older entries: notice board only (popup: false), owner 2026-11-18 ----
+  { id: "2026-11-17h", popup: false, ko: ["💰 퇴사한 직원의 13th month는 근무 기간과 상관없이 법대로 계산해요: 올해 기본급 합계 ÷ 12 (12월까지 예상은 넣지 않아요)."],
+    en: ["💰 For employees who resigned, the 13th month is computed by law regardless of length of service: total basic pay this year ÷ 12 (no estimate up to December)."] },
+  { id: "2026-11-17g", popup: false, ko: ["🤒 홈에 '결석 알리기' 버튼이 생겼어요. 병가·경조사는 증빙 사진(진단서, 부고 등)을 올리면 확인서 → 사장님 확인 후 유급 1일 (SIL 안 써요). 증빙이 없으면 사유서 → 무단결근 (무급, 그 달 개근휴가 없음). 증빙은 7일 안에 나중에 올려도 돼요."],
+    en: ["🤒 New 'Report absence' button on Home. Sick or bereavement: attach a proof photo (medical certificate, death notice…) → confirmation, paid 1 day after the manager approves (SIL not used). No proof → explanation letter → unexcused absence (unpaid, no monthly paid vacation that month). You can add the proof later, within 7 days."] },
+  { id: "2026-11-17f", popup: false, positions: ["waiter"], ko: ["💵🏦 캐시북 하루 마감: 포스(서랍)는 전부 장수로 세서 장부와 맞추고, 세이빙박스는 오늘 넣는 돈만 장수로 세요. 박스 전체는 Mina가 확인해요. 공지에 동의해 주세요."],
+    en: ["💵🏦 Cash Book Close day: count the whole drawer bill by bill to match the book; for the saving box count only today's money going in. Mina checks the whole box. Please agree to the notice."] },
+  { id: "2026-11-17e", popup: false, ko: ["💸 캐시북에 수리·청소·기사 같은 지출이 올라오면 '수리 맞나요?'가 모두에게 떠요. 한 명이 답하면 끝나요. 수리면 어떤 수리인지 골라 주세요."],
+    en: ["💸 When the Cash Book has an expense that looks like a repair (repair, cleaning, technician…), everyone sees 'Is this a repair?'. One answer closes it. If it is a repair, pick which one."] },
+  { id: "2026-11-17d", popup: false, ko: ["🏷 스케줄·급여명세서에서 SIL(법정 유급휴가)과 MPV(개근휴가, 계약서 3.2조)를 따로 보여줘요."],
+    en: ["🏷 The schedule and payslips now show SIL (legal paid leave) and MPV (monthly paid vacation, contract §3.2) separately."] },
+  { id: "2026-11-17c", popup: false, ko: ["🔒 SIL(유급휴가)은 법대로 입사 1년 후부터 생겨요. 1년 미만이면 SIL 칸에 사용 가능 날짜가 보여요. 개근휴가는 그대로예요."],
+    en: ["🔒 SIL (paid leave) starts after 1 year of service, as the law says. Under 1 year, the SIL card shows the date it starts. Monthly perfect-attendance leave is not affected."] },
+  { id: "2026-11-17b", popup: false, ko: ["🔧 홈의 '수리' 칸: 고장·재고 문제가 생기면 '수리 필요' → 무엇인지 적기 → 기사 날짜 넣기 또는 '찾는 중'. 찾는 중이면 앱을 열 때마다 '찾았나요?' 알림, 날짜가 되면 '고쳤어요' 알림이 떠요. '고쳤어요'까지 눌러야 보너스에 문제가 없어요. 금액이 ₱10,000 이상이면 사장님께 알림이 가요."],
+    en: ["🔧 'Repairs' on Home: if something breaks or there is a stock problem → 'Needs repair' → write what it is → enter the technician date or 'Still looking'. While looking, the app asks 'found a technician?' each time you open it; on the repair date it asks 'fixed?'. Press 'Fixed' at the end so bonuses are not affected. ₱10,000 or more → the owner is notified."] },
+  { id: "2026-11-17", popup: false, ko: ["📢 급여 공지(장비 수리 규칙)가 팝업으로 떠요. 읽고 '동의'를 누르면 다시 안 떠요. 동의서는 서류 탭에서 인쇄할 수 있어요."],
+    en: ["📢 A payroll notice (equipment repair policy) shows as a popup. Read it and press 'I agree' — then it does not show again. You can print the agreement in the Documents tab."] },
+  { id: "2026-11-16", popup: false, ko: [
+      "🧾 캐시북 마감 규칙: 장부와 1페소라도 다르면 마감할 수 없어요. 근무자(중간마감 = 오전 파트, 마감 = 저녁 파트)는 임시저장만 하고, 교대자가 현금을 다시 세고 잔고 사진을 다시 찍어서 마감해요.",
+      "📦 하루 마감 때 세이빙박스 안의 돈도 전부 세요. 장부와 다르면 마감할 수 없어요.",
+      "🔁 교대자가 확인했는데 다르면 그 차이는 임시저장한 근무자 책임이에요. 근무자 앱 홈 맨 위에 카드가 떠요: 이유를 알면 적기(사장님이 결정) · 이유 모름 → 💸 급여에서 차감 또는 💵 바로 채워두기."],
+    en: [
+      "🧾 Cash Book closing rule: if it is off from the book by even ₱1, you cannot close. The worker (mid-close = morning part, close = evening part) only saves a draft; the next shift counts the cash again, retakes the balance photos and closes.",
+      "📦 At the day close, also count all the money in the saving box. If it does not match the book, you cannot close.",
+      "🔁 If the next shift finds a difference, it is the responsibility of the worker who saved the draft. A card shows at the top of that worker's Home: write the reason if you know it (the owner decides) · don't know → 💸 deduct from salary or 💵 put the money back now."] },
+  { id: "2026-11-14f", popup: false, ko: ["⏳ 출퇴근 사유에서 다른 직원(교대자·심부름 시킨 사람)을 골랐는데 그 직원이 아직 확인하지 않았으면 홈 맨 위에 카드가 떠요. 확인이 안 되면 인정되지 않으니 그 직원에게 빨리 확인해 달라고 요청하세요."],
+    en: ["⏳ If you picked a coworker for a clock-in/out reason (next/previous shift, or who asked for an errand) and they have not confirmed yet, a card shows at the top of Home. It is not accepted until they confirm, so ask them to confirm soon."] },
+  { id: "2026-11-14e", popup: false, ko: [
+      "💰 캐시 어드밴스(가불) 안내: 화면에 표시된 한도 안에서 자유롭게 가져가시면 됩니다. 스케줄이 바뀌면 한도가 달라질 수 있으며, 줄어든 한도보다 많이 가져간 금액은 다음 급여에서 공제됩니다.",
+      "📱 신청 방법: 위쪽 '가불' 탭 → '신청 가능' 금액 확인 → 받는 방법(💵 현금 / 📱 GCash) 고르기 → 금액 적기 (사유는 선택) → '가불 신청'. 바로 자동 승인돼요. 신청 후 승인된 것을 확인하고 홀 직원에게 요청하세요 (현금은 매장에서 · GCash는 GCash로 받아요). 처음이면 사인을 먼저 등록해야 해요."],
+    en: [
+      "💰 Cash advance: you can take any amount up to the limit shown on the screen. Your limit may go up or down if your schedule changes. If it goes down and you have already taken more than the new limit, the extra amount will be deducted from your next salary.",
+      "📱 How to request: tap the 'Advance' tab at the top → check 'You can request' → choose how to receive it (💵 Cash / 📱 GCash) → enter the amount (reason is optional) → tap 'Request advance'. It is approved right away. After requesting, check that it is approved, then ask the hall staff to give it to you (cash at the restaurant, or sent to your GCash). If it is your first time, register your signature first."] },
+  { id: "2026-11-14b", popup: false, ko: ["📅 급여날(15일·30일) 3일 전 ~ 3일 후에는 13th month를 받을 수 없어요. 그 날을 골랐던 사람은 홈 맨 위 카드에서 다른 날짜를 다시 골라 주세요."],
+    en: ["📅 13th month pay cannot be given from 3 days before to 3 days after payday (15th and 30th). If you chose one of those days, please choose another date in the card at the top of Home."] },
+  { id: "2026-11-14", popup: false, ko: [
+      "📝 모두 내 남은 SIL(유급휴가) 일수를 다시 적어 주세요. 홈 맨 위 카드에서 적어요. 마지막 입력이고, 이번에 적은 숫자만 인정돼요 (저장하면 직접 못 고쳐요).",
+      "📍 출퇴근은 매장 와이파이뿐 아니라 GPS(위치)로도 돼요. 앱에 다시 들어가서 휴대폰 위치(GPS)를 꼭 켜 두세요."],
+    en: [
+      "📝 Everyone: please enter your SIL (paid leave) days left again, in the card at the top of Home. This is the last time, and only what you enter now counts (you cannot change it after saving).",
+      "📍 Clock in/out works with the restaurant Wi-Fi and also with GPS (location). Open the app again and keep your phone's location (GPS) turned on."] },
+  { id: "2026-11-13b", popup: false, ko: ["📅 모두 13th month 받을 날짜를 다시 골라 주세요 (이미 골랐어도 다시). 홈 맨 위 카드에서 골라요. 안 고르면 12/24에 다 같이 받아요."],
+    en: ["📅 Everyone: please choose your 13th month date again (even if you already chose). Use the card at the top of Home. If you do not choose, you get it on Dec 24 with everyone."] },
+  { id: "2026-11-13", popup: false, ko: ["📅 13th month를 요청하면 받고 싶은 날짜도 꼭 골라요. 홈 맨 위 카드에서 날짜를 고르면 사장님께 알림이 가요 (12/23까지는 하루 한 명, 12/24는 다 같이)."],
+    en: ["📅 When you request your 13th month, you also choose the exact date you want it. Pick it in the card at the top of Home — the owner is notified (one person per day until Dec 23, everyone on Dec 24)."] },
+  { id: "2026-11-12c", popup: false, ko: [
+      "📝 사유서·확인서는 이제 직접 쓰지 않고 골라요. 사유서(지각·늦게/일찍 퇴근, 개인 이유)는 교통 체증 · 개인 사유 (홀은 장부 검사도) — 지각은 공제되고 초과근무는 인정 안 돼요.",
+      "✅ 확인서(업무 이유)만 추가 지급 또는 지각 정상참작: 교대자 지각(교대자가 확인) · 배달 후 오버타임(기사: 주문 앱 배달을 고르면 픽업·배달완료 시간이 자동으로 들어가요) · 업무상 심부름(기사: 주문 앱 심부름 / 그 외: 시킨 사람이 확인). 확인되면 자동으로 승인돼요."],
+    en: [
+      "📝 Explanation letters / confirmations are now chosen, not typed. Explanation letter (late, staying late / leaving early for personal reasons): Traffic · Personal (hall: also Cash Book check) — late time is deducted and it is not overtime.",
+      "✅ Only a confirmation (work reason) gets extra pay or the late time excused: next shift was late (they confirm) · overtime after delivery (riders: pick the delivery from the order app — pick-up / delivered times are filled in) · work errand (riders: errand from the order app / others: the person who asked confirms). Approved automatically once confirmed."] },
+  { id: "2026-11-12b", popup: false, ko: [
+      "🎁 13th month: 1년 이상 근무한 사람은 한 달치(보름 평균 기본급 × 2)만, 1년 미만은 올해 기본급 ÷ 12만 보여요. 명세서 상세도 같아요. 오버타임·야간 등은 빠지고 기본급만 들어가요."],
+    en: [
+      "🎁 13th month: 1 year+ of service shows only one month (half-month average basic × 2); under 1 year shows only this year's basic ÷ 12. The slip details match. Basic pay only — no OT, night diff, etc."] },
+  { id: "2026-11-12", popup: false, ko: [
+      "💵 받으셨나요?: 급여일(15일·30일)이나 13th month 받는 날이 되면 화면 맨 위에 카드가 떠요. 받았으면 '받았어요'를 눌러 주세요 (13th month는 받은 방법도 골라요). 누를 때까지 카드가 계속 맨 위에 있어요."],
+    en: [
+      "💵 Did you receive it?: on pay day (15th & 30th) and on your 13th month date, a card shows at the very top. When you get the money, press \"I received it\" (for the 13th month, also choose how you got it). The card stays on top until you press it."] },
+  { id: "2026-11-11", popup: false, ko: [
+      "📅 13th month 받을 날짜: 사장님이 날짜를 다시 정해 달라고 한 경우 홈 맨 위에 카드가 떠요. 12/23까지는 하루에 한 명, 12/24는 다 같이 받는 날이에요. 지급 전까지 바꿀 수 있어요."],
+    en: [
+      "📅 13th month pay date: if the owner asks you to choose another date, a card shows at the top of Home. Up to Dec 23 one person per day; Dec 24 is the day everyone receives it together. You can change it until you are paid."] },
+  { id: "2026-11-10b", popup: false, ko: [
+      "🎆 12/31 근무는 마감됐어요 (8명). 1/1 매장 지키기는 1자리 남았어요. 누가 빠지면 홈 카드에 '자리 남았어요'가 뜨고 그때 '근무 원함'을 누를 수 있어요."],
+    en: [
+      "🎆 Dec 31 shift is now full (8 people). Jan 1 store duty has 1 spot left. If someone drops out, the Home card shows 'spot left' and you can tap 'I want to work' then."] },
+  { id: "2026-11-10", popup: false, ko: [
+      "🎆 12/31 · 1/1 근무 안내: 홈 맨 위 카드에서 날짜별로 '근무 원함' / '휴무 원함'을 눌러 주세요. 누르면 스케줄에 바로 반영되고, 전날까지 바꿀 수 있어요. 1/1 매장 지키기는 최대 2명 (1명: 05:00~다음날 08:00, 2명: 05:00–17:00 / 17:00–08:00). 12/31·1/1은 당일 지급이라 가불 한도에 안 들어가요."],
+    en: [
+      "🎆 Dec 31 · Jan 1: on the card at the top of Home, tap 'I want to work' or 'I want the day off' for each day. Your answer goes straight into the schedule, and you can change it until the day before. Jan 1 store duty is max 2 people (1 person: 5 AM – 8 AM next day; 2 people: 5 AM–5 PM / 5 PM–8 AM). Dec 31 and Jan 1 are paid on the day, so they are not part of the cash advance limit."] },
+  { id: "2026-11-09b", popup: false, ko: [
+      "🛵 기사님: 이 앱에서 출근(IN)을 누르면 기사앱 근무가 자동으로 시작되고, 퇴근(OUT)하면 자동으로 끝나요. 기사앱 화면은 켜 두어야 위치가 전송돼요."],
+    en: [
+      "🛵 Riders: tap IN here and your rider app shift starts automatically; tap OUT and it ends. Keep the rider app screen open so your location is shared."] },
+  { id: "2026-11-09", popup: false, ko: [
+      "📄 새 '서류' 탭: 내 급여명세서 · 사유서/확인서 · 가불 확인서 · 13월급 명세서를 직접 인쇄(PDF 저장)하거나 사진으로 공유할 수 있어요.",
+      "📄 재직증명서(COE)를 직접 발행할 수 있어요 — 서류 탭 맨 위. 용도를 고르면 사장님 사인이 들어간 COE가 나와요.",
+      "💰 13월급 요청: 홈 → 13월급 카드 → 명세서에서 금액을 확인하고 '금액이 맞아요 · 요청'을 누르면 사장님께 알림이 가요. 금액이 다르면 '금액이 달라요'로 이유를 보내 주세요.",
+      "📶 인터넷이 잠깐 끊겨도 입사일·사인 같은 저장은 자동으로 다시 시도해요."],
+    en: [
+      "📄 New 'Documents' tab: print (or save as PDF) or share as an image your payslips, explanation letters / confirmations, cash advance slips and 13th month slip.",
+      "📄 Issue your own Certificate of Employment (COE) — top of the Documents tab. Pick the purpose and you get a COE with the owner's signature.",
+      "💰 13th month request: Home → 13th month card → check the amount on the slip and tap 'Amount is right · Request' — the owner is notified. If it looks wrong, tap 'Amount looks wrong' and send the reason.",
+      "📶 If the internet drops for a moment, saves like date hired and signature are retried automatically."] },
 ];
 const newSeenKey = () => "pr_new_seen_" + (EMP.no || "");
+/* ---- 📢 staff notice board (owner 2026-11-18): every notice in one tab — policies (NOTICES) + all WHATS_NEW entries,
+   newest first. Entries with popup: false (old / resolved) are only here. ---- */
+function myBoardTab(emp) {
+  let seen = ""; try { seen = localStorage.getItem(newSeenKey()) || ""; } catch (e) {}
+  const pol = (typeof NOTICES !== "undefined" ? NOTICES : []).filter(n => forEmp(n, emp));
+  const news = WHATS_NEW.filter(n => forEmp(n, emp));
+  const ul = lines => h("ul", { style: "margin:6px 0 0;padding-left:20px;line-height:1.5" }, lines.map(x => h("li", { style: "margin-bottom:4px" }, x)));
+  const day = id => { const d = id.slice(0, 10); return `${+d.slice(5, 7)}/${+d.slice(8)}`; };
+  const out = [];
+  if (pol.length) out.push(h("div", { class: "card", id: "board-policies" }, h("h2", {}, "📌 " + evL("규정", "Policies")),
+    h("div", { class: "list" }, pol.map(n => h("details", { class: "item", style: "display:block" },
+      h("summary", {}, h("b", {}, (n.title?.[lang] || n.title?.en || n.id)), " ", h("small", { class: "muted" }, day(n.id))), ul(n[lang] || n.en))))));
+  out.push(h("div", { class: "card", id: "board-news" }, h("h2", {}, "📢 " + evL("공지사항", "Notices")),
+    h("div", { class: "list" }, news.map((n, i) => h("details", { class: "item", style: "display:block", open: i < 3 },
+      h("summary", {}, h("b", {}, day(n.id)), n.id > seen ? h("span", { class: "pill draft", style: "margin-left:6px" }, "NEW") : null,
+        n.popup !== false && n.id.slice(0, 10) >= addD(today(), -7) ? null : h("small", { class: "muted", style: "margin-left:6px" }, " " + ((n[lang] || n.en)[0] || "").slice(0, 40) + "…")),
+      ul(n[lang] || n.en))))));
+  return out;
+}
 function whatsNewSheet(all) {
   let seen = ""; try { seen = localStorage.getItem(newSeenKey()) || ""; } catch (e) {}
   const mine = WHATS_NEW.filter(n => forEmp(n, EMP.data?.employee));
-  const list = all ? mine : mine.filter(n => n.id > seen); if (!list.length) return false;
+  // popup only for important new entries (owner 2026-11-18): popup !== false and less than 7 days old; the rest live on the 📢 notice tab
+  const list = all ? mine : mine.filter(n => n.id > seen && n.popup !== false && n.id.slice(0, 10) >= addD(today(), -7)); if (!list.length) return false;
   const done = () => { try { localStorage.setItem(newSeenKey(), WHATS_NEW[0].id); } catch (e) {} close(); };
   const close = sheet([h("h3", {}, "🆕 " + t("new_title")),
     ...list.map(n => h("div", { style: "margin-bottom:10px" }, h("b", {}, n.id), h("ul", { style: "margin:4px 0 0;padding-left:20px;line-height:1.5" }, (n[lang] || n.en).map(x => h("li", { style: "margin-bottom:4px" }, x))))),
@@ -1020,9 +1131,9 @@ function renderStaffHome() {
       h("span", { style: "opacity:.85;font-size:13px" }, `${emp.name} · ${t("empNoLbl")} ${emp.emp_no}`),
       h("button", { onclick: () => { setLangOnly(lang === "ko" ? "en" : "ko"); renderStaffHome(); } }, lang === "ko" ? "EN" : "한"),
       h("button", { id: "e-logout", onclick: EMP.preview ? endPreview : staffLogout }, EMP.preview ? evL("관리자로", "Admin") : t("logout"))),
-    h("div", { class: "tabs", role: "tablist", id: "staff-tabs" }, (emp.info?.no_payroll ? [["home", t("stab_home")], ["docs", t("stab_docs")]] : [["home", t("stab_home")], ["adv", t("stab_adv")], ["docs", t("stab_docs")]]).map(([k, l]) => h("button", { role: "tab", id: "stab-" + k, "aria-selected": String((EMP.tab || "home") === k), onclick: () => { EMP.tab = k; renderStaffHome(); } }, l))),
+    h("div", { class: "tabs", role: "tablist", id: "staff-tabs" }, (emp.info?.no_payroll ? [["home", t("stab_home")], ["docs", t("stab_docs")], ["board", "📢 " + evL("공지", "Notices")]] : [["home", t("stab_home")], ["adv", t("stab_adv")], ["docs", t("stab_docs")], ["board", "📢 " + evL("공지", "Notices")]]).map(([k, l]) => h("button", { role: "tab", id: "stab-" + k, "aria-selected": String((EMP.tab || "home") === k), onclick: () => { EMP.tab = k; renderStaffHome(); } }, l))),
     EMP.preview ? h("div", { id: "preview-bar", style: "background:var(--gold);color:#2a1c00;padding:8px 14px;font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px" }, "👀 " + evL("직원 화면 미리보기 · 보기만 돼요 (버튼은 작동 안 함)", "Staff screen preview · view only (buttons do not work)"), h("span", { class: "sp" }), h("button", { class: "btn sm", type: "button", onclick: endPreview }, evL("닫기", "Close"))) : "",   // root.append(null) would print "null"
-    h("main", { id: "main" }, myRecvCard(v), (EMP.tab || "home") === "home" && !emp.info?.no_payroll ? myEquipCard() : null, ...(EMP.tab === "adv" && !emp.info?.no_payroll ? myAdvTab(v, emp) : EMP.tab === "docs" ? myDocsTab(v, emp) : emp.info?.no_payroll ? [
+    h("main", { id: "main" }, myRecvCard(v), (EMP.tab || "home") === "home" && !emp.info?.no_payroll ? myEquipCard() : null, ...(EMP.tab === "board" ? myBoardTab(emp) : EMP.tab === "adv" && !emp.info?.no_payroll ? myAdvTab(v, emp) : EMP.tab === "docs" ? myDocsTab(v, emp) : emp.info?.no_payroll ? [
       // Mina (manager, paid outside the restaurant payroll): no pay / advance / 13th / approval cards
       myEventCard(), clockCard(), h("div", { class: "card" }, h("h2", {}, t("myShifts")), shifts), mySchedCard(v, emp), myInfoCard(emp)] : [
       myCashCard(),
@@ -1499,6 +1610,8 @@ async function reviewCard() {
         h("span", { class: "pill " + (p.status === "approved" ? "paid" : p.status === "rejected" ? "late" : "draft") }, t(p.status === "rejected" ? "rv_st_rejected" : "st_" + p.status)), h("span", { class: "sp" }),
         p.status === "pending" ? h("button", { class: "btn sm primary", onclick: async () => { try { await db.decidePunch(p.id, "approved"); render(); } catch (e) { toast(errMsg(e)); } } }, t("rv_ok")) : null,
         p.status === "pending" ? h("button", { class: "btn sm", onclick: async () => { try { await db.decidePunch(p.id, "rejected"); render(); } catch (e) { toast(errMsg(e)); } } }, t("rv_no")) : null,
+        p.kind === "out" && (p.dev_min ?? 0) < 0 && p.status !== "void" && p.mode !== "sick" ? h("button", { class: "btn sm", type: "button", onclick: () => confirmSheet(evL(`${nm} — 아파서 조퇴: 근태 문제 없음으로 처리할까요? (생일 인센티브 등에 안 걸려요 · 급여는 실제 퇴근까지)`, `${nm} — left early sick: mark as no attendance problem? (not counted for the birthday incentive · pay still up to the actual clock-out)`), async () => { try { await db.excusePunch(p.id); render(); } catch (e) { toast(errMsg(e)); } }, { ask: true }) }, "🤒 " + evL("병가 조퇴 · 문제없음", "Sick · excused")) : null,
+        p.mode === "sick" && p.status === "approved" ? h("span", { class: "pill paid" }, "🤒 " + evL("병가 조퇴 · 근태 문제 없음", "sick early-out · excused")) : null,
         h("button", { class: "btn sm", onclick: () => printLetter(p) }, "🖨 " + (isConf(p) ? t("lt_conf") : t("lt_ex"))),
         h("button", { class: "btn sm ghost", onclick: () => confirmSheet(t("rv_void") + "?", async () => { try { await db.decidePunch(p.id, "void"); render(); } catch (e) { toast(errMsg(e)); } }, { ask: true }) }, t("rv_void"))),
       h("div", { class: "muted", style: "font-size:13px" }, t("rsnPlan") + " " + (p.plan_shift && !/^(off|sil)$/.test(p.plan_shift) ? SHIFT_LABEL(p.plan_shift) : "—") + " · " + devText(p.plan_shift, p.dev_min)),
@@ -1516,9 +1629,13 @@ async function reviewCard() {
 const ABS_KIND = { sick: ["🤒", "병가", "Sick"], family: ["🕯", "경조사", "Bereavement / family"], personal: ["🙋", "개인 사유", "Personal reason"] };
 const absKindL = k => (ABS_KIND[k] || ABS_KIND.personal)[0] + " " + evL((ABS_KIND[k] || ABS_KIND.personal)[1], (ABS_KIND[k] || ABS_KIND.personal)[2]);
 const absIsConf = a => a.status === "pending" || a.status === "approved";
-const absStL = a => a.status === "approved" ? evL("확인서 승인 · 유급", "Approved · paid") : a.status === "pending" ? evL("확인서 · 사장님 확인 대기", "Confirmation · waiting for the manager")
+// owner 2026-11-18: sick / bereavement reported without proof → on hold for 7 days (proof can still be added);
+// after the 7th day with no proof it is an unexcused absence automatically
+const absHoldTo = a => addD(String(a.day), 7);
+const absHold = a => a.status === "noted" && a.kind !== "personal" && today() <= absHoldTo(a);
+const absStL = a => absHold(a) ? evL(`⏳ 보류 · ${absDayL(absHoldTo(a))}까지 증빙 없으면 무단결근`, `⏳ On hold · unexcused if no proof by ${absDayL(absHoldTo(a))}`) : a.status === "approved" ? evL("확인서 승인 · 유급", "Approved · paid") : a.status === "pending" ? evL("확인서 · 사장님 확인 대기", "Confirmation · waiting for the manager")
   : a.status === "rejected" ? evL("반려 · 무단결근", "Rejected · unexcused") : evL("사유서 · 무단결근", "Explanation · unexcused");
-const absPill = a => h("span", { class: "pill " + (a.status === "approved" ? "paid" : a.status === "pending" ? "draft" : "late") }, absStL(a));
+const absPill = a => h("span", { class: "pill " + (a.status === "approved" ? "paid" : a.status === "pending" || absHold(a) ? "draft" : "late") }, absStL(a));
 const absDayL = d => `${+d.slice(5, 7)}/${+d.slice(8)} (${t("dow")[new Date(d + "T00:00:00").getDay()]})`;
 const absErr = e => ({ abs_range: evL("결석은 3일 전 ~ 7일 뒤 날짜만 알릴 수 있어요 (증빙은 7일 안에)", "Only from 3 days ago to 7 days ahead (proof within 7 days)"),
   abs_noshift: evL("그날은 스케줄이 없어요", "No shift scheduled that day"), abs_worked: evL("그날은 이미 출근 기록이 있어요", "You already clocked in that day"),
@@ -1558,7 +1675,7 @@ function myAbsCard(v, emp) {
   const draw = () => { card.innerHTML = ""; const rows = EMP.abs || []; const td = today();
     card.append(h("div", { class: "row" }, h("h2", {}, "🤒 " + evL("결석", "Absence")), h("span", { class: "sp" }),
         h("button", { class: "btn primary", type: "button", id: "abs-btn", onclick: () => absSheet(v, null, draw) }, evL("결석 알리기", "Report absence"))),
-      h("small", { class: "muted" }, evL("병가·경조사는 증빙 사진(진단서, 부고 등)을 올리면 확인서 → 사장님 확인 후 유급이에요. 증빙이 없으면 사유서 → 무단결근 (무급, 그 달 개근휴가 없음). 증빙은 결석일부터 7일 안에 나중에 올려도 돼요.",
+      h("small", { class: "muted" }, evL("병가·경조사는 증빙 사진(진단서, 부고 등)을 올리면 확인서 → 사장님 확인 후 유급이에요. 증빙이 없으면 7일 동안 보류 — 결석일부터 7일 안에 증빙을 올리면 확인서, 안 올리면 자동으로 무단결근 (무급, 그 달 개근휴가 없음).",
         "Sick or bereavement: attach a proof photo (medical certificate, death notice…) → confirmation, paid after the manager approves. No proof → explanation letter → unexcused absence (unpaid, no monthly paid vacation that month). You can add the proof later, within 7 days.")),
       rows.length ? h("div", { class: "list", style: "margin-top:8px" }, rows.slice(0, 8).map(a => h("div", { class: "item", style: "display:block" },
         h("div", { class: "row", style: "align-items:center;gap:6px;flex-wrap:wrap" }, h("b", {}, absDayL(a.day)), h("span", {}, absKindL(a.kind)), absPill(a), h("span", { class: "sp" }),
@@ -1584,6 +1701,7 @@ function absSheet(v, cur, done) {
   const showResult = () => { const conf = st.kind && st.kind !== "personal" && st.photos.length > 0;
     result.style.background = conf ? "#e8f7ec" : "#fdecec"; result.style.color = conf ? "#11632b" : "#8a1c1c";
     result.textContent = !st.kind ? "" : conf ? "✅ " + evL("확인서 → 사장님이 확인하면 유급 1일 (SIL 안 씀)", "Confirmation → paid 1 day once the manager approves (SIL not used)")
+      : st.kind !== "personal" ? "⏳ " + evL("증빙 없음 → 7일 보류: 7일 안에 증빙을 올리면 확인서, 안 올리면 무단결근 (무급, 그 달 개근휴가 없음)", "No proof → on hold for 7 days: add proof within 7 days for a confirmation, otherwise unexcused absence (unpaid, no monthly paid vacation)")
       : "⚠️ " + evL("사유서 → 무단결근: 그날 무급, 그 달 개근휴가 없음", "Explanation letter → unexcused absence: unpaid, no monthly paid vacation that month");
     result.hidden = !st.kind; };
   const draw = () => { body.innerHTML = "";
@@ -1603,6 +1721,7 @@ function absSheet(v, cur, done) {
     if (cur && !st.photos.length) return toast(evL("사진을 올려 주세요", "Attach a photo"));
     const conf = st.kind !== "personal" && st.photos.length > 0;
     confirmSheet(`${absDayL(st.day)} · ${absKindL(st.kind)} — ` + (conf ? evL("확인서로 보낼까요? 사장님 확인 후 유급이에요.", "Send as a confirmation? Paid after the manager approves.")
+      : st.kind !== "personal" ? evL("증빙 없이 보낼까요? 7일 동안 보류되고, 그 안에 증빙을 안 올리면 무단결근이 돼요.", "Send without proof? It is on hold for 7 days; without proof by then it becomes an unexcused absence.")
       : evL("증빙 없이 보낼까요? 무단결근(사유서)으로 처리돼요.", "Send without proof? It is recorded as an unexcused absence (explanation letter).")), async () => {
       try { const r = await db.empAbsence(EMP.no, EMP.pin, st.day, st.kind, cur ? null : note.value, conf ? st.photos : []); if (!r.ok) throw new Error(absErr(r.err));
         close(); toast(r.status === "pending" ? evL("보냈어요 · 사장님 확인 대기", "Sent · waiting for the manager") : evL("보냈어요 · 사유서", "Sent · explanation letter"));
@@ -1637,15 +1756,15 @@ function applyAbsences(days, list) {
   const by = Object.fromEntries((list || []).map(a => [String(a.day), a]));
   for (const d of days || []) { const a = by[d.date]; delete d.abs;
     if (!a || d.prevPaid || d.card || d.sepPay) continue;
-    d.shift = ""; d.ot = null; d.type = a.status === "approved" ? "excused" : "absent"; d.abs = a.status; }
+    d.shift = ""; d.ot = null; d.type = a.status === "approved" ? "excused" : "absent"; d.abs = a.status; if (absHold(a)) d.absHold = absHoldTo(a); else delete d.absHold; }
   return days;
 }
-const absTag = d => d.abs === "approved" ? "🤒 " + evL("결석 · 확인서 승인", "absent · approved") : d.abs === "pending" ? "⏳ " + evL("결석 · 확인 대기", "absent · waiting") : d.abs ? "🚫 " + evL("무단결근", "unexcused") : "";
+const absTag = d => d.abs === "noted" && d.absHold && today() <= d.absHold ? "⏳ " + evL(`결석 · 보류 (${absDayL(d.absHold)}까지 증빙)`, `absent · on hold (proof by ${absDayL(d.absHold)})`) : d.abs === "approved" ? "🤒 " + evL("결석 · 확인서 승인", "absent · approved") : d.abs === "pending" ? "⏳ " + evL("결석 · 확인 대기", "absent · waiting") : d.abs ? "🚫 " + evL("무단결근", "unexcused") : "";
 /* ---- owner: absences with proof → approve / reject ---- */
 async function absenceCard() {
   const card = h("div", { class: "card", id: "abs-review" }, h("h2", {}, "🤒 " + evL("결석 확인", "Absences")),
-    h("small", { class: "muted" }, evL("증빙 사진이 있는 병가·경조사 = 확인서 → 승인하면 유급 1일 (SIL 안 씀, 개근휴가 유지), 반려하면 무단결근. 증빙 없는 결석은 사유서로 자동 무단결근 (기록만). 급여 화면에 자동 반영돼요.",
-      "Sick / bereavement with a proof photo = confirmation → approve = paid 1 day (no SIL, keeps the monthly paid vacation), reject = unexcused. No proof = explanation letter, unexcused automatically. Payroll picks it up automatically.")));
+    h("small", { class: "muted" }, evL("증빙 사진이 있는 병가·경조사 = 확인서 → 승인하면 유급 1일 (SIL 안 씀, 개근휴가 유지), 반려하면 무단결근. 증빙 없는 병가·경조사는 7일 보류 → 그 안에 증빙이 없으면 자동 무단결근 (개인 사유는 바로 무단결근). 급여 화면에 자동 반영돼요.",
+      "Sick / bereavement with a proof photo = confirmation → approve = paid 1 day (no SIL, keeps the monthly paid vacation), reject = unexcused. Sick / bereavement without proof = on hold for 7 days, then unexcused automatically if no proof (personal reason = unexcused right away). Payroll picks it up automatically.")));
   let rows = []; try { rows = await db.listAbsences({ from: addD(today(), -45), withProof: true }); } catch (e) { card.append(h("p", { class: "muted" }, errMsg(e))); return card; }
   const big = src => sheet([h("img", { src, style: "width:100%;height:auto;border-radius:6px" }), h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => document.getElementById("sheetRoot").innerHTML = "" }, t("close")))]);
   const decide = (a, ok) => { const memo = h("input", { type: "text", maxlength: 200, placeholder: evL("메모 (선택)", "Note (optional)"), style: "width:100%" });
@@ -1659,7 +1778,7 @@ async function absenceCard() {
       h("button", { class: "btn sm", type: "button", onclick: () => docSheet(absDoc(a, a.employees, sigOf(a.employee_id)), absDocName(a, a.employees)) }, "🖨 " + (absIsConf(a) ? t("lt_conf") : t("lt_ex")))),
     (a.proof || []).length ? h("div", { class: "row", style: "gap:6px;margin-top:6px" }, a.proof.map(p => h("img", { src: p, style: "width:72px;height:72px;object-fit:cover;border-radius:6px;border:1px solid var(--line);cursor:pointer", onclick: () => big(p) }))) : null,
     a.note || a.decided_note ? h("div", { class: "muted", style: "font-size:13px" }, [a.note ? "“" + a.note + "”" : "", a.decided_note ? "💬 " + a.decided_note : ""].filter(Boolean).join(" · ")) : null);
-  const pend = rows.filter(a => a.status === "pending"), done = rows.filter(a => a.status !== "pending");
+  const pend = rows.filter(a => a.status === "pending" || absHold(a)), done = rows.filter(a => !(a.status === "pending" || absHold(a)));
   if (pend.length) card.style.border = "2px solid var(--gold)";
   card.append(pend.length ? h("div", { class: "list" }, pend.map(line)) : h("p", { class: "muted" }, evL("확인할 결석이 없어요", "No absences to check")));
   if (done.length) card.append(h("details", {}, h("summary", { class: "muted" }, evL("최근 결석", "Recent absences") + ` (${done.length})`), h("div", { class: "list" }, done.map(line))));
