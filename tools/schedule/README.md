@@ -57,3 +57,10 @@ select json_build_object(
 ```
 
 `save.sql` only touches days after today: changed `pr_plan` rows, `pr_sil_req.replanned_at`, and one owner push (`pr_notify`).
+
+# Leave that would leave a shift empty is rejected automatically (owner 2026-11-20)
+
+`pr_emp_leave_request` calls `pr_leave_gap` (supabase/pr_leave_gap.sql) before auto-approval, for all kinds (off / sil / mpv).
+It uses the same demand as `solve.py` (`pr_team_need`) and the same teams (`pr_team_of` — keep both in step with `TEAMS`,
+`demand()` and the `"closed"` list here). Rejected when the team has fewer free people than shifts on a day, or the request makes
+the Sun–Sat week's available work days fall short, or Jonel and Archie would both be off. Saved as `rejected` with the reason; owner push.
