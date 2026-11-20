@@ -2,10 +2,12 @@
 --  • 직원 지출(staff)도 사진(영수증)을 찍을 수 있음 (앱).
 --  • Fuel은 사진 필수 + 영수증 날짜·시간 필수.
 --  • 영수증 시간이 받는 직원(vendor)의 급여 앱 스케줄(pr_plan) 근무 시간 안이면 등록, 아니면 반려(저장 안 됨).
---    직원 목록에 없는 이름(예: Hataw 외부 기사)은 스케줄 확인 없이 사진·시간만 필수.
+--    직원 목록에 없는 이름은 스케줄 확인 없이 사진·시간만 필수. Hataw = Felipe (별명).
 --  • 사장님 계정은 예외 (지난 기록 정리용). 이미 있는 줄을 고칠 때는 vendor·영수증·사진·종류가 바뀔 때만 다시 검사.
 
--- vendor 이름 → 직원 (이름·풀네임 첫 단어 정확히 같으면 우선, 아니면 앞 3글자가 한 명만 맞을 때)
+-- vendor 이름 → 직원 (이름·풀네임 첫 단어·별명(info.aliases) 정확히 같으면 우선, 아니면 앞 3글자가 한 명만 맞을 때)
+-- 별명: 사장님 11/21 "Hataw = Felipe"
+update public.pr_employees set info = jsonb_set(coalesce(info, '{}'::jsonb), '{aliases}', '["Hataw"]'::jsonb) where emp_no = '00009' and name = 'Felipe';
 create or replace function public.cb_emp_for(p_vendor text, p_day date)
 returns public.pr_employees language plpgsql stable security definer set search_path = public as $$
 declare v text := lower(regexp_replace(coalesce(p_vendor, ''), '[^A-Za-z]', '', 'g')); r public.pr_employees; n int;
@@ -13,9 +15,11 @@ begin
   if v = '' then return null; end if;
   select * into r from public.pr_employees e
    where (e.resigned_on is null or e.resigned_on >= p_day)
-     and v in (lower(regexp_replace(e.name, '[^A-Za-z]', '', 'g')),
-               lower(regexp_replace(split_part(coalesce(e.info->>'full_name', ''), ' ', 1), '[^A-Za-z]', '', 'g')),
-               lower(regexp_replace(coalesce(e.info->>'full_name', ''), '[^A-Za-z]', '', 'g')))
+     and (v in (lower(regexp_replace(e.name, '[^A-Za-z]', '', 'g')),
+                lower(regexp_replace(split_part(coalesce(e.info->>'full_name', ''), ' ', 1), '[^A-Za-z]', '', 'g')),
+                lower(regexp_replace(coalesce(e.info->>'full_name', ''), '[^A-Za-z]', '', 'g')))
+          or exists (select 1 from jsonb_array_elements_text(case when jsonb_typeof(e.info->'aliases') = 'array' then e.info->'aliases' else '[]'::jsonb end) a
+                      where lower(regexp_replace(a, '[^A-Za-z]', '', 'g')) = v))
    order by e.emp_no limit 1;
   if found then return r; end if;
   if length(v) < 3 then return null; end if;
