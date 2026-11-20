@@ -156,7 +156,7 @@ export async function empReq13(no, pin, year, amount, ok, note) { return must(aw
 export async function empDays13(no, pin, year) { return must(await sb.rpc("pr_emp_days13", { p_no: String(no).trim(), p_pin: String(pin), p_year: year })); }
 export async function empDate13(no, pin, year, day) { return must(await sb.rpc("pr_emp_date13", { p_no: String(no).trim(), p_pin: String(pin), p_year: year, p_date: day })); }
 // 13th month after mid-December (supabase/pr_13_after_mid_dec.sql): staff ask for an earlier date with a reason → owner decides
-export async function empEarly13(no, pin, year, day, reason) { return must(await sb.rpc("pr_emp_early13", { p_no: String(no).trim(), p_pin: String(pin), p_year: year, p_date: day, p_reason: reason })); }
+export async function empEarly13(no, pin, year, day, reason, amount = null) { return must(await sb.rpc("pr_emp_early13", { p_no: String(no).trim(), p_pin: String(pin), p_year: year, p_date: day, p_reason: reason, p_amount: amount })); }
 export async function early13Decide(empId, year, ok) { return must(await sb.rpc("pr_13_early_decide", { p_emp: empId, p_year: year, p_ok: !!ok })); }
 // "받으셨나요?" (supabase/pr_recv.sql): staff confirm received pay → owner approves → paid + cash book
 export async function empRecv(no, pin, kind, key, via) { return must(await sb.rpc("pr_emp_recv", { p_no: String(no).trim(), p_pin: String(pin), p_kind: kind, p_key: String(key), p_via: via || null })); }

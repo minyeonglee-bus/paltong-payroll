@@ -716,6 +716,8 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-20b", ko: ["🎁 13th month 일찍 받기 요청에 '받고 싶은 금액' 칸이 생겼어요. 일부만 필요하면 금액을 적어 주세요 (비우면 전액)."],
+    en: ["🎁 The 13th month early request now has an 'Amount you need' box. If you need only part of it, write the amount (empty = all)."] },
   { id: "2026-11-20a", ko: ["⛔ 휴가 신청 규칙 추가 (휴무·SIL·개근 휴가 모두): 평일에 쉬면 스케줄에 빈자리(일할 사람이 없는 시프트)가 생기는 날은 자동으로 반려돼요. 다른 날로 다시 신청해 주세요.",
       "📅 금·토 휴가: 10일 전에 신청하면 허용돼요. 10일이 안 남았으면 사유를 꼭 적어야 하고 사장님이 승인해요."],
     en: ["⛔ New leave rule (Day off, SIL and monthly paid vacation): on weekdays, leave that would leave a shift in the schedule with nobody is rejected automatically. Please request another day.",
@@ -1245,19 +1247,23 @@ function my13DateCard(v) {
     if (!ack.requested_at) { toast(t("d13_earlyReqFirst")); return; }
     const dIn = h("input", { type: "date", id: "d13e-day", min: addDays(today(), 1), max: `${year}-12-23`, value: ack.early_date || "" });
     const rIn = h("textarea", { id: "d13e-reason", rows: 3, maxlength: 300, placeholder: t("d13_earlyPh") }, ack.early_reason || "");
-    const close = sheet([h("h3", {}, "🙏 " + t("d13_earlyTitle")), h("p", { class: "muted" }, t("d13_earlyHelp")), field(t("d13_earlyDay"), dIn), field(t("d13_earlyWhy"), rIn),
+    // owner 2026-11-20: how much they want now (empty = all)
+    const aIn = h("input", { type: "number", id: "d13e-amt", min: 1, step: 1, inputmode: "decimal", placeholder: evL("비우면 전액", "Leave empty = all"), value: ack.early_amount ?? "" });
+    const close = sheet([h("h3", {}, "🙏 " + t("d13_earlyTitle")), h("p", { class: "muted" }, t("d13_earlyHelp")), field(t("d13_earlyDay"), dIn),
+      field(evL("받고 싶은 금액 (₱) · 일부만 필요하면 적어 주세요", "Amount you need (₱) · fill in if you need only part"), aIn), field(t("d13_earlyWhy"), rIn),
       h("div", { class: "row" }, h("button", { class: "btn", type: "button", onclick: () => close() }, t("cancel")), h("span", { class: "sp" }),
         h("button", { class: "btn primary", type: "button", id: "d13e-send", onclick: async ev => {
-          const d = dIn.value, why = rIn.value.trim();
-          if (!d || d <= today() || d > `${year}-12-23` || !why) { toast(t("d13_earlyBad")); return; }
-          try { ev.currentTarget.disabled = true; const r = await db.empEarly13(EMP.no, EMP.pin, year, d, why);
+          const d = dIn.value, why = rIn.value.trim(), amt = aIn.value.trim() === "" ? null : Math.round(+aIn.value * 100) / 100;
+          if (!d || d <= today() || d > `${year}-12-23` || !why || (amt !== null && !(amt > 0))) { toast(t("d13_earlyBad")); return; }
+          try { ev.currentTarget.disabled = true; const r = await db.empEarly13(EMP.no, EMP.pin, year, d, why, amt);
             if (!r.ok) throw new Error(r.err === "bad_value" ? t("d13_earlyBad") : r.err === "not_requested" ? t("d13_earlyReqFirst") : pinErr(r.err, "noData"));
-            Object.assign(ack, { early_date: d, early_reason: why, early_at: new Date().toISOString(), early_ok: null }); toast(t("d13_earlySent")); close(); renderStaffHome();
+            Object.assign(ack, { early_date: d, early_reason: why, early_amount: amt, early_at: new Date().toISOString(), early_ok: null }); toast(t("d13_earlySent")); close(); renderStaffHome();
           } catch (er) { ev.currentTarget.disabled = false; toast(errMsg(er)); } } }, t("d13_earlySend")))]);
   };
   early.append(ack.early_at ? h("p", { id: "d13-early-st", style: "margin:0 0 8px;font-weight:700" },
-      tf(ack.early_ok === true ? "d13_earlyOk" : ack.early_ok === false ? "d13_earlyNo" : "d13_earlyWait", { d: fmtLvDay(ack.early_date) }), h("br"), h("small", { class: "muted" }, "“" + (ack.early_reason || "") + "”")) : null,
-    ack.early_ok === true ? null : h("button", { class: "btn", type: "button", id: "d13-early-btn", onclick: earlySheet }, "🙏 " + t(ack.early_at ? "d13_earlyAgain" : "d13_earlyBtn")));
+      tf(ack.early_ok === true ? "d13_earlyOk" : ack.early_ok === false ? "d13_earlyNo" : "d13_earlyWait", { d: fmtLvDay(ack.early_date) }), " · " + (ack.early_amount != null ? "₱" + money(ack.early_amount) : evL("전액", "full amount")), h("br"), h("small", { class: "muted" }, "“" + (ack.early_reason || "") + "”")) : null,
+    // owner 2026-11-20: still open after approval so the amount can be added / changed (re-request → owner checks again; pay date stays)
+    h("button", { class: "btn", type: "button", id: "d13-early-btn", onclick: earlySheet }, "🙏 " + (ack.early_ok === true ? evL("금액 넣기 · 바꾸기 (다시 요청)", "Add / change amount (request again)") : t(ack.early_at ? "d13_earlyAgain" : "d13_earlyBtn"))));
   let bad = null;   // chosen date that is now blocked (pr_13_hold, e.g. payday ±3 days — owner 2026-11-14)
   const picker = () => { body.innerHTML = ""; body.append(h("small", { class: "muted" }, "…"));
     db.empDays13(EMP.no, EMP.pin, year).then(r => { body.innerHTML = "";
@@ -1525,7 +1531,8 @@ async function due13Card() {
       partSum ? h("div", { style: "font-weight:700" }, "💸 " + evL(`일부 먼저 지급 ₱${money(partSum)} → 남은 ₱${money(Math.max(0, P.amount - partSum))}`, `Paid earlier ₱${money(partSum)} → left ₱${money(Math.max(0, P.amount - partSum))}`)) : null,
       a?.moved_from && !a.pay_date ? h("div", { class: "muted" }, "↪ " + tf("e13_moved", { d: fmtLvDay(a.moved_from) })) : null,
       a?.early_at ? h("div", { style: "margin-top:4px;padding:6px;border-radius:8px;background:" + (a.early_ok == null ? "#fff4d6" : "transparent") },
-        h("b", {}, "🙏 " + tf("e13_req", { d: fmtLvDay(a.early_date) })), " “" + (a.early_reason || "") + "” ",
+        h("b", {}, "🙏 " + tf("e13_req", { d: fmtLvDay(a.early_date) }) + " · " + (a.early_amount != null ? "₱" + money(a.early_amount) : evL("전액", "full"))), " “" + (a.early_reason || "") + "” ",
+        a.early_ok === true && a.early_amount != null ? h("button", { class: "btn sm", type: "button", style: "margin-left:4px", onclick: () => part13(e, year, P.amount, partSum, +a.early_amount) }, "＋ " + evL(`일부 지급 ₱${money(a.early_amount)}`, `Pay part ₱${money(a.early_amount)}`)) : null,
         a.early_ok === true ? h("span", { class: "pill paid" }, "✅ " + evL("승인", "approved")) : a.early_ok === false ? h("span", { class: "pill late" }, "❌ " + evL("거절", "declined")) : null,
         a.early_ok !== true ? h("button", { class: "btn sm primary", type: "button", style: "margin-left:4px", onclick: () => decide(true) }, "✅ " + evL("승인", "Approve")) : null,
         a.early_ok == null ? h("button", { class: "btn sm", type: "button", style: "margin-left:4px", onclick: () => decide(false) }, evL("거절", "Decline")) : null) : null);
@@ -3086,9 +3093,9 @@ async function pay13(e, year, total, amount, monthAvg = 0, oneYear = false, pre 
 }
 
 /* 13th month 일부 먼저 지급 (owner 2026-11-20) — 금액·날짜·방법·메모 → pr_13_part (+ 캐시북 자동 줄) */
-function part13(e, year, full, partSum = 0) {
+function part13(e, year, full, partSum = 0, preAmt = null) {
   const left = Math.max(0, Math.round((full - partSum) * 100) / 100);
-  const aIn = h("input", { type: "number", id: "p13pAmt", step: 1, min: 1, placeholder: "₱" });
+  const aIn = h("input", { type: "number", id: "p13pAmt", step: 1, min: 1, placeholder: "₱", value: preAmt ?? "" });
   const dIn = h("input", { type: "date", id: "p13pOn", value: today() });
   const vIn = sel(PAY_OPTS, "CASH", { id: "p13pVia" });
   const nIn = h("input", { type: "text", id: "p13pNote", placeholder: evL("메모 (선택)", "Note (optional)") });
