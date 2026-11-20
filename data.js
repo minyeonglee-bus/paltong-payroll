@@ -147,6 +147,10 @@ export async function listThirteenth(year) { return must(await sb.from("pr_thirt
 export async function saveThirteenth(row) {
   return must(await sb.from("pr_thirteenth").upsert(row, { onConflict: "employee_id,year" }).select().single());
 }
+// 13th month paid in parts (supabase/pr_13_part.sql, owner 2026-11-20): earlier partial payments, final pr_thirteenth = the rest
+export async function list13Part(year) { return must(await sb.from("pr_13_part").select("*").eq("year", year).order("paid_on")); }
+export async function save13Part(row) { return must(await sb.from("pr_13_part").insert(row).select().single()); }
+export async function delete13Part(id) { must(await sb.from("pr_13_part").delete().eq("id", id)); }
 export async function empAck13(no, pin, year, amount) { return must(await sb.rpc("pr_emp_ack13", { p_no: String(no).trim(), p_pin: String(pin), p_year: year, p_amount: amount })); }
 export async function empReq13(no, pin, year, amount, ok, note) { return must(await sb.rpc("pr_emp_req13", { p_no: String(no).trim(), p_pin: String(pin), p_year: year, p_amount: amount, p_ok: !!ok, p_note: note || null })); }
 export async function empDays13(no, pin, year) { return must(await sb.rpc("pr_emp_days13", { p_no: String(no).trim(), p_pin: String(pin), p_year: year })); }

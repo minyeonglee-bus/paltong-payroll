@@ -1508,7 +1508,8 @@ async function due13Card() {
   const year = new Date().getFullYear();
   const card = h("div", { class: "card", id: "due-13" }, h("h2", {}, `${t("p13_due")} · ${year}`), h("small", { class: "muted" }, t("p13_dueHelp")));
   let rows = [], paid = [], acks = [];
-  try { [rows, paid, acks] = await Promise.all([db.listPayrollsYear(year), db.listThirteenth(year).catch(() => []), db.listAck13(year).catch(() => [])]); } catch (e) { card.append(h("p", { class: "muted" }, errMsg(e))); return card; }
+  let parts = [];
+  try { [rows, paid, acks, parts] = await Promise.all([db.listPayrollsYear(year), db.listThirteenth(year).catch(() => []), db.listAck13(year).catch(() => []), db.list13Part(year).catch(() => [])]); } catch (e) { card.append(h("p", { class: "muted" }, errMsg(e))); return card; }
   const tb = h("table", {}, h("tr", {}, h("th", {}, t("employee")), h("th", { class: "r" }, t("p13_toDate")), h("th", { class: "r" }, t("p13_final")), h("th", {}, t("ackBtn")), h("th", {}, t("c13_status"))));
   let tot = 0; const paidNames = [];
   for (const e of S.employees.filter(e => !e.info?.no_payroll && (e.active && !e.resigned_on && e.name !== "test"))) {
@@ -1519,7 +1520,9 @@ async function due13Card() {
     if (pd) { paidNames.push(e.name); tot -= P.amount; continue; }
     const decide = ok => confirmSheet(ok ? tf("e13_okQ", { n: e.name, d: fmtLvDay(a.early_date) }) : tf("e13_noQ", { n: e.name }), async () => {
       try { const r = await db.early13Decide(e.id, year, ok); if (!r.ok) throw new Error(r.err === "taken" ? t("d13_taken") : r.err); toast(t("saved")); render(); } catch (er) { toast(errMsg(er)); } });
+    const myParts = parts.filter(x => x.employee_id === e.id), partSum = myParts.reduce((a, x) => a + +x.amount, 0);
     const extra = h("div", { style: "font-size:12px;margin-top:4px" },
+      partSum ? h("div", { style: "font-weight:700" }, "💸 " + evL(`일부 먼저 지급 ₱${money(partSum)} → 남은 ₱${money(Math.max(0, P.amount - partSum))}`, `Paid earlier ₱${money(partSum)} → left ₱${money(Math.max(0, P.amount - partSum))}`)) : null,
       a?.moved_from && !a.pay_date ? h("div", { class: "muted" }, "↪ " + tf("e13_moved", { d: fmtLvDay(a.moved_from) })) : null,
       a?.early_at ? h("div", { style: "margin-top:4px;padding:6px;border-radius:8px;background:" + (a.early_ok == null ? "#fff4d6" : "transparent") },
         h("b", {}, "🙏 " + tf("e13_req", { d: fmtLvDay(a.early_date) })), " “" + (a.early_reason || "") + "” ",
@@ -3006,7 +3009,7 @@ const M13 = { year: new Date().getFullYear() };
 async function render13() {
   const main = document.getElementById("main"); const owner = S.user?.role === "owner";
   const year = M13.year;
-  const [rows, paid] = await Promise.all([db.listPayrollsYear(year), db.listThirteenth(year).catch(() => [])]);
+  const [rows, paid, parts] = await Promise.all([db.listPayrollsYear(year), db.listThirteenth(year).catch(() => []), db.list13Part(year).catch(() => [])]);
   const paidBy = Object.fromEntries(paid.map(x => [x.employee_id, x]));
   const now = new Date(); const elapsedHalves = year < now.getFullYear() ? 24 : (now.getMonth()) * 2 + (now.getDate() > 15 ? 2 : 1);
   const yIn = h("input", { type: "number", id: "y13", value: year, step: 1, min: 2025, max: 2100, style: "width:110px", onchange: e => { M13.year = +e.target.value || year; render(); } });
@@ -3018,6 +3021,8 @@ async function render13() {
     const proj = oneYear === true ? monthAvg : Math.round((total + avg * Math.max(0, 24 - elapsedHalves)) / 12 * 100) / 100;
     const p = paidBy[e.id]; if (showBy12) tot += amount; if (showAvg) totAvg += monthAvg; totBasic += total;
     const drafts = mine.filter(r => r.status !== "paid").length;
+    const myParts = parts.filter(x => x.employee_id === e.id), partSum = myParts.reduce((a, x) => a + +x.amount, 0);
+    const full = oneYear === true && monthAvg ? monthAvg : amount;
     tbl.append(h("tr", {},
       h("td", {}, e.name, drafts ? h("small", { class: "muted" }, ` · ${drafts} ${t("draft")}`) : null,
         h("div", {}, h("small", { class: oneYear === null ? "err" : "muted" }, oneYear === null ? t("c13_noHire") : `${t("emp_hired")} ${e.hired_on} · ${resigned13(e, year) ? evL("퇴사 정산 · ÷12", "Final pay · ÷12") : t(oneYear ? "my13_1yr" : "my13_under")}`)),
@@ -3025,7 +3030,9 @@ async function render13() {
       h("td", { class: "r" }, mine.length), h("td", { class: "r" }, money(basicApp)), h("td", { class: "r" }, money(before)), h("td", { class: "r" }, money(total)),
       h("td", { class: "r" }, showBy12 ? h("b", {}, money(amount)) : h("span", { class: "muted" }, "—")), h("td", { class: "r" }, showAvg ? h("b", {}, money(monthAvg)) : h("span", { class: "muted" }, "—")), h("td", { class: "r muted" }, money(proj)),
       h("td", {}, p ? h("span", { class: "row", style: "gap:6px" }, h("span", { class: "pill paid" }, `${t("c13_paid")} ₱${money(p.amount)}`), h("small", { class: "muted" }, p.paid_on || ""), owner && h("button", { class: "btn sm ghost", type: "button", onclick: () => confirmSheet(t("confirmDel"), async () => { await db.deleteThirteenth(p.id); render(); }) }, t("c13_unpay")))
-                    : owner ? h("button", { class: "btn sm", type: "button", onclick: () => pay13(e, year, total, amount, monthAvg, oneYear) }, t("c13_pay")) : h("span", { class: "pill draft" }, t("c13_unpaid")))));
+                    : owner ? h("span", { class: "row", style: "gap:6px" }, h("button", { class: "btn sm", type: "button", onclick: () => pay13(e, year, total, amount, monthAvg, oneYear) }, t("c13_pay")),
+                        h("button", { class: "btn sm ghost", type: "button", onclick: () => part13(e, year, full, partSum) }, "＋ " + evL("일부 지급", "Partial"))) : h("span", { class: "pill draft" }, t("c13_unpaid")),
+        parts13El(myParts, owner && !p))));
   }
   tbl.append(h("tr", { class: "sum" }, h("td", {}, t("c13_total_row")), h("td", {}), h("td", {}), h("td", {}), h("td", { class: "r" }, money(totBasic)), h("td", { class: "r" }, money(tot)), h("td", { class: "r" }, money(totAvg)), h("td", {}), h("td", {})));
   main.append(h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_13")), h("span", { class: "sp" }), h("span", { class: "muted" }, t("y13")), yIn),
@@ -3061,16 +3068,44 @@ function resign13Box(e) {
   }).catch(er => box.append(h("div", { class: "err" }, errMsg(er))));
   return box;
 }
-function pay13(e, year, total, amount, monthAvg = 0, oneYear = false, pre = {}) {   // pre: {date, via, amount} from the staff's "받았어요"
+async function pay13(e, year, total, amount, monthAvg = 0, oneYear = false, pre = {}) {   // pre: {date, via, amount} from the staff's "받았어요"
+  // owner 2026-11-20: part of the 13th month can be paid earlier (pr_13_part) → the final record is the rest
+  const parts = (await db.list13Part(year).catch(() => [])).filter(x => x.employee_id === e.id);
+  const partSum = Math.round(parts.reduce((a, x) => a + +x.amount, 0) * 100) / 100;
   const dIn = h("input", { type: "date", id: "p13On", value: pre.date || today() });
-  const def = pre.amount ?? (oneYear === true && monthAvg ? monthAvg : amount);   // 1년 이상 → 월평균, 1년 미만·퇴사 정산 → ÷12
+  const full = oneYear === true && monthAvg ? monthAvg : amount;   // 1년 이상 → 월평균, 1년 미만·퇴사 정산 → ÷12
+  const def = pre.amount ?? Math.max(0, Math.round((full - partSum) * 100) / 100);
   const vIn = sel(PAY_OPTS, pre.via || "CASH", { id: "p13Via" });
   const aIn = h("input", { type: "number", id: "p13Amt", value: def, step: 1, min: 0 });
   const close = sheet([h("h3", {}, `${e.name} · ${year} ${t("tab_13")}`), h("p", { class: "muted" }, oneYear === true ? `${t("c13_avg")} ₱${money(monthAvg)}` : oneYear === false ? `${t("c13_total")} ₱${money(total)} ÷ 12 = ₱${money(amount)}` : `${t("c13_total")} ₱${money(total)} ÷ 12 = ₱${money(amount)} · ${t("c13_avg")} ₱${money(monthAvg)}`),
     oneYear === null && monthAvg ? h("div", { class: "row", style: "gap:6px" }, h("button", { class: "btn sm ghost", type: "button", onclick: () => { aIn.value = amount; } }, "÷12"), h("button", { class: "btn sm ghost", type: "button", onclick: () => { aIn.value = monthAvg; } }, t("c13_avg"))) : null,
+    partSum ? h("p", { style: "font-weight:700;color:var(--bad)" }, evL(`먼저 준 일부 −₱${money(partSum)} (${parts.map(x => fmtLvDay(x.paid_on) + " ₱" + money(x.amount)).join(", ")}) → 이번에 줄 나머지`, `Paid earlier −₱${money(partSum)} (${parts.map(x => fmtLvDay(x.paid_on) + " ₱" + money(x.amount)).join(", ")}) → pay the rest now`)) : null,
     h("div", { class: "grid2" }, field(t("c13_amount"), aIn), field(t("paidOn"), dIn), field(t("paidVia"), vIn)),
     h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", onclick: () => close() }, t("cancel")), h("button", { class: "btn primary", onclick: async () => { try {
-      await db.saveThirteenth({ employee_id: e.id, year, basic_total: total, amount: +aIn.value, paid_on: dIn.value, paid_via: vIn.value }); toast(t("saved")); close(); render(); } catch (er) { toast(errMsg(er)); } } }, t("c13_pay")))]);
+      await db.saveThirteenth({ employee_id: e.id, year, basic_total: total, amount: +aIn.value, paid_on: dIn.value, paid_via: vIn.value, note: partSum ? `일부 먼저 ₱${money(partSum)} · 합계 ₱${money(partSum + +aIn.value)}` : null }); toast(t("saved")); close(); render(); } catch (er) { toast(errMsg(er)); } } }, t("c13_pay")))]);
+}
+
+/* 13th month 일부 먼저 지급 (owner 2026-11-20) — 금액·날짜·방법·메모 → pr_13_part (+ 캐시북 자동 줄) */
+function part13(e, year, full, partSum = 0) {
+  const left = Math.max(0, Math.round((full - partSum) * 100) / 100);
+  const aIn = h("input", { type: "number", id: "p13pAmt", step: 1, min: 1, placeholder: "₱" });
+  const dIn = h("input", { type: "date", id: "p13pOn", value: today() });
+  const vIn = sel(PAY_OPTS, "CASH", { id: "p13pVia" });
+  const nIn = h("input", { type: "text", id: "p13pNote", placeholder: evL("메모 (선택)", "Note (optional)") });
+  const close = sheet([h("h3", {}, `${e.name} · ${year} ${t("tab_13")} · ${evL("일부 먼저 지급", "Partial payment")}`),
+    h("p", { class: "muted" }, evL(`지금까지 13월급 ₱${money(full)}`, `13th so far ₱${money(full)}`) + (partSum ? evL(` · 먼저 준 일부 ₱${money(partSum)} · 남은 ₱${money(left)}`, ` · paid earlier ₱${money(partSum)} · left ₱${money(left)}`) : "")),
+    h("small", { class: "muted" }, evL("최종 \"지급 기록\" 때 먼저 준 금액은 자동으로 빠져요. 캐시북 직원 지출에도 자동으로 한 줄 들어가요.", "The final \"Record payment\" subtracts this automatically. A cash book line is added automatically.")),
+    h("div", { class: "grid2" }, field(evL("금액", "Amount"), aIn), field(t("paidOn"), dIn), field(t("paidVia"), vIn), field(evL("메모", "Note"), nIn)),
+    h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", onclick: () => close() }, t("cancel")), h("button", { class: "btn primary", onclick: async () => {
+      const amt = Math.round(+aIn.value * 100) / 100; if (!(amt > 0) || !dIn.value) return toast(evL("금액·날짜를 넣어 주세요", "Enter amount and date"));
+      if (left && amt > left) return toast(evL(`남은 금액(₱${money(left)})보다 많아요`, `More than what is left (₱${money(left)})`));
+      try { await db.save13Part({ employee_id: e.id, year, amount: amt, paid_on: dIn.value, paid_via: vIn.value, note: nIn.value.trim() || null }); toast(t("saved")); close(); render(); } catch (er) { toast(errMsg(er)); } } }, evL("일부 지급 기록", "Record partial")))]);
+}
+function parts13El(list, owner) {
+  if (!list?.length) return null;
+  return h("div", { style: "font-size:12px;margin-top:4px" }, list.map(x => h("div", { class: "row", style: "gap:4px" },
+    h("span", { class: "pill draft" }, `${evL("일부", "Part")} ₱${money(x.amount)}`), h("small", { class: "muted" }, `${x.paid_on} ${viaLabel(slipVia(x.paid_via || ""))}${x.note ? " · " + x.note : ""}`),
+    owner ? h("button", { class: "btn sm ghost", type: "button", onclick: () => confirmSheet(t("confirmDel"), async () => { try { await db.delete13Part(x.id); render(); } catch (er) { toast(errMsg(er)); } }) }, "✕") : null)));
 }
 
 function holidayCard() {
