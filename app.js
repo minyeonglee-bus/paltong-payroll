@@ -716,6 +716,9 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-20f", popup: false, emp_nos: ["00010", "00012", "00009", "00005", "00002", "00011"],
+    ko: ["📢 정부기여금 공지: 이제 '✅ 동의' 또는 '📄 서류 내고 가입할게요' 중 하나만 고를 수 있어요. 서류를 고르면 가입 서류를 관리자에게 내 주세요. 3번 이상 동의하지 않으면 11/30까지 서류 제출이 필수이고, 그때까지 안 내면 12/1부터 스케줄이 자동으로 최대한 줄어요."],
+    en: ["📢 Government contributions notice: you can now only choose '✅ I agree' or '📄 I will hand in my documents and register'. If you choose documents, hand in your registration documents to the manager. After 3 times without agreeing, the documents are required by Nov 30 — if not handed in by then, your schedule is automatically reduced as much as possible from Dec 1."] },
   { id: "2026-11-20e", popup: false, ko: ["🔔 동료가 내 이름으로 적은 '확인 요청'(맞아요 / 아니에요)이 이제 화면 맨 위에 떠요. 이미 답한 건 아래 '확인한 요청'에 있어요."], en: ["🔔 'Please confirm' requests (a coworker wrote your name) now show at the very top of the screen. Ones you already answered are under 'Confirmed requests' further down."] },
   { id: "2026-11-20d", popup: false, ko: ["📢 공지 탭: 확인해야 할 것(⚠️ 동의 필요 · NEW)이 맨 위, 그다음 최신 순. 확인할 게 있으면 홈 맨 위에 빨간 안내가 떠요."], en: ["📢 Notices tab: things to check (⚠️ please agree · NEW) are at the top, then newest first. If something needs checking, a red banner shows at the top of Home."] },
   { id: "2026-11-20c", popup: false, emp_nos: ["00010", "00012", "00009", "00005", "00002", "00011"],
@@ -840,7 +843,7 @@ function myBoardTab(emp) {
   const day = id => { const d = id.slice(0, 10); return `${+d.slice(5, 7)}/${+d.slice(8)}`; };
   // owner 2026-11-20: staff don't scroll — what needs checking first (⚠️ policy not agreed yet → NEW unseen), then newest first
   const key = n => n.title ? n.id.slice(0, 10) + "~" : n.id;   // a policy goes above that day's news
-  const rank = x => x.pol ? (noticeAgreed(x.n.id) ? 2 : 0) : (x.n.id > seen ? 1 : 2);
+  const rank = x => x.pol ? (noticeDone(x.n.id) ? 2 : 0) : (x.n.id > seen ? 1 : 2);
   const all = [...pol.map(n => ({ n, pol: true })), ...news.map(n => ({ n, pol: false }))]
     .sort((a, b) => rank(a) - rank(b) || (key(b.n) < key(a.n) ? -1 : key(b.n) > key(a.n) ? 1 : 0));
   const openSheet = n => { EMP.afterNotice = () => renderStaffHome(); noticeSheet(n); };
@@ -853,13 +856,15 @@ function myBoardTab(emp) {
         pol ? h("b", { style: "margin-left:6px" }, n.title?.[lang] || n.title?.en || n.id)
           : n.popup !== false && n.id.slice(0, 10) >= addD(today(), -7) ? null : h("small", { class: "muted", style: "margin-left:6px" }, " " + ((n[lang] || n.en)[0] || "").slice(0, 40) + "…")),
       ul(n[lang] || n.en),
+      r === 0 && noticePast(n) ? h("p", { style: "margin:6px 0 0;color:var(--bad,#c00)" }, n.cutText[lang] || n.cutText.en)
+        : r === 0 && noticeWarn(n) ? h("p", { style: "margin:6px 0 0;color:var(--bad,#c00)" }, n.warnText[lang] || n.warnText.en) : null,
       r === 0 && !EMP.preview ? h("button", { class: "btn primary", type: "button", style: "margin-top:6px", onclick: () => openSheet(n) }, "✅ " + evL("읽고 동의하기", "Read and agree")) : null); }))),
   ];
 }
 /* home: banner at the very top when something on the 📢 tab still needs checking (owner 2026-11-20 "확인해야하는게 맨위로") */
 function myBoardAlert(emp) {
   let seen = ""; try { seen = localStorage.getItem(newSeenKey()) || ""; } catch (e) {}
-  const nPol = NOTICES.filter(n => forEmp(n, emp) && !noticeAgreed(n.id)).length;
+  const nPol = NOTICES.filter(n => forEmp(n, emp) && !noticeDone(n.id) && !noticePast(n)).length;   // past the deadline: no more alerts
   const nNew = WHATS_NEW.filter(n => forEmp(n, emp) && n.id > seen).length;
   if (!nPol && !nNew) return null;
   return h("div", { class: "card", id: "board-alert", style: "border:2px solid var(--accent);cursor:pointer", onclick: () => { EMP.tab = "board"; renderStaffHome(); } },
@@ -884,7 +889,10 @@ function whatsNewSheet(all) {
    time the app is opened (or comes back after 30 min). A new notice = a new entry with a new id at the top. ---- */
 const NOTICES = [
   // owner 2026-11-20: staff who keep refusing government contributions. Agree → signed waiver (print). Disagree → "hand in your documents".
-  // When someone hands in the documents and is registered, take their emp_no out of emp_nos.
+  // owner 2026-11-20 22:45: only two choices — agree, or "I will hand in my documents and register" (counted as not agreeing).
+  // 3+ times not agreeing → "documents required by 11/30". Not agreed and no documents after 11/30 → schedule cut as much as
+  // possible from 12/1 (supabase/pr_gov_waiver.sql pr_gov_cut → tools/schedule "fewer"), one last notice, then no more popups.
+  // Documents handed in → owner presses "📄 서류 받음" on the Requests tab (pr_notice_docs) → popup and schedule cut stop.
   { id: "2026-11-20-govwaiver", emp_nos: ["00010", "00012", "00009", "00005", "00002", "00011"],   // Jhonvik · June · Felipe · Lorence · Archie · Wilbert
     title: { en: "Government Contributions (SSS · PhilHealth · Pag-IBIG) — Employee Pays Any Fine", ko: "정부기여금 (SSS · PhilHealth · Pag-IBIG) 미가입 — 벌금은 직원 본인 부담" },
     en: [
@@ -897,9 +905,16 @@ const NOTICES = [
       "나는 계속 가입을 거부했고, 가입 서류를 회사에 넘겨주지 않았어요.",
       "그러므로 미가입 때문에 벌금·과태료 등이 청구되면, 그 책임은 전부 직원인 나에게 있어요. 회사에 청구되면 그 금액 전부를 내가 회사에 갚아요.",
       "나중에 가입하고 싶으면 관리자에게 서류를 내고, 회사가 가입시켜 줘요."],
+    noBtn: { ko: "📄 서류 내고 가입할게요", en: "📄 I will hand in my documents and register" },
     noTitle: { ko: "📄 서류를 내주세요", en: "📄 Please hand in your documents" },
-    noText: { ko: "동의하지 않으면 SSS · PhilHealth · Pag-IBIG 가입에 필요한 서류를 관리자에게 내 주세요. 동의하거나 서류를 낼 때까지 앱을 열 때마다 이 공지가 다시 떠요.",
-      en: "If you do not agree, please hand in the documents needed to register for SSS, PhilHealth and Pag-IBIG to the manager. This notice will show again each time you open the app until you agree or hand in your documents." } },
+    noText: { ko: "SSS · PhilHealth · Pag-IBIG 가입에 필요한 서류를 관리자에게 내 주세요. 관리자가 서류를 받으면 이 공지는 더 이상 안 떠요. 그 전까지는 앱을 열 때마다 다시 떠요.",
+      en: "Please hand in the documents needed to register for SSS, PhilHealth and Pag-IBIG to the manager. Once the manager has your documents, this notice stops. Until then it shows again each time you open the app." },
+    warnAfter: 3, deadline: "2026-11-30",
+    warnText: { ko: "⚠️ 3번 이상 동의하지 않았어요. 11/30까지 SSS · PhilHealth · Pag-IBIG 가입 서류를 관리자에게 꼭 내야 해요 (필수). 기한 안에 내지 않으면 12/1부터 이후 스케줄이 자동으로 최대한 빠져요.",
+      en: "⚠️ You have not agreed 3 or more times. You MUST hand in your SSS, PhilHealth and Pag-IBIG registration documents to the manager by November 30. If you do not hand them in by then, from December 1 your schedule will automatically be reduced as much as possible." },
+    cutTitle: { ko: "✂️ 서류 제출 기한(11/30)이 지났어요", en: "✂️ The document deadline (Nov 30) has passed" },
+    cutText: { ko: "기한까지 가입 서류를 내지 않아서, 12/1부터 이후 스케줄이 자동으로 최대한 빠져요. 이 알림은 이제 다시 뜨지 않아요. 서류를 관리자에게 내거나 공지 탭에서 동의하면 다시 정상적으로 스케줄이 짜여요.",
+      en: "You did not hand in your registration documents by the deadline, so from December 1 your schedule is automatically reduced as much as possible. This alert will not show again. If you hand in your documents to the manager, or agree on the Notices tab, you will be scheduled normally again." } },
   { id: "2026-11-17-dayclose", positions: ["waiter"], title: { en: "Day Close — POS & Saving Box", ko: "하루 마감 — 포스 · 세이빙박스" },
     en: [
       "The Cash Book 'Close day' screen has 2 parts: 💵 POS (cash drawer) and 🏦 Saving box. You enter how many of EACH bill and coin (₱1000, 500, 200, 100, 50, 20, 10, 5, 1). The totals fill in automatically — you cannot type a total. Centavos are not counted.",
@@ -934,6 +949,12 @@ const NOTICES = [
       "급여, 13th month, SIL, 오버타임, 공휴일 수당 등 법으로 정해진 돈은 영향이 없어요."] }];
 const noticeText = n => n.title.en + "\n" + n.en.map((x, i) => `${i + 1}. ${x}`).join("\n");
 const noticeAgreed = id => (EMP.notices || []).find(a => a.notice_id === id && a.agreed_at);
+const noticeAck = id => (EMP.notices || []).find(a => a.notice_id === id) || {};
+// done = agreed, or the owner marked the documents as handed in (gov waiver)
+const noticeDone = id => !!(noticeAgreed(id) || noticeAck(id).docs_at);
+const noticeWarn = n => !!(n.warnAfter && (noticeAck(n.id).disagree_n || 0) >= n.warnAfter);
+const noticePast = n => !!(n.deadline && today() > n.deadline);   // after the deadline: one last notice, then no more popups
+const cutSeenKey = n => "pr_notice_cut_" + (EMP.no || "") + "_" + n.id;
 // positions가 있으면 그 직책 직원에게만 (예: 하루 마감 공지 = 홀 직원 waiter만)
 // emp_nos가 있으면 그 직원 번호만 (예: 정부기여금 미가입 동의 = 6명)
 const forEmp = (n, emp) => (!n.positions || n.positions.includes(emp?.position)) && (!n.emp_nos || n.emp_nos.includes(emp?.emp_no));
@@ -942,14 +963,17 @@ async function checkNotices() {
   let r; try { r = await db.empNoticeGet(EMP.no, EMP.pin); } catch { return false; }
   if (!r?.ok) return false;
   EMP.notices = r.acks || []; EMP.noticeLater ||= {};
-  const n = NOTICES.find(n => forEmp(n, EMP.data?.employee) && !noticeAgreed(n.id) && !(EMP.noticeLater[n.id] > Date.now() - 30 * 60000));
+  let cutSeen = n => { try { return !!localStorage.getItem(cutSeenKey(n)); } catch { return false; } };
+  const n = NOTICES.find(n => forEmp(n, EMP.data?.employee) && !noticeDone(n.id) && !(noticePast(n) && cutSeen(n)) && !(EMP.noticeLater[n.id] > Date.now() - 30 * 60000));
   if (!n || document.querySelector("#notice-pop")) return !!n;
+  if (noticePast(n)) { noticeCutSheet(n); return true; }
   noticeSheet(n); return true;
 }
 function noticeSheet(n) {
   const list = arr => h("ol", { style: "margin:6px 0 0;padding-left:22px;line-height:1.55;font-size:15px" }, arr.map(x => h("li", { style: "margin-bottom:6px" }, x)));
   const agree = h("button", { class: "btn primary", type: "button", id: "notice-agree", style: "flex:1;padding:12px;font-size:16px" }, "✅ " + evL("동의", "I agree"));
-  const no = h("button", { class: "btn", type: "button", id: "notice-disagree", style: "flex:1;padding:12px;font-size:16px" }, evL("미동의", "I do not agree"));
+  const no = h("button", { class: "btn", type: "button", id: "notice-disagree", style: "flex:1;padding:12px;font-size:16px" }, n.noBtn ? (n.noBtn[lang] || n.noBtn.en) : evL("미동의", "I do not agree"));
+  const warnBox = () => h("p", { class: "notice-warn", style: "font-size:15px;line-height:1.55;border:2px solid var(--bad,#c00);border-radius:8px;padding:8px 10px;margin:8px 0" }, n.warnText[lang] || n.warnText.en);
   let close;
   const done = () => { close(); const f = EMP.afterNotice; EMP.afterNotice = null; if (f) f(); };
   agree.onclick = async () => { try { agree.disabled = no.disabled = true;
@@ -958,16 +982,27 @@ function noticeSheet(n) {
       toast(evL("동의했어요 · 서류 탭에서 동의서를 인쇄할 수 있어요", "Agreed · you can print it in the Documents tab")); done();
       if (EMP.tab === "docs") renderStaffHome();
     } catch (e) { agree.disabled = no.disabled = false; toast(errMsg(e)); } };
-  no.onclick = async () => { try { agree.disabled = no.disabled = true; await db.empNoticeAnswer(EMP.no, EMP.pin, n.id, false); } catch { }
+  no.onclick = async () => { try { agree.disabled = no.disabled = true; const r = await db.empNoticeAnswer(EMP.no, EMP.pin, n.id, false);
+      if (r?.ok) EMP.notices = [...(EMP.notices || []).filter(a => a.notice_id !== n.id), { ...noticeAck(n.id), notice_id: n.id, disagree_n: r.disagree_n }]; } catch { }
     EMP.noticeLater[n.id] = Date.now(); close();
     close = sheet([h("h3", { id: "notice-contact" }, n.noTitle ? (n.noTitle[lang] || n.noTitle.en) : "📞 " + evL("관리자에게 연락하세요", "Please contact the manager")),
       h("p", { class: n.noText ? "" : "muted", style: n.noText ? "font-size:15px;line-height:1.55" : "" }, n.noText ? (n.noText[lang] || n.noText.en) : evL("동의할 때까지 앱을 열 때마다 이 공지가 다시 떠요.", "This notice will show again each time you open the app until you agree.")),
+      noticeWarn(n) ? warnBox() : null,
       h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn primary", type: "button", id: "notice-ok", onclick: done }, t("close")))], { lock: true }); };
   close = sheet([h("div", { id: "notice-pop" }, h("h3", { style: "margin-top:0" }, "📢 " + evL("급여 공지", "Payroll notice") + " · " + (n.title[lang] || n.title.en)),
     list(n[lang] || n.en),
     lang === "ko" ? h("details", { style: "margin-top:6px" }, h("summary", { class: "muted" }, "English (원문)"), list(n.en)) : null,
+    noticeWarn(n) ? warnBox() : null,
     h("p", { class: "muted", style: "font-size:13px;margin:10px 0" }, evL("동의를 누르면 내 사인이 들어간 동의서가 저장돼요.", "When you press I agree, an agreement with your signature is saved.")),
     h("div", { class: "row", style: "gap:8px" }, no, agree))], { lock: true });
+}
+// after the deadline (gov waiver): shown once — "your schedule is reduced" — then never pops up again (owner 2026-11-20)
+function noticeCutSheet(n) {
+  try { localStorage.setItem(cutSeenKey(n), new Date().toISOString()); } catch { }
+  const close = sheet([h("div", { id: "notice-pop" }, h("h3", { style: "margin-top:0", id: "notice-cut" }, n.cutTitle[lang] || n.cutTitle.en),
+    h("p", { style: "font-size:15px;line-height:1.55" }, n.cutText[lang] || n.cutText.en),
+    h("p", { class: "muted", style: "font-size:13px" }, n.title[lang] || n.title.en),
+    h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn primary", type: "button", id: "notice-cut-ok", onclick: () => close() }, t("close"))))], { lock: true });
 }
 function noticeDoc(n, emp, sig, agreedAt) {
   const d = agreedAt ? new Date(agreedAt) : null, ds = d ? d.toLocaleDateString("en-PH", { timeZone: "Asia/Manila", year: "numeric", month: "long", day: "numeric" }) : "";
@@ -989,14 +1024,23 @@ async function noticeAdminCard() {
   for (const n of NOTICES) {
     let acks = []; try { acks = await db.listNoticeAcks(n.id); } catch { return null; }
     const emps = S.employees.filter(e => e.active && !e.info?.no_payroll && forEmp(n, e));
-    const yes = emps.filter(e => acks.some(a => a.employee_id === e.id && a.agreed_at)), notYet = emps.filter(e => !yes.includes(e));
+    const yes = emps.filter(e => acks.some(a => a.employee_id === e.id && a.agreed_at));
+    const docs = emps.filter(e => !yes.includes(e) && acks.some(a => a.employee_id === e.id && a.docs_at)), notYet = emps.filter(e => !yes.includes(e) && !docs.includes(e));
+    const setDocs = (e, on) => confirmSheet(on ? evL(`${e.name}: 가입 서류 받았어요? 공지와 스케줄 축소가 멈춰요.`, `${e.name}: documents received? The notice and schedule cut stop.`) : evL(`${e.name}: 서류 받음 취소?`, `${e.name}: undo documents received?`), async () => {
+      try { const r = await db.noticeDocs(e.id, n.id, on); if (!r?.ok) throw new Error(r?.err || "noData"); toast(evL("저장했어요", "Saved")); render(); } catch (x) { toast(errMsg(x)); } }, { ask: true });
     const fmt = a => new Date(a).toLocaleString(undefined, { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
     card.append(h("div", { style: "border-top:1px dashed var(--line);padding-top:6px;margin-top:6px" }, h("b", {}, `${n.title.ko} · ${n.id.slice(0, 10)}`), h("span", { class: "muted" }, ` · ${evL("동의", "agreed")} ${yes.length}/${emps.length}`),
       ...yes.map(e => { const a = acks.find(x => x.employee_id === e.id);
         return h("div", { class: "row", style: "align-items:center;padding:4px 0" }, h("span", {}, "✅ " + e.name), h("small", { class: "muted" }, " " + fmt(a.agreed_at)), h("span", { class: "sp" }),
           h("button", { class: "btn sm", type: "button", onclick: () => printNotice(n, e, sigs[e.id], a.agreed_at) }, "🖨 " + evL("동의서", "Agreement"))); }),
-      notYet.length ? h("p", { class: "muted", style: "margin:6px 0 0;font-size:13px" }, "⏳ " + evL("아직 동의 안 함: ", "Not agreed yet: ") + notYet.map(e => { const a = acks.find(x => x.employee_id === e.id);
-        return e.name + (a?.disagree_n ? ` (${evL("미동의", "disagreed")} ${a.disagree_n})` : ""); }).join(", ")) : null));
+      ...docs.map(e => h("div", { class: "row", style: "align-items:center;padding:4px 0" }, h("span", {}, "📄 " + e.name + " · " + evL("서류 받음", "documents received")), h("span", { class: "sp" }),
+        h("button", { class: "btn sm", type: "button", onclick: () => setDocs(e, false) }, evL("취소", "Undo")))),
+      notYet.length && !n.deadline ? h("p", { class: "muted", style: "margin:6px 0 0;font-size:13px" }, "⏳ " + evL("아직 동의 안 함: ", "Not agreed yet: ") + notYet.map(e => { const a = acks.find(x => x.employee_id === e.id);
+        return e.name + (a?.disagree_n ? ` (${evL("미동의", "disagreed")} ${a.disagree_n})` : ""); }).join(", ")) : null,
+      ...(n.deadline ? notYet.map(e => { const a = acks.find(x => x.employee_id === e.id), k = a?.disagree_n || 0;
+        return h("div", { class: "row", style: "align-items:center;padding:4px 0" }, h("span", {}, "⏳ " + e.name),
+          h("small", { class: "muted" }, " " + (k ? evL(`서류 선택 ${k}번`, `chose documents ${k}×`) : evL("응답 없음", "no answer")) + (today() > n.deadline ? evL(" · ✂️ 스케줄 축소 중", " · ✂️ schedule cut") : k >= (n.warnAfter || 99) ? evL(` · ${+n.deadline.slice(5, 7)}/${+n.deadline.slice(8)}까지 서류 필수 안내됨`, ` · told: documents by ${n.deadline}`) : "")),
+          h("span", { class: "sp" }), h("button", { class: "btn sm", type: "button", onclick: () => setDocs(e, true) }, "📄 " + evL("서류 받음", "Docs received"))); }) : [])));
   }
   return card;
 }

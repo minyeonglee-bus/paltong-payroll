@@ -17,6 +17,7 @@ select json_build_object(
             where r.status = 'approved' and r.day between date 'START' - 7 and date 'START' + 6),
   'holidays', (select json_agg(day) from pr_holidays),
   'calls', (select json_agg(day) from pr_hall_calls where status = 'yes' and day between date 'START' and date 'START' + 6),
+  'gov_cut', public.pr_gov_cut(),
   'locked_through', (select sched_locked_through from pr_settings where id = 1));
 ```
 
@@ -56,6 +57,7 @@ select json_build_object(
             where r.status = 'approved' and r.day between (select d from t) - 14 and (select last from t)),
   'holidays', (select json_agg(day) from pr_holidays),
   'calls', (select json_agg(day) from pr_hall_calls where status = 'yes' and day > (select d from t)),
+  'gov_cut', public.pr_gov_cut(),
   'locked_through', (select sched_locked_through from pr_settings where id = 1));
 ```
 
@@ -72,3 +74,11 @@ the Sun–Sat week's available work days fall short, or Jonel and Archie would b
 10+ days ahead; closer → a reason is required and the owner approves. When an approved Fri/Sat hall leave leaves the hall short,
 Mina gets a call request (`pr_hall_calls`, push to her device). Her "yes" days come in the queries above as `calls`: weekly.py / replan.py
 add "Mina" to the hall team on those days only (off on the others, `fewer` so she works only when the hall really needs her, no off rows saved).
+
+# Gov contributions: no documents after 11/30 → as few days as possible (owner 2026-11-20 22:45)
+
+`gov_cut` in both queries = `pr_gov_cut()` (supabase/pr_gov_waiver.sql): staff on the gov-waiver notice who neither agreed nor
+handed in their documents (owner presses "📄 서류 받음" in the app) — empty until 2026-11-30 has passed. weekly.py and replan.py give
+them `fewer` (same as Lilian: teammates take the shifts first; hard rules stay). replan.py also runs when `todo` is empty but `gov_cut`
+is not: it re-plans the rest of this week and the next planned week for their teams (current plan kept where possible, so once they are
+cut nothing changes; gaps of those weeks are pushed only when something changed). Agree or documents → they drop out of `gov_cut`.

@@ -21,7 +21,8 @@ from solve import TEAMS, is_work  # noqa: E402
 db = json.load(open(sys.argv[1]))
 today = dt.date.fromisoformat(db["today"])
 todo = db.get("todo") or []
-if not todo:
+gov = db.get("gov_cut") or []   # owner 2026-11-20: gov contributions — no documents / not agreed after 11/30 → as few days as possible
+if not todo and not gov:
     print("-- nothing to re-plan"); sys.exit(0)
 
 plan = {}
@@ -41,6 +42,15 @@ weeks = {}   # sunday -> set(team)
 for r in todo:
     d = dt.date.fromisoformat(r["day"]); sun = d - dt.timedelta(days=(d.weekday() + 1) % 7)
     if r["name"] in team_of: weeks.setdefault(sun, set()).add(team_of[r["name"]])
+# gov cut: re-plan the rest of this week and the next planned week for their teams (the current plan is kept where possible,
+# so once they are cut, later runs change nothing). Those weeks report gaps only when something changed.
+gov_weeks = set()
+tm = today + dt.timedelta(days=1); sun0 = tm - dt.timedelta(days=(tm.weekday() + 1) % 7)
+for p in gov:
+    if p not in team_of: continue
+    for sun in (sun0, sun0 + dt.timedelta(days=7)):
+        if sun not in weeks or team_of[p] not in weeks[sun]: gov_weeks.add((sun, team_of[p]))
+        weeks.setdefault(sun, set()).add(team_of[p])
 
 # confirmed (확정) weeks are never re-planned (owner 2026-11-06): locked.json {"through": "YYYY-MM-DD"}
 lockf = os.path.join(here, "locked.json")
@@ -79,6 +89,8 @@ for sun in sorted(weeks):
            "weights": {"change": 1}, "week_offs_before": before,
            "overrides": json.load(open(os.path.join(here, "overrides.json"))) if os.path.exists(os.path.join(here, "overrides.json")) else {}}
     if "Mina" in ppl: inp["overrides"].setdefault("fewer", {})["Mina"] = a.isoformat()   # only when the hall really needs her
+    for p in gov:
+        if p in ppl: inp["overrides"].setdefault("fewer", {})[p] = a.isoformat()
     tmp = tempfile.mkdtemp(); json.dump(inp, open(f"{tmp}/in.json", "w"))
     log = subprocess.run([sys.executable, os.path.join(here, "solve.py"), f"{tmp}/in.json", f"{tmp}/out.json"], capture_output=True, text=True)
     sys.stderr.write(log.stdout + log.stderr)
@@ -90,13 +102,15 @@ for sun in sorted(weeks):
             for d in days:
                 k = d.isoformat(); old = plan.get("Mina", {}).get(k)
                 if is_work(old or "") and k not in yes: changes.append((k, "Mina", old, "off")); plan["Mina"][k] = "off"
-        issues += [x for x in r.get("issues", []) if "not covered" in x or "in a row" in x]
+        n0 = len(changes)
         for p, row in r["plan"].items():
             for k, sh in row.items():
                 old = plan.get(p, {}).get(k)
                 if p == "Mina" and not is_work(sh) and old is None: continue   # no off rows for Mina
                 if sh != old and not (old in (None, "off") and sh == "off"):
                     changes.append((k, p, old, sh)); plan.setdefault(p, {})[k] = sh
+        if (sun, t) not in gov_weeks or len(changes) > n0:   # gov-only week: no daily gap push unless it changed
+            issues += [x for x in r.get("issues", []) if "not covered" in x or "in a row" in x]
 
 ids = [r["id"] for r in todo if r["name"] in team_of and (dt.date.fromisoformat(r["day"]) - dt.timedelta(days=(dt.date.fromisoformat(r["day"]).weekday() + 1) % 7), team_of[r["name"]]) in done_teams]
 ids += [r["id"] for r in todo if r["name"] not in team_of]
@@ -130,7 +144,8 @@ if locked_todo:   # tell the owner: leave approved inside a confirmed week, noth
     out.append("select public.pr_notify(" + q(("🔒 확정된 주에 휴가 승인 — 자동 수정 안 함, 빈자리 직접 확인\n" + " / ".join(f"{n} {'·'.join(v)}" for n, v in lk.items()))[:600]) + ");")
     lines.append("locked week leave: " + ", ".join(f"{r['name']} {r['day']}" for r in locked_todo))
 if changes or failed or gaps:
-    msg = "🔄 스케줄 자동 수정 (휴가 반영)"
+    why = (["휴가 반영"] if todo else []) + (["정부기여금 서류 미제출 축소: " + ", ".join(gov)] if gov else [])
+    msg = "🔄 스케줄 자동 수정 (" + " · ".join(why) + ")"
     if gap_txt: msg += "\n⚠️ " + " / ".join(gap_txt)
     if failed: msg += "\n❌ 자동 수정 실패: " + ", ".join(failed) + " — 직접 확인"
     msg += "\n" + (" / ".join(lines) if lines else "바뀐 근무 없음")

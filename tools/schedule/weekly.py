@@ -21,6 +21,8 @@ for r in db["plan"]:
     if d < start: hist.setdefault(r["name"], {})[r["day"]] = r["shift"]
     elif d <= end: fixed.setdefault(r["name"], {})[r["day"]] = r["shift"]
 ov = json.load(open(os.path.join(here, "overrides.json"))) if os.path.exists(os.path.join(here, "overrides.json")) else {}
+# gov contributions: no documents and not agreed by 11/30 (owner 2026-11-20, supabase/pr_gov_waiver.sql pr_gov_cut) → as few days as possible
+for p in db.get("gov_cut") or []: ov.setdefault("fewer", {})[p] = start.isoformat()
 exempt = {}   # approved leave (휴가 신청) does not count toward the 2-offs-per-week cap
 for r in db.get("leave") or []: exempt.setdefault(r["name"], {})[r["day"]] = True
 inp = {"start": start.isoformat(), "days": 7, "holidays": db.get("holidays", []), "history": hist, "fixed": fixed, "overrides": ov, "exempt": exempt}
