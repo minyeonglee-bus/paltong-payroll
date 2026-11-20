@@ -23,7 +23,7 @@ const I18N = {
     restDay: "주 휴무 요일", dow: ["일", "월", "화", "수", "목", "금", "토"],
     custom: "타임카드 (직접 입력)", inT: "출근", outT: "퇴근", otDay: "OT", otAuto: "비우면 시프트에서 자동 (10h 기본 + 1h 휴게 제외, 나머지가 OT · 12h = OT 1h) · 카드 숫자를 넣으면 그 값",
     late: "지각·조퇴 합계 (분)", lateHelp: "일급 ÷ 10 ÷ 60 · 분당 ₱", lateHelpC: "실제 미근무 분만 (일급 ÷ 8 ÷ 60) · 분당 ₱", incentive: "수동 인센티브·수당 (+)", other: "기타 공제 (−)",
-    deductions: "공제 · 보너스", payout: "지급 방법", payoutVia: "지급 수단", payoutSplit: "일부를 GCash/계좌로 (금액)", payoutRest: "나머지 현금", payoutHelp: "명세서에 '지급: GCash 5,000 + Cash 2,075'처럼 찍혀요. 번호는 직원 정보의 GCash/계좌에서 가져와요.", payLine: "지급", ledgerAuto: "이 기간 자동 반영 (가불 · 현금 부족분 · 보너스)", none: "없음",
+    deductions: "공제 · 보너스", payout: "지급 방법", payoutVia: "지급 수단", payoutSplit: "일부를 GCash/계좌로 (금액)", payoutRest: "나머지 현금", payFee: "송금 수수료 (GCash·Maya)", payFeeTot: "{v}에서 총 ₱{a} 나감 (수수료 포함 · 캐시북 자동)", payoutHelp: "명세서에 '지급: GCash 5,000 + Cash 2,075'처럼 찍혀요. 번호는 직원 정보의 GCash/계좌에서 가져와요.", payLine: "지급", ledgerAuto: "이 기간 자동 반영 (가불 · 현금 부족분 · 보너스)", none: "없음",
     gov: "법정 공제 (근로자 부담분)", perMonth: "월", govFixed: "법정 공제 고정액 (월, 본인 부담)", govFixedHelp: "실제 납부하는 월 금액 — 급여(보름)마다 절반씩 공제. 비우면 공제 안 함 (급여 화면 체크 시 표 기준 추정)", govShare: "매 급여 절반씩 (15일·30일)", govFull: "30일 급여에서 한 달치 한 번", govHelp: "그 달 보험료를 그 달 급여에서 공제해요 (절반씩 = 15일·30일에 반씩 / 한 번 = 30일에 전액). 직원 탭 고정액이 있으면 그 금액, 없으면 참고값 SSS 5% · PhilHealth 2.5% · Pag-IBIG 2% (최대 ₱200)",
     result: "계산 내역", basic: "기본급 (근무일 × 일급)", basicC: "기본급 (근무시간 × 시급)", basicM: "기본급 (월급 ÷ 2)", premium: "공휴일 가산 (특별 +30% · 정규 +1일)", premiumC: "휴무일·공휴일 할증", ot: "초과근무 (시간 × 일급÷{h})", otC: "초과근무 125%", nd: "야간근무 가산 (10%)", otIncl: "초과근무 (월급 포함분 1h/일 이내 · 별도 지급 없음)", otExtra: "초과근무 (포함분 1h/일 초과 · 125%)", basicSplit: "　└ 기본급 {b} + 포함 OT {o}", penalty: "지각 벌금 (지각액과 동일)",
     silPay: "유급휴가", holOff: "정규공휴일 유급 (쉼)", allowance: "오토바이 정비비 ({d}일 × ₱{a})", absentDed: "결근 공제 ({d}일)",
@@ -92,7 +92,7 @@ const I18N = {
     restDay: "Weekly rest day", dow: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
     custom: "Time card (enter times)", inT: "In", outT: "Out", otDay: "OT", otAuto: "Empty = from the shift (10h base + 1h break, the rest is OT · 12h = 1h OT) · type the card figure to override",
     late: "Tardiness / undertime (minutes)", lateHelp: "daily ÷ 10 ÷ 60 · per minute ₱", lateHelpC: "actual unworked minutes only (daily ÷ 8 ÷ 60) · per minute ₱", incentive: "Manual incentive / allowance (+)", other: "Other deductions (−)",
-    deductions: "Deductions · bonuses", payout: "Payout", payoutVia: "Paid via", payoutSplit: "Part by GCash / bank (amount)", payoutRest: "rest in cash", payoutHelp: "Shows on the payslip as 'Paid: GCash 5,000 + Cash 2,075'. The number comes from the employee's info (GCash / bank account).", payLine: "Paid", ledgerAuto: "Applied automatically this period (advances · shortage · bonuses)", none: "none",
+    deductions: "Deductions · bonuses", payout: "Payout", payoutVia: "Paid via", payoutSplit: "Part by GCash / bank (amount)", payoutRest: "rest in cash", payFee: "Transfer fee (GCash · Maya)", payFeeTot: "₱{a} leaves {v} in total (incl. fee · cash book auto)", payoutHelp: "Shows on the payslip as 'Paid: GCash 5,000 + Cash 2,075'. The number comes from the employee's info (GCash / bank account).", payLine: "Paid", ledgerAuto: "Applied automatically this period (advances · shortage · bonuses)", none: "none",
     gov: "Statutory deductions (employee share)", perMonth: "mo", govFixed: "Fixed statutory deductions (monthly, employee share)", govFixedHelp: "Monthly amount actually remitted — half is deducted each payroll. Leave empty for none (ticking it on the payroll screen uses the table estimate)", govShare: "Half each payroll (15th & 30th)", govFull: "Whole month once, on the 30th payroll", govHelp: "The month's contribution comes out of that month's pay (half each = half on the 15th and half on the 30th / once = all on the 30th). Uses the fixed amount from the Staff tab, otherwise the reference SSS 5% · PhilHealth 2.5% · Pag-IBIG 2% (max ₱200)",
     result: "Computation", basic: "Basic pay (days × daily)", basicC: "Basic pay (hours × hourly)", basicM: "Basic pay (monthly ÷ 2)", premium: "Holiday extra (special +30% · regular +1 day)", premiumC: "Rest-day / holiday premium", ot: "Overtime (hours × daily÷{h})", otC: "Overtime 125%", nd: "Night differential (10%)", otIncl: "Overtime (within the built-in 1h/day · not paid separately)", otExtra: "Overtime (beyond the built-in 1h/day · 125%)", basicSplit: "　└ basic {b} + built-in OT {o}", penalty: "Late penalty (same as late amount)",
     silPay: "Paid leave", holOff: "Regular holiday paid (not worked)", allowance: "Motorcycle maintenance ({d} days × ₱{a})", absentDed: "Absence deduction ({d} days)",
@@ -2255,7 +2255,7 @@ function defaultPay() {
     pay_type: "daily", daily_rate: +S.settings.min_wage || 718, monthly_rate: +S.settings.kitchen_monthly || 30000, allowance_per_day: 0,
     break_hours: +S.settings.break_hours || 1, days: [], late_minutes: 0, incentive: 0, other_deduction: 0,
     gov: { sss: !!S.settings.sss_on, philhealth: !!S.settings.philhealth_on, pagibig: !!S.settings.pagibig_on, share: +S.settings.gov_share || 0.5 },
-    ledger: [], paid_on: null, paid_via: null, pay_via: "CASH", pay_split: 0, restDow: 1, fillShift: "8-18" };
+    ledger: [], paid_on: null, paid_via: null, pay_via: "CASH", pay_split: 0, pay_fee: 0, restDow: 1, fillShift: "8-18" };
 }
 function emptyDay(date) { return { date, shift: "", type: "off" }; }
 /* 1–15 payroll after a 31-day month: the previous month's 30th (day + night) and 31st come in as carried rows (소급 이월).
@@ -2308,14 +2308,14 @@ async function loadPay(P) {
     const row = await db.getPayroll(P.employee_id, P.start);
     if (row) {
       Object.assign(P, { id: row.id, status: row.status, daily_rate: +row.daily_rate, monthly_rate: +row.monthly_rate || +emp.monthly_rate, allowance_per_day: +row.allowance_per_day,
-        break_hours: +row.break_hours, late_minutes: row.late_minutes, incentive: +row.incentive, other_deduction: +row.other_deduction, gov: row.gov, paid_on: row.paid_on, paid_via: row.paid_via, shared_at: row.shared_at || null, ack_at: row.ack_at || null, note: row.note || "", result: row.result || null, pay_via: row.result?.payout?.via || row.paid_via || "CASH", pay_split: +(row.result?.payout?.split || 0) });
+        break_hours: +row.break_hours, late_minutes: row.late_minutes, incentive: +row.incentive, other_deduction: +row.other_deduction, gov: row.gov, paid_on: row.paid_on, paid_via: row.paid_via, shared_at: row.shared_at || null, ack_at: row.ack_at || null, note: row.note || "", result: row.result || null, pay_via: row.result?.payout?.via || row.paid_via || "CASH", pay_split: +(row.result?.payout?.split || 0), pay_fee: +(row.result?.payout?.fee || 0) });
       if (row.status !== "paid") P.gov = { share: 0.5, ...(row.gov || {}), fixed: govFixedOf(emp) };   // saved payroll: keep the ticks as saved
       const byDate = Object.fromEntries((row.days || []).map(d => [d.date, d]));
       if (row.status === "paid") { P.end = row.period_end; P.days = (row.days || []).slice(); }   // paid: exactly what was paid (old 16–31 periods too)
       else P.days = [...await carryRows(P, emp, row.days), ...dates.map(d => byDate[d] && !byDate[d].carry ? byDate[d] : emptyDay(d))];
     } else {
       Object.assign(P, { id: null, status: "draft", break_hours: breakFor(emp, S.settings.break_hours), daily_rate: +emp.daily_rate, monthly_rate: +emp.monthly_rate || +S.settings.kitchen_monthly, allowance_per_day: +emp.allowance_per_day || 0,
-        late_minutes: 0, incentive: 0, other_deduction: 0, paid_on: null, paid_via: null, shared_at: null, note: "", result: null, pay_via: emp.info?.gcash ? "GCASH" : "CASH", pay_split: 0,
+        late_minutes: 0, incentive: 0, other_deduction: 0, paid_on: null, paid_via: null, shared_at: null, note: "", result: null, pay_via: emp.info?.gcash ? "GCASH" : "CASH", pay_split: 0, pay_fee: 0,
         gov: govFor(emp, { sss: !!S.settings.sss_on, philhealth: !!S.settings.philhealth_on, pagibig: !!S.settings.pagibig_on, share: +S.settings.gov_share || 0.5 }, P.end) });
       // 새 급여: 스케줄표(계획) 기준으로 미리 채움 — 실제 출퇴근은 "앱 출퇴근 불러오기"로 덮어쓰기
       let plan = {}; try { plan = Object.fromEntries((await db.cashbookShifts(P.carry[0] || P.start, P.end)).filter(r => String(r.staff_name || "").trim().toLowerCase() === String(emp.name).trim().toLowerCase() && r.shift).map(r => [r.day, r.shift])); } catch { }
@@ -2460,18 +2460,23 @@ async function renderPay() {
     if (!locked || !P.id || !P.result) return refresh();
     try { await db.savePayroll({ id: P.id, result: { ...P.result, payout: payoutOf(P, P.result, emp) }, ...(P.status === "paid" ? { paid_via: P.pay_via } : {}) }); toast(t("saved")); await re(); } catch (e) { toast(errMsg(e)); }
   }
-  const payViaSel = sel(PAY_OPTS, P.pay_via || "CASH", { disabled: !owner, onchange: e => { P.pay_via = e.target.value; savePayout(); } });
+  const payViaSel = sel(PAY_OPTS, P.pay_via || "CASH", { disabled: !owner, onchange: e => { P.pay_via = e.target.value; if (!WALLET_FEE.includes(P.pay_via)) P.pay_fee = 0; savePayout(); } });
+  // GCash · Maya 송금 수수료 (사장님 2026-11-21) — 직원 실수령은 그대로, 캐시북에서 같은 계좌에서 같이 빠짐
+  const feeIn = h("input", { type: "number", id: "pFee", value: P.pay_fee || "", step: 1, min: 0, placeholder: "0", style: "width:80px", disabled: !owner, oninput: e => { P.pay_fee = +e.target.value || 0; if (!locked) refresh(); }, onchange: () => { if (locked) savePayout(); } });
+  const feeBox = h("span", { class: "row", id: "pFeeBox", style: "gap:6px" }, h("span", { class: "muted" }, t("payFee")), feeIn);
   const splitIn = h("input", { type: "number", id: "pSplit", value: P.pay_split, step: 100, min: 0, disabled: !owner, oninput: e => { P.pay_split = +e.target.value || 0; if (!locked) refresh(); }, onchange: () => { if (locked) savePayout(); } });
   const ded = h("div", { class: "card" }, h("h2", {}, t("deductions")),
     h("div", { class: "grid2" }, adjFields),
     h("div", { class: "row" }, h("b", {}, t("ledgerAuto")), h("span", { class: "sp" }), emp && h("button", { class: "btn sm", type: "button", onclick: () => ledgerForm({ employee_id: emp.id, kind: "advance", biz_date: P.end, amount: "" }, re) }, "+ " + t("led_add"))),
     P.ledger.length ? ledList : h("span", { class: "muted" }, t("none")),
-    h("div", { class: "row" }, h("b", {}, t("payout")), payViaSel, h("span", { class: "muted" }, t("payoutSplit")), splitIn, h("span", { class: "muted", id: "payRest" })), h("small", { class: "muted" }, t("payoutHelp")),
+    h("div", { class: "row" }, h("b", {}, t("payout")), payViaSel, h("span", { class: "muted" }, t("payoutSplit")), splitIn, feeBox, h("span", { class: "muted", id: "payRest" })), h("small", { class: "muted" }, t("payoutHelp")),
     h("div", { class: "row" }, h("b", {}, t("gov")), shareSel), h("div", { class: "row" }, govBox("sss", "SSS"), govBox("philhealth", "PhilHealth"), govBox("pagibig", "Pag-IBIG")), h("small", { class: "muted" }, t("govHelp")));
 
   // --- result ---
   const tbl = h("table");
-  function drawResult() { const pr = document.getElementById("payRest"); if (pr) pr.textContent = P.pay_split > 0 && P.pay_via !== "CASH" ? `→ ${payoutText(payoutOf(P, R, emp), emp)}` : ""; tbl.innerHTML = ""; tbl.append(...resultRows(R, P)); document.getElementById("barNet").textContent = money(R.net); for13.textContent = `${t("for13")}: ₱${money(R.basicFor13th)}`; }
+  function drawResult() { const pr = document.getElementById("payRest"), po = payoutOf(P, R, emp), fb = document.getElementById("pFeeBox");
+    if (fb) fb.style.display = WALLET_FEE.includes(P.pay_via) ? "" : "none";
+    if (pr) pr.textContent = (P.pay_split > 0 && P.pay_via !== "CASH" ? `→ ${payoutText(po, emp)}` : "") + (po.fee ? ` · ${tf("payFeeTot", { v: viaLabel(po.via), a: money(Math.round((+po.parts[0].amount + po.fee) * 100) / 100) })}` : ""); tbl.innerHTML = ""; tbl.append(...resultRows(R, P)); document.getElementById("barNet").textContent = money(R.net); for13.textContent = `${t("for13")}: ₱${money(R.basicFor13th)}`; }
   const for13 = h("small", { class: "muted" });
   const result = h("div", { class: "card" }, h("h2", {}, t("result")), h("div", { class: "tbl" }, tbl), for13);
 
@@ -2506,8 +2511,11 @@ async function renderPay() {
   function markPaid() {
     const dIn = h("input", { type: "date", id: "paidOn", value: today() });
     const vIn = sel(PAY_OPTS, P.paid_via || P.pay_via || "CASH", { id: "paidVia" });
-    const close = sheet([h("h3", {}, t("markPaid")), h("div", { class: "grid2" }, field(t("paidOn"), dIn), field(t("paidVia"), vIn)),
-      h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", onclick: () => close() }, t("cancel")), h("button", { class: "btn primary", onclick: async () => { close(); await save(true, { paid_on: dIn.value, paid_via: vIn.value }); } }, t("markPaid")))]);
+    const [fIn, fField] = feeField(vIn, P.pay_fee, "paidFee");
+    const close = sheet([h("h3", {}, t("markPaid")), h("div", { class: "grid2" }, field(t("paidOn"), dIn), field(t("paidVia"), vIn), fField),
+      h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", onclick: () => close() }, t("cancel")), h("button", { class: "btn primary", onclick: async () => { close();
+        P.pay_via = vIn.value; P.pay_fee = WALLET_FEE.includes(vIn.value) ? +fIn.value || 0 : 0;
+        await save(true, { paid_on: dIn.value, paid_via: vIn.value }); } }, t("markPaid")))]);
   }
   async function unpay() { try { await db.savePayroll({ id: P.id, status: "draft", paid_on: null, paid_via: null }); await re(); } catch (e) { toast(errMsg(e)); } }
 }
@@ -2966,10 +2974,19 @@ function govFor(emp, base, end) {
 const PAY_VIAS = [["CASH", "Cash"], ["GCASH", "GCash"], ["MAYA", "Maya"], ["METROBANK", "Metrobank"], ["SAVINGBOX", "Saving box"]];   // 라벨용 (예전 기록)
 const PAY_OPTS = PAY_VIAS.filter(([v]) => v !== "METROBANK");   // 2026-11-16: Metrobank 삭제 (사장님) — 고르는 칸에서 뺌
 const viaLabel = v => (PAY_VIAS.find(x => x[0] === v) || [v, v])[1];
+const WALLET_FEE = ["GCASH", "MAYA"];   // 송금 수수료 칸이 뜨는 지급 방법 (사장님 2026-11-21)
+// [input, field] — 수수료 칸, 고른 지급 방법이 GCash·Maya일 때만 보임
+function feeField(vIn, val, id) {
+  const fIn = h("input", { type: "number", id, value: +val || "", step: 1, min: 0, placeholder: "0" });
+  const f = field(t("payFee"), fIn); const sync = () => { f.style.display = WALLET_FEE.includes(vIn.value) ? "" : "none"; }; vIn.addEventListener("change", sync); sync();
+  return [fIn, f];
+}
 function payoutOf(P, R, emp) {
   const via = P.pay_via || P.paid_via || "CASH", net = +R.net || 0, split = Math.min(net, Math.max(0, +P.pay_split || 0));
   const parts = via !== "CASH" && split > 0 && split < net ? [{ via, amount: split }, { via: "CASH", amount: Math.round((net - split) * 100) / 100 }] : [{ via, amount: net }];
-  return { via, split: via !== "CASH" ? split : 0, parts };
+  const fee = WALLET_FEE.includes(via) && net > 0 ? Math.round(Math.max(0, +P.pay_fee || 0) * 100) / 100 : 0;
+  if (fee) parts[0].fee = fee;   // 캐시북 줄의 수수료 (같은 계좌에서 같이 빠짐) — 명세서·실수령엔 안 들어감
+  return { via, split: via !== "CASH" ? split : 0, parts, ...(fee ? { fee } : {}) };
 }
 // Payslips (what staff see / sign) show Saving box as Cash; the owner screens keep the real method.
 const slipVia = v => v === "SAVINGBOX" ? "CASH" : v;
@@ -3170,12 +3187,13 @@ async function pay13(e, year, total, amount, monthAvg = 0, oneYear = false, pre 
   const def = pre.amount ?? Math.max(0, Math.round((full - partSum) * 100) / 100);
   const vIn = sel(PAY_OPTS, pre.via || "CASH", { id: "p13Via" });
   const aIn = h("input", { type: "number", id: "p13Amt", value: def, step: 1, min: 0 });
+  const [fIn, fField] = feeField(vIn, 0, "p13Fee");
   const close = sheet([h("h3", {}, `${e.name} · ${year} ${t("tab_13")}`), h("p", { class: "muted" }, oneYear === true ? `${t("c13_avg")} ₱${money(monthAvg)}` : oneYear === false ? `${t("c13_total")} ₱${money(total)} ÷ 12 = ₱${money(amount)}` : `${t("c13_total")} ₱${money(total)} ÷ 12 = ₱${money(amount)} · ${t("c13_avg")} ₱${money(monthAvg)}`),
     oneYear === null && monthAvg ? h("div", { class: "row", style: "gap:6px" }, h("button", { class: "btn sm ghost", type: "button", onclick: () => { aIn.value = amount; } }, "÷12"), h("button", { class: "btn sm ghost", type: "button", onclick: () => { aIn.value = monthAvg; } }, t("c13_avg"))) : null,
     partSum ? h("p", { style: "font-weight:700;color:var(--bad)" }, evL(`먼저 준 일부 −₱${money(partSum)} (${parts.map(x => fmtLvDay(x.paid_on) + " ₱" + money(x.amount)).join(", ")}) → 이번에 줄 나머지`, `Paid earlier −₱${money(partSum)} (${parts.map(x => fmtLvDay(x.paid_on) + " ₱" + money(x.amount)).join(", ")}) → pay the rest now`)) : null,
-    h("div", { class: "grid2" }, field(t("c13_amount"), aIn), field(t("paidOn"), dIn), field(t("paidVia"), vIn)),
+    h("div", { class: "grid2" }, field(t("c13_amount"), aIn), field(t("paidOn"), dIn), field(t("paidVia"), vIn), fField),
     h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", onclick: () => close() }, t("cancel")), h("button", { class: "btn primary", onclick: async () => { try {
-      await db.saveThirteenth({ employee_id: e.id, year, basic_total: total, amount: +aIn.value, paid_on: dIn.value, paid_via: vIn.value, note: partSum ? `일부 먼저 ₱${money(partSum)} · 합계 ₱${money(partSum + +aIn.value)}` : null }); toast(t("saved")); close(); render(); } catch (er) { toast(errMsg(er)); } } }, t("c13_pay")))]);
+      await db.saveThirteenth({ employee_id: e.id, year, basic_total: total, amount: +aIn.value, paid_on: dIn.value, paid_via: vIn.value, fee: WALLET_FEE.includes(vIn.value) && +fIn.value > 0 ? +fIn.value : null, note: partSum ? `일부 먼저 ₱${money(partSum)} · 합계 ₱${money(partSum + +aIn.value)}` : null }); toast(t("saved")); close(); render(); } catch (er) { toast(errMsg(er)); } } }, t("c13_pay")))]);
 }
 
 /* 13th month 일부 먼저 지급 (owner 2026-11-20) — 금액·날짜·방법·메모 → pr_13_part (+ 캐시북 자동 줄) */
@@ -3184,15 +3202,16 @@ function part13(e, year, full, partSum = 0, preAmt = null) {
   const aIn = h("input", { type: "number", id: "p13pAmt", step: 1, min: 1, placeholder: "₱", value: preAmt ?? "" });
   const dIn = h("input", { type: "date", id: "p13pOn", value: today() });
   const vIn = sel(PAY_OPTS, "CASH", { id: "p13pVia" });
+  const [fIn, fField] = feeField(vIn, 0, "p13pFee");
   const nIn = h("input", { type: "text", id: "p13pNote", placeholder: evL("메모 (선택)", "Note (optional)") });
   const close = sheet([h("h3", {}, `${e.name} · ${year} ${t("tab_13")} · ${evL("일부 먼저 지급", "Partial payment")}`),
     h("p", { class: "muted" }, evL(`지금까지 13월급 ₱${money(full)}`, `13th so far ₱${money(full)}`) + (partSum ? evL(` · 먼저 준 일부 ₱${money(partSum)} · 남은 ₱${money(left)}`, ` · paid earlier ₱${money(partSum)} · left ₱${money(left)}`) : "")),
     h("small", { class: "muted" }, evL("최종 \"지급 기록\" 때 먼저 준 금액은 자동으로 빠져요. 캐시북 직원 지출에도 자동으로 한 줄 들어가요.", "The final \"Record payment\" subtracts this automatically. A cash book line is added automatically.")),
-    h("div", { class: "grid2" }, field(evL("금액", "Amount"), aIn), field(t("paidOn"), dIn), field(t("paidVia"), vIn), field(evL("메모", "Note"), nIn)),
+    h("div", { class: "grid2" }, field(evL("금액", "Amount"), aIn), field(t("paidOn"), dIn), field(t("paidVia"), vIn), fField, field(evL("메모", "Note"), nIn)),
     h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", onclick: () => close() }, t("cancel")), h("button", { class: "btn primary", onclick: async () => {
       const amt = Math.round(+aIn.value * 100) / 100; if (!(amt > 0) || !dIn.value) return toast(evL("금액·날짜를 넣어 주세요", "Enter amount and date"));
       if (left && amt > left) return toast(evL(`남은 금액(₱${money(left)})보다 많아요`, `More than what is left (₱${money(left)})`));
-      try { await db.save13Part({ employee_id: e.id, year, amount: amt, paid_on: dIn.value, paid_via: vIn.value, note: nIn.value.trim() || null }); toast(t("saved")); close(); render(); } catch (er) { toast(errMsg(er)); } } }, evL("일부 지급 기록", "Record partial")))]);
+      try { await db.save13Part({ employee_id: e.id, year, amount: amt, paid_on: dIn.value, paid_via: vIn.value, fee: WALLET_FEE.includes(vIn.value) && +fIn.value > 0 ? +fIn.value : null, note: nIn.value.trim() || null }); toast(t("saved")); close(); render(); } catch (er) { toast(errMsg(er)); } } }, evL("일부 지급 기록", "Record partial")))]);
 }
 function parts13El(list, owner) {
   if (!list?.length) return null;
