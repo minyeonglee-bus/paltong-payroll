@@ -716,6 +716,9 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-21a", popup: true, positions: ["waiter", "rider"],
+    ko: ["⛽ 유류비(Fuel)는 기사 근무 시간 안 영수증만 인정해요. 홀 직원: 돈 주기 전에 캐시북 직원 지출 → Fuel에서 영수증 사진을 찍고 이름·날짜·시간을 넣으면 바로 확인돼요. ✅ 나오면 지급, ⛔ 나오면 주지 마세요 (저장도 안 돼요)."],
+    en: ["⛽ Fuel is only paid for receipts inside the rider's work schedule. Hall staff: BEFORE giving the money, open Cash book → Staff → Fuel, take the receipt photo and enter the name, date and time — it checks right away. ✅ = pay, ⛔ = do not pay (it can't be saved either)."] },
   { id: "2026-11-20f", popup: false, emp_nos: ["00010", "00012", "00009", "00005", "00002", "00011"],
     ko: ["📢 정부기여금 공지: 이제 '✅ 동의' 또는 '📄 서류 내고 가입할게요' 중 하나만 고를 수 있어요. 서류를 고르면 가입 서류를 관리자에게 내 주세요. 3번 이상 동의하지 않으면 11/30까지 서류 제출이 필수이고, 그때까지 안 내면 12/1부터 스케줄이 자동으로 최대한 줄어요."],
     en: ["📢 Government contributions notice: you can now only choose '✅ I agree' or '📄 I will hand in my documents and register'. If you choose documents, hand in your registration documents to the manager. After 3 times without agreeing, the documents are required by Nov 30 — if not handed in by then, your schedule is automatically reduced as much as possible from Dec 1."] },
