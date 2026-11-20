@@ -716,6 +716,7 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-20d", popup: false, ko: ["📢 공지 탭: 규정과 공지를 한 목록으로 합쳐서 최신 순으로 맨 위에 보여요."], en: ["📢 Notices tab: policies and notices are now one list, newest at the top."] },
   { id: "2026-11-20c", popup: false, emp_nos: ["00010", "00012", "00009", "00005", "00002", "00011"],
     ko: ["📢 정부기여금 (SSS · PhilHealth · Pag-IBIG) 미가입 공지가 떠요. 동의하면 사인이 들어간 동의서가 서류 탭에 저장돼요. 동의하지 않으면 가입 서류를 관리자에게 내 주세요."],
     en: ["📢 A notice about government contributions (SSS · PhilHealth · Pag-IBIG) will show. If you agree, a signed agreement is saved in the Documents tab. If you do not agree, please hand in your registration documents to the manager."] },
@@ -836,16 +837,17 @@ function myBoardTab(emp) {
   const news = WHATS_NEW.filter(n => forEmp(n, emp));
   const ul = lines => h("ul", { style: "margin:6px 0 0;padding-left:20px;line-height:1.5" }, lines.map(x => h("li", { style: "margin-bottom:4px" }, x)));
   const day = id => { const d = id.slice(0, 10); return `${+d.slice(5, 7)}/${+d.slice(8)}`; };
-  const out = [];
-  if (pol.length) out.push(h("div", { class: "card", id: "board-policies" }, h("h2", {}, "📌 " + evL("규정", "Policies")),
-    h("div", { class: "list" }, pol.map(n => h("details", { class: "item", style: "display:block" },
-      h("summary", {}, h("b", {}, (n.title?.[lang] || n.title?.en || n.id)), " ", h("small", { class: "muted" }, day(n.id))), ul(n[lang] || n.en))))));
-  out.push(h("div", { class: "card", id: "board-news" }, h("h2", {}, "📢 " + evL("공지사항", "Notices")),
-    h("div", { class: "list" }, news.map((n, i) => h("details", { class: "item", style: "display:block", open: i < 3 },
-      h("summary", {}, h("b", {}, day(n.id)), n.id > seen ? h("span", { class: "pill draft", style: "margin-left:6px" }, "NEW") : null,
-        n.popup !== false && n.id.slice(0, 10) >= addD(today(), -7) ? null : h("small", { class: "muted", style: "margin-left:6px" }, " " + ((n[lang] || n.en)[0] || "").slice(0, 40) + "…")),
-      ul(n[lang] || n.en))))));
-  return out;
+  // owner 2026-11-20: staff don't scroll — one list, most recently updated on top (policies mixed in by date, 📌 badge)
+  const key = n => n.title ? n.id.slice(0, 10) + "~" : n.id;   // a policy goes above that day's news
+  const all = [...pol.map(n => ({ n, pol: true })), ...news.map(n => ({ n, pol: false }))].sort((a, b) => key(b.n) < key(a.n) ? -1 : key(b.n) > key(a.n) ? 1 : 0);
+  return [h("div", { class: "card", id: "board-news" }, h("h2", {}, "📢 " + evL("공지사항 · 최신순", "Notices · newest first")),
+    h("div", { class: "list" }, all.map(({ n, pol }, i) => h("details", { class: "item", style: "display:block", open: i < 3 },
+      h("summary", {}, h("b", {}, day(n.id)),
+        pol ? h("span", { class: "pill", style: "margin-left:6px" }, "📌 " + evL("규정", "Policy")) : null,
+        !pol && n.id > seen ? h("span", { class: "pill draft", style: "margin-left:6px" }, "NEW") : null,
+        pol ? h("b", { style: "margin-left:6px" }, n.title?.[lang] || n.title?.en || n.id)
+          : n.popup !== false && n.id.slice(0, 10) >= addD(today(), -7) ? null : h("small", { class: "muted", style: "margin-left:6px" }, " " + ((n[lang] || n.en)[0] || "").slice(0, 40) + "…")),
+      ul(n[lang] || n.en)))))];
 }
 function whatsNewSheet(all) {
   let seen = ""; try { seen = localStorage.getItem(newSeenKey()) || ""; } catch (e) {}
