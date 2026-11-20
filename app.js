@@ -716,6 +716,9 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-20c", popup: false, emp_nos: ["00010", "00012", "00009", "00005", "00002", "00011"],
+    ko: ["📢 정부기여금 (SSS · PhilHealth · Pag-IBIG) 미가입 공지가 떠요. 동의하면 사인이 들어간 동의서가 서류 탭에 저장돼요. 동의하지 않으면 가입 서류를 관리자에게 내 주세요."],
+    en: ["📢 A notice about government contributions (SSS · PhilHealth · Pag-IBIG) will show. If you agree, a signed agreement is saved in the Documents tab. If you do not agree, please hand in your registration documents to the manager."] },
   { id: "2026-11-20b", ko: ["🎁 13th month 일찍 받기 요청에 '받고 싶은 금액' 칸이 생겼어요. 일부만 필요하면 금액을 적어 주세요 (비우면 전액)."],
     en: ["🎁 The 13th month early request now has an 'Amount you need' box. If you need only part of it, write the amount (empty = all)."] },
   { id: "2026-11-20a", ko: ["⛔ 휴가 신청 규칙 추가 (휴무·SIL·개근 휴가 모두): 평일에 쉬면 스케줄에 빈자리(일할 사람이 없는 시프트)가 생기는 날은 자동으로 반려돼요. 다른 날로 다시 신청해 주세요.",
@@ -860,6 +863,23 @@ function whatsNewSheet(all) {
    (Documents tab / owner Requests tab). Disagree → "contact the manager", closes for now and shows again the next
    time the app is opened (or comes back after 30 min). A new notice = a new entry with a new id at the top. ---- */
 const NOTICES = [
+  // owner 2026-11-20: staff who keep refusing government contributions. Agree → signed waiver (print). Disagree → "hand in your documents".
+  // When someone hands in the documents and is registered, take their emp_no out of emp_nos.
+  { id: "2026-11-20-govwaiver", emp_nos: ["00010", "00012", "00009", "00005", "00002", "00011"],   // Jhonvik · June · Felipe · Lorence · Archie · Wilbert
+    title: { en: "Government Contributions (SSS · PhilHealth · Pag-IBIG) — Employee Refusal", ko: "정부기여금 (SSS · PhilHealth · Pag-IBIG) 미가입 — 본인 책임" },
+    en: [
+      "The company has asked me several times to register for government contributions (SSS, PhilHealth and Pag-IBIG) and to hand in the documents needed for registration.",
+      "I have continuously refused, and I have not given the registration documents to the company.",
+      "If any fine, penalty or charge is imposed because I refused to register, I will be responsible for it and settle it myself.",
+      "If I want to register later, I will hand in my documents to the manager, and the company will register me."],
+    ko: [
+      "회사는 나에게 정부기여금 (SSS · PhilHealth · Pag-IBIG) 가입과 가입 서류 제출을 여러 차례 권유했어요.",
+      "나는 계속 가입을 거부했고, 가입 서류를 회사에 넘겨주지 않았어요.",
+      "내가 가입을 거부해서 벌금·과태료 등이 나오면, 그 책임은 나에게 있고 내가 직접 해결해요.",
+      "나중에 가입하고 싶으면 관리자에게 서류를 내고, 회사가 가입시켜 줘요."],
+    noTitle: { ko: "📄 서류를 내주세요", en: "📄 Please hand in your documents" },
+    noText: { ko: "동의하지 않으면 SSS · PhilHealth · Pag-IBIG 가입에 필요한 서류를 관리자에게 내 주세요. 동의하거나 서류를 낼 때까지 앱을 열 때마다 이 공지가 다시 떠요.",
+      en: "If you do not agree, please hand in the documents needed to register for SSS, PhilHealth and Pag-IBIG to the manager. This notice will show again each time you open the app until you agree or hand in your documents." } },
   { id: "2026-11-17-dayclose", positions: ["waiter"], title: { en: "Day Close — POS & Saving Box", ko: "하루 마감 — 포스 · 세이빙박스" },
     en: [
       "The Cash Book 'Close day' screen has 2 parts: 💵 POS (cash drawer) and 🏦 Saving box. You enter how many of EACH bill and coin (₱1000, 500, 200, 100, 50, 20, 10, 5, 1). The totals fill in automatically — you cannot type a total. Centavos are not counted.",
@@ -895,7 +915,8 @@ const NOTICES = [
 const noticeText = n => n.title.en + "\n" + n.en.map((x, i) => `${i + 1}. ${x}`).join("\n");
 const noticeAgreed = id => (EMP.notices || []).find(a => a.notice_id === id && a.agreed_at);
 // positions가 있으면 그 직책 직원에게만 (예: 하루 마감 공지 = 홀 직원 waiter만)
-const forEmp = (n, emp) => !n.positions || n.positions.includes(emp?.position);
+// emp_nos가 있으면 그 직원 번호만 (예: 정부기여금 미가입 동의 = 6명)
+const forEmp = (n, emp) => (!n.positions || n.positions.includes(emp?.position)) && (!n.emp_nos || n.emp_nos.includes(emp?.emp_no));
 async function checkNotices() {
   if (EMP.preview) return false;
   let r; try { r = await db.empNoticeGet(EMP.no, EMP.pin); } catch { return false; }
@@ -919,8 +940,8 @@ function noticeSheet(n) {
     } catch (e) { agree.disabled = no.disabled = false; toast(errMsg(e)); } };
   no.onclick = async () => { try { agree.disabled = no.disabled = true; await db.empNoticeAnswer(EMP.no, EMP.pin, n.id, false); } catch { }
     EMP.noticeLater[n.id] = Date.now(); close();
-    close = sheet([h("h3", { id: "notice-contact" }, "📞 " + evL("관리자에게 연락하세요", "Please contact the manager")),
-      h("p", { class: "muted" }, evL("동의할 때까지 앱을 열 때마다 이 공지가 다시 떠요.", "This notice will show again each time you open the app until you agree.")),
+    close = sheet([h("h3", { id: "notice-contact" }, n.noTitle ? (n.noTitle[lang] || n.noTitle.en) : "📞 " + evL("관리자에게 연락하세요", "Please contact the manager")),
+      h("p", { class: n.noText ? "" : "muted", style: n.noText ? "font-size:15px;line-height:1.55" : "" }, n.noText ? (n.noText[lang] || n.noText.en) : evL("동의할 때까지 앱을 열 때마다 이 공지가 다시 떠요.", "This notice will show again each time you open the app until you agree.")),
       h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn primary", type: "button", id: "notice-ok", onclick: done }, t("close")))], { lock: true }); };
   close = sheet([h("div", { id: "notice-pop" }, h("h3", { style: "margin-top:0" }, "📢 " + evL("급여 공지", "Payroll notice") + " · " + (n.title[lang] || n.title.en)),
     list(n[lang] || n.en),
