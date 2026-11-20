@@ -716,6 +716,7 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-20e", popup: false, ko: ["🔔 동료가 내 이름으로 적은 '확인 요청'(맞아요 / 아니에요)이 이제 화면 맨 위에 떠요. 이미 답한 건 아래 '확인한 요청'에 있어요."], en: ["🔔 'Please confirm' requests (a coworker wrote your name) now show at the very top of the screen. Ones you already answered are under 'Confirmed requests' further down."] },
   { id: "2026-11-20d", popup: false, ko: ["📢 공지 탭: 확인해야 할 것(⚠️ 동의 필요 · NEW)이 맨 위, 그다음 최신 순. 확인할 게 있으면 홈 맨 위에 빨간 안내가 떠요."], en: ["📢 Notices tab: things to check (⚠️ please agree · NEW) are at the top, then newest first. If something needs checking, a red banner shows at the top of Home."] },
   { id: "2026-11-20c", popup: false, emp_nos: ["00010", "00012", "00009", "00005", "00002", "00011"],
     ko: ["📢 정부기여금 (SSS · PhilHealth · Pag-IBIG) 미가입 공지가 떠요. 동의하면 사인이 들어간 동의서가 서류 탭에 저장돼요. 동의하지 않으면 가입 서류를 관리자에게 내 주세요."],
@@ -1188,7 +1189,7 @@ function renderStaffHome() {
       h("button", { id: "e-logout", onclick: EMP.preview ? endPreview : staffLogout }, EMP.preview ? evL("관리자로", "Admin") : t("logout"))),
     h("div", { class: "tabs", role: "tablist", id: "staff-tabs" }, (emp.info?.no_payroll ? [["home", t("stab_home")], ["docs", t("stab_docs")], ["board", "📢 " + evL("공지", "Notices")]] : [["home", t("stab_home")], ["adv", t("stab_adv")], ["docs", t("stab_docs")], ["board", "📢 " + evL("공지", "Notices")]]).map(([k, l]) => h("button", { role: "tab", id: "stab-" + k, "aria-selected": String((EMP.tab || "home") === k), onclick: () => { EMP.tab = k; renderStaffHome(); } }, l))),
     EMP.preview ? h("div", { id: "preview-bar", style: "background:var(--gold);color:#2a1c00;padding:8px 14px;font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px" }, "👀 " + evL("직원 화면 미리보기 · 보기만 돼요 (버튼은 작동 안 함)", "Staff screen preview · view only (buttons do not work)"), h("span", { class: "sp" }), h("button", { class: "btn sm", type: "button", onclick: endPreview }, evL("닫기", "Close"))) : "",   // root.append(null) would print "null"
-    h("main", { id: "main" }, (EMP.tab || "home") === "home" ? myBoardAlert(emp) : null, myRecvCard(v), (EMP.tab || "home") === "home" && !emp.info?.no_payroll ? myEquipCard() : null, ...(EMP.tab === "board" ? myBoardTab(emp) : EMP.tab === "adv" && !emp.info?.no_payroll ? myAdvTab(v, emp) : EMP.tab === "docs" ? myDocsTab(v, emp) : emp.info?.no_payroll ? [
+    h("main", { id: "main" }, mentionsCard(v, true), (EMP.tab || "home") === "home" ? myBoardAlert(emp) : null, myRecvCard(v), (EMP.tab || "home") === "home" && !emp.info?.no_payroll ? myEquipCard() : null, ...(EMP.tab === "board" ? myBoardTab(emp) : EMP.tab === "adv" && !emp.info?.no_payroll ? myAdvTab(v, emp) : EMP.tab === "docs" ? myDocsTab(v, emp) : emp.info?.no_payroll ? [
       // Mina (manager, paid outside the restaurant payroll): no pay / advance / 13th / approval cards
       myEventCard(), clockCard(), h("div", { class: "card" }, h("h2", {}, t("myShifts")), shifts), mySchedCard(v, emp), myInfoCard(emp)] : [
       myCashCard(),
@@ -1197,7 +1198,6 @@ function renderStaffHome() {
       mySilSelf(v.sil_sum, true),
       myEventCard(),
       finalCard,
-      mentionsCard(v),
       myEstCard(emp, v),
       clockCard(),
       myAbsCard(v, emp),
@@ -1207,6 +1207,7 @@ function renderStaffHome() {
       mySchedCard(v, emp),
       mySilCard(v),
       my13Card(v, emp),
+      mentionsCard(v, false),
       myInfoCard(emp)])));
   if (!EMP.newShown) { EMP.newShown = true;   // 📢 notice first, then what's new
     const rest = async () => { if (await equipReminder()) EMP.afterEquip = () => whatsNewSheet(false); else whatsNewSheet(false); };
@@ -1676,9 +1677,10 @@ function myWaitCard(v) {
       evL(`${q.other}님이 아직 확인하지 않았어요. 확인이 안 되면 인정되지 않아요. ${q.other}님에게 앱에서 빨리 확인해 달라고 요청하세요.`,
           `${q.other} has not confirmed yet. If it is not confirmed, it will not be accepted. Please ask ${q.other} to confirm it in the app soon.`))));
 }
-function mentionsCard(v) {
-  const list = (v.mentions || []); if (!list.length) return null;
-  return h("div", { class: "card", id: "my-mentions", style: list.some(m => !m.ack_at) ? "border:2px solid var(--gold)" : "" }, h("h2", {}, "🔔 " + t("mnTitle")),
+// owner 2026-11-20: unanswered ones go to the very top of the screen (every tab); answered ones stay lower as history
+function mentionsCard(v, open) {
+  const list = (v.mentions || []).filter(m => open ? !m.ack_at : !!m.ack_at); if (!list.length) return null;
+  return h("div", { class: "card", id: open ? "my-mentions" : "my-mentions-done", style: open ? "border:2px solid var(--gold)" : "" }, h("h2", {}, open ? "🔔 " + t("mnTitle") + ` (${list.length})` : "✔️ " + evL("확인한 요청", "Confirmed requests")),
     h("div", { class: "list" }, list.map(m => h("div", { class: "item", style: "display:block" },
       h("div", {}, m.mode === "errand" ? evL(`${m.by}님이 ${fmtDT(m.at)}에 "당신이 업무상 심부름을 시켰다"고 했어요. 맞나요?`, `${m.by} said you asked them to do a work errand (${fmtDT(m.at)}). Is that right?`) : tf(m.mode === "cover" ? "mnCover" : "mnRelief", { n: m.by, t: fmtDT(m.at) })),
       m.ack_at ? h("span", { class: "pill " + (m.ok ? "paid" : "late") }, m.ok ? t("mnYes") : t("mnNo"))
