@@ -16,6 +16,7 @@ select json_build_object(
             from pr_sil_req r join pr_employees e on e.id = r.employee_id
             where r.status = 'approved' and r.day between date 'START' - 7 and date 'START' + 6),
   'holidays', (select json_agg(day) from pr_holidays),
+  'calls', (select json_agg(day) from pr_hall_calls where status = 'yes' and day between date 'START' and date 'START' + 6),
   'locked_through', (select sched_locked_through from pr_settings where id = 1));
 ```
 
@@ -53,7 +54,21 @@ select json_build_object(
   'leave', (select json_agg(json_build_object('day', r.day, 'name', e.name, 'kind', r.kind))
             from pr_sil_req r join pr_employees e on e.id = r.employee_id
             where r.status = 'approved' and r.day between (select d from t) - 14 and (select last from t)),
-  'holidays', (select json_agg(day) from pr_holidays));
+  'holidays', (select json_agg(day) from pr_holidays),
+  'calls', (select json_agg(day) from pr_hall_calls where status = 'yes' and day > (select d from t)),
+  'locked_through', (select sched_locked_through from pr_settings where id = 1));
 ```
 
 `save.sql` only touches days after today: changed `pr_plan` rows, `pr_sil_req.replanned_at`, and one owner push (`pr_notify`).
+
+# Leave that would leave a shift empty is rejected automatically (owner 2026-11-20)
+
+`pr_emp_leave_request` calls `pr_leave_gap` (supabase/pr_leave_gap.sql) before auto-approval, for all kinds (off / sil / mpv).
+It uses the same demand as `solve.py` (`pr_team_need`) and the same teams (`pr_team_of` — keep both in step with `TEAMS`,
+`demand()` and the `"closed"` list here). Rejected when the team has fewer free people than shifts on a day, or the request makes
+the Sun–Sat week's available work days fall short, or Jonel and Archie would both be off. Saved as `rejected` with the reason; owner push.
+
+**Fri/Sat exception and Mina (owner 2026-11-20 10:04, supabase/pr_hall_call.sql):** a Fri/Sat gap is allowed when every Fri/Sat day is
+10+ days ahead; closer → a reason is required and the owner approves. When an approved Fri/Sat hall leave leaves the hall short,
+Mina gets a call request (`pr_hall_calls`, push to her device). Her "yes" days come in the queries above as `calls`: weekly.py / replan.py
+add "Mina" to the hall team on those days only (off on the others, `fewer` so she works only when the hall really needs her, no off rows saved).

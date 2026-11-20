@@ -35,6 +35,7 @@ for row in plan.values():
 full = [dt.date.fromisoformat(d) for d, n in cnt.items() if n >= 10]
 last_planned = max(full) if full else today
 team_of = {p: t for t, ppl in TEAMS.items() for p in ppl}
+calls = set(db.get("calls") or [])   # days Mina said yes to a hall call (pr_hall_calls)
 
 weeks = {}   # sunday -> set(team)
 for r in todo:
@@ -52,7 +53,10 @@ for sun in sorted(weeks):
     a = max(sun, today + dt.timedelta(days=1), locked + dt.timedelta(days=1)); b = min(sun + dt.timedelta(days=6), last_planned)
     if a > b: continue
     days = [a + dt.timedelta(days=k) for k in range((b - a).days + 1)]
-    teams = {t: TEAMS[t] for t in sorted(weeks[sun])}
+    teams = {t: list(TEAMS[t]) for t in sorted(weeks[sun])}
+    # Mina said yes to a hall call (owner 2026-11-20): she is a hall extra on those days only
+    yes = {d for d in calls if a.isoformat() <= d <= b.isoformat()}
+    if "hall" in teams and yes: teams["hall"].append("Mina")
     ppl = [p for t in teams.values() for p in t]
     hist = {p: {(a - dt.timedelta(days=k)).isoformat(): plan.get(p, {}).get((a - dt.timedelta(days=k)).isoformat())
                 for k in range(1, 8)} for p in ppl}
@@ -60,6 +64,9 @@ for sun in sorted(weeks):
     for p in ppl:
         for d in days:
             k = d.isoformat(); cur = plan.get(p, {}).get(k); lv = leave.get(p, {}).get(k)
+            if p == "Mina":
+                if k not in yes: fixed.setdefault(p, {})[k] = "off"
+                continue
             if lv: fixed.setdefault(p, {})[k] = lv; exempt.setdefault(p, {})[k] = True
             elif p == "Jonel" and cur: fixed.setdefault(p, {})[k] = cur          # Jonel: 8-18 or his off, as planned
             elif cur == "sil": fixed.setdefault(p, {})[k] = "sil"
@@ -71,6 +78,7 @@ for sun in sorted(weeks):
            "fixed": fixed, "exempt": exempt, "current": current, "replan": True, "teams": teams,
            "weights": {"change": 1}, "week_offs_before": before,
            "overrides": json.load(open(os.path.join(here, "overrides.json"))) if os.path.exists(os.path.join(here, "overrides.json")) else {}}
+    if "Mina" in ppl: inp["overrides"].setdefault("fewer", {})["Mina"] = a.isoformat()   # only when the hall really needs her
     tmp = tempfile.mkdtemp(); json.dump(inp, open(f"{tmp}/in.json", "w"))
     log = subprocess.run([sys.executable, os.path.join(here, "solve.py"), f"{tmp}/in.json", f"{tmp}/out.json"], capture_output=True, text=True)
     sys.stderr.write(log.stdout + log.stderr)
@@ -78,10 +86,15 @@ for sun in sorted(weeks):
     for t, r in res.items():
         if "plan" not in r: failed.append(f"{t} {sun:%m/%d}주"); continue
         done_teams.add((sun, t))
+        if t == "hall":   # Mina said no after yes: take her off days she no longer covers
+            for d in days:
+                k = d.isoformat(); old = plan.get("Mina", {}).get(k)
+                if is_work(old or "") and k not in yes: changes.append((k, "Mina", old, "off")); plan["Mina"][k] = "off"
         issues += [x for x in r.get("issues", []) if "not covered" in x or "in a row" in x]
         for p, row in r["plan"].items():
             for k, sh in row.items():
                 old = plan.get(p, {}).get(k)
+                if p == "Mina" and not is_work(sh) and old is None: continue   # no off rows for Mina
                 if sh != old and not (old in (None, "off") and sh == "off"):
                     changes.append((k, p, old, sh)); plan.setdefault(p, {})[k] = sh
 

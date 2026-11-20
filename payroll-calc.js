@@ -176,7 +176,7 @@ export function computePayroll(days, opts) {
 }
 
 /** pay periods: 1–15 and 16–30 (Feb: 16–28/29).
- *  owner 2026-11-18: the 1–15 payroll is paid on the 16th and covers work up to the 14th's night shift (clock-out on the
+ *  owner 2026-11-18: the 1–15 payroll is paid on the 15th and covers work up to the 14th's night shift (clock-out on the
  *  morning of the 15th); everything on the 15th (day or night) is paid in the 16–30 payroll (carried in, from Nov 16–30 on).
  *  In a 31-day month the 16–30 payroll covers work up to the 29th's night shift
  *  (clock-out on the morning of the 30th); everything on the 30th (day or night) and the 31st is paid in the next 1–15 payroll
@@ -199,9 +199,9 @@ export function periodOf(y, m, half) {
 }
 /** shift that crosses midnight (18-4, 20-6, 22-8 …) */
 export const isNightShift = v => { const p = parseShift(v); return !!p && p.end <= p.start; };
-/** pay day: 1–15 payroll → the 16th (from Dec 2026; before that the 15th) · 16–30 payroll → its last day */
+/** pay day = the period end: 1–15 payroll → the 15th (owner 2026-11-18) · 16–30 payroll → its last day */
 export function payDayOf(start, end) {
-  return +start.slice(8) === 1 && start >= "2026-12-01" ? start.slice(0, 8) + "16" : end;
+  return end;
 }
 /** this date is paid in the next payroll: the 15th (the 1–15 pay ends with the 14th's night shift, from Dec 2026;
  *  Nov 15 was settled by hand: in the 1–15 payroll for some, carried into Nov 16–30 for the others),

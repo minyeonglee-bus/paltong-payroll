@@ -1,13 +1,13 @@
--- owner 2026-11-18: the 1–15 payroll is paid on the 16th and covers work up to the 14th's night shift (clock-out on the
+-- owner 2026-11-18: the 1–15 payroll is paid on the 15th (as before) and covers work up to the 14th's night shift (clock-out on the
 -- morning of the 15th). Work on the 15th goes in the 16–30 payroll (app: periodOf carry / carriesOver / payDayOf).
--- The 16–30 payroll is unchanged (paid on its last day). Payrolls before Dec 2026 keep the 15th as pay day.
+-- The 16–30 payroll is unchanged (paid on its last day). (A first version said paid on the 16th — corrected the same morning.)
 
 create or replace function public.pr_payday(p_start date, p_end date)
 returns date language sql immutable as $$
-  select case when extract(day from p_start) = 1 and p_start >= date '2026-12-01' then p_start + 15 else p_end end
+  select p_end   -- owner 2026-11-18 (corrected): the 1–15 payroll stays paid on the 15th
 $$;
 
--- 1st half: end = the 15th · paid: never before the pay day (16th from Dec 2026)
+-- 1st half: end = the 15th · paid: never before the pay day (the period end)
 create or replace function public.pr_payroll_period_fix()
 returns trigger language plpgsql as $$
 begin
@@ -17,7 +17,7 @@ begin
   return new;
 end $$;
 
--- 💵 받으셨나요?: salary card from the pay day (16th for the 1–15 payroll)
+-- 💵 받으셨나요?: salary card from the pay day
 CREATE OR REPLACE FUNCTION public.pr_emp_recv(p_no text, p_pin text, p_kind text, p_key text, p_via text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -84,5 +84,5 @@ begin
         and not (x.paid_on is not null and (a.recv_at is not null or x.paid_on < date '2026-11-12'))) or (a.recv_ask_at is not null and x.paid_on is not null and a.recv_at is null))), '[]'::jsonb));
 end $function$;
 
--- 13th month: payday ±3 days now 12/13–19 around the 16th (12/12–18 already held) → also hold 12/19
-insert into public.pr_13_hold (day, note) select date '2026-12-19', '급여일 ±3일 (16일 지급, 사장님 11/18)' where not exists (select 1 from public.pr_13_hold where day = date '2026-12-19');
+-- 13th month hold 12/19 (added for a 16th pay day) removed again — pay day stays the 15th
+delete from public.pr_13_hold where day = date '2026-12-19';
