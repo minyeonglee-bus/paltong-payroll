@@ -24,6 +24,15 @@ ov = json.load(open(os.path.join(here, "overrides.json"))) if os.path.exists(os.
 exempt = {}   # approved leave (휴가 신청) does not count toward the 2-offs-per-week cap
 for r in db.get("leave") or []: exempt.setdefault(r["name"], {})[r["day"]] = True
 inp = {"start": start.isoformat(), "days": 7, "holidays": db.get("holidays", []), "history": hist, "fixed": fixed, "overrides": ov, "exempt": exempt}
+# Mina said yes to a hall call (owner 2026-11-20): hall extra on those days only, used only if the hall needs her
+yes = {d for d in (db.get("calls") or []) if start.isoformat() <= d <= end.isoformat()}
+if yes:
+    sys.path.insert(0, here); from solve import TEAMS
+    inp["teams"] = {t: list(p) + (["Mina"] if t == "hall" else []) for t, p in TEAMS.items()}
+    for k in range(7):
+        d = (start + dt.timedelta(days=k)).isoformat()
+        if d not in yes: fixed.setdefault("Mina", {})[d] = "off"
+    ov.setdefault("fewer", {})["Mina"] = start.isoformat()
 tmp = tempfile.mkdtemp()
 json.dump(inp, open(f"{tmp}/in.json", "w"))
 log = subprocess.run([sys.executable, os.path.join(here, "solve.py"), f"{tmp}/in.json", f"{tmp}/out.json"], capture_output=True, text=True)
@@ -34,6 +43,7 @@ for team, r in res.items():
     if "plan" not in r: sys.exit(f"{team}: {r.get('status')} — not saved")
     for name, row in r["plan"].items():
         for day, sh in row.items():
+            if name == "Mina" and sh in ("off", "sil"): continue   # no off rows for Mina
             vals.append(f"('{day}'::date,'{name}','{sh}')")
 print("with v(day, name, shift) as (values " + ",".join(vals) + ")\n"
       "insert into pr_plan (day, employee_id, shift)\n"
