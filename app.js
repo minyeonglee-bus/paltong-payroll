@@ -716,7 +716,7 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
-  { id: "2026-11-20d", popup: false, ko: ["📢 공지 탭: 규정과 공지를 한 목록으로 합쳐서 최신 순으로 맨 위에 보여요."], en: ["📢 Notices tab: policies and notices are now one list, newest at the top."] },
+  { id: "2026-11-20d", popup: false, ko: ["📢 공지 탭: 확인해야 할 것(⚠️ 동의 필요 · NEW)이 맨 위, 그다음 최신 순. 확인할 게 있으면 홈 맨 위에 빨간 안내가 떠요."], en: ["📢 Notices tab: things to check (⚠️ please agree · NEW) are at the top, then newest first. If something needs checking, a red banner shows at the top of Home."] },
   { id: "2026-11-20c", popup: false, emp_nos: ["00010", "00012", "00009", "00005", "00002", "00011"],
     ko: ["📢 정부기여금 (SSS · PhilHealth · Pag-IBIG) 미가입 공지가 떠요. 동의하면 사인이 들어간 동의서가 서류 탭에 저장돼요. 동의하지 않으면 가입 서류를 관리자에게 내 주세요."],
     en: ["📢 A notice about government contributions (SSS · PhilHealth · Pag-IBIG) will show. If you agree, a signed agreement is saved in the Documents tab. If you do not agree, please hand in your registration documents to the manager."] },
@@ -837,17 +837,34 @@ function myBoardTab(emp) {
   const news = WHATS_NEW.filter(n => forEmp(n, emp));
   const ul = lines => h("ul", { style: "margin:6px 0 0;padding-left:20px;line-height:1.5" }, lines.map(x => h("li", { style: "margin-bottom:4px" }, x)));
   const day = id => { const d = id.slice(0, 10); return `${+d.slice(5, 7)}/${+d.slice(8)}`; };
-  // owner 2026-11-20: staff don't scroll — one list, most recently updated on top (policies mixed in by date, 📌 badge)
+  // owner 2026-11-20: staff don't scroll — what needs checking first (⚠️ policy not agreed yet → NEW unseen), then newest first
   const key = n => n.title ? n.id.slice(0, 10) + "~" : n.id;   // a policy goes above that day's news
-  const all = [...pol.map(n => ({ n, pol: true })), ...news.map(n => ({ n, pol: false }))].sort((a, b) => key(b.n) < key(a.n) ? -1 : key(b.n) > key(a.n) ? 1 : 0);
-  return [h("div", { class: "card", id: "board-news" }, h("h2", {}, "📢 " + evL("공지사항 · 최신순", "Notices · newest first")),
-    h("div", { class: "list" }, all.map(({ n, pol }, i) => h("details", { class: "item", style: "display:block", open: i < 3 },
+  const rank = x => x.pol ? (noticeAgreed(x.n.id) ? 2 : 0) : (x.n.id > seen ? 1 : 2);
+  const all = [...pol.map(n => ({ n, pol: true })), ...news.map(n => ({ n, pol: false }))]
+    .sort((a, b) => rank(a) - rank(b) || (key(b.n) < key(a.n) ? -1 : key(b.n) > key(a.n) ? 1 : 0));
+  const openSheet = n => { EMP.afterNotice = () => renderStaffHome(); noticeSheet(n); };
+  return [h("div", { class: "card", id: "board-news" }, h("h2", {}, "📢 " + evL("공지사항 · 확인할 것 먼저", "Notices · to check first")),
+    h("div", { class: "list" }, all.map((x, i) => { const { n, pol } = x, r = rank(x);
+      return h("details", { class: "item", style: "display:block" + (r === 0 ? ";border-left:4px solid var(--accent)" : r === 1 ? ";border-left:4px solid var(--gold)" : ""), open: r < 2 || i < 3 },
       h("summary", {}, h("b", {}, day(n.id)),
-        pol ? h("span", { class: "pill", style: "margin-left:6px" }, "📌 " + evL("규정", "Policy")) : null,
-        !pol && n.id > seen ? h("span", { class: "pill draft", style: "margin-left:6px" }, "NEW") : null,
+        r === 0 ? h("span", { class: "pill", style: "margin-left:6px;background:var(--accent);color:var(--accent-ink)" }, "⚠️ " + evL("동의 필요", "Please agree")) : pol ? h("span", { class: "pill", style: "margin-left:6px" }, "📌 " + evL("규정", "Policy")) : null,
+        r === 1 ? h("span", { class: "pill draft", style: "margin-left:6px" }, "NEW") : null,
         pol ? h("b", { style: "margin-left:6px" }, n.title?.[lang] || n.title?.en || n.id)
           : n.popup !== false && n.id.slice(0, 10) >= addD(today(), -7) ? null : h("small", { class: "muted", style: "margin-left:6px" }, " " + ((n[lang] || n.en)[0] || "").slice(0, 40) + "…")),
-      ul(n[lang] || n.en)))))];
+      ul(n[lang] || n.en),
+      r === 0 && !EMP.preview ? h("button", { class: "btn primary", type: "button", style: "margin-top:6px", onclick: () => openSheet(n) }, "✅ " + evL("읽고 동의하기", "Read and agree")) : null); }))),
+  ];
+}
+/* home: banner at the very top when something on the 📢 tab still needs checking (owner 2026-11-20 "확인해야하는게 맨위로") */
+function myBoardAlert(emp) {
+  let seen = ""; try { seen = localStorage.getItem(newSeenKey()) || ""; } catch (e) {}
+  const nPol = NOTICES.filter(n => forEmp(n, emp) && !noticeAgreed(n.id)).length;
+  const nNew = WHATS_NEW.filter(n => forEmp(n, emp) && n.id > seen).length;
+  if (!nPol && !nNew) return null;
+  return h("div", { class: "card", id: "board-alert", style: "border:2px solid var(--accent);cursor:pointer", onclick: () => { EMP.tab = "board"; renderStaffHome(); } },
+    h("b", {}, "⚠️ " + evL("확인해야 할 공지가 있어요", "You have notices to check")), " ",
+    h("span", {}, [nPol ? evL(`동의 필요 ${nPol}개`, `${nPol} to agree`) : null, nNew ? evL(`새 공지 ${nNew}개`, `${nNew} new`) : null].filter(Boolean).join(" · ")),
+    h("div", { class: "muted", style: "margin-top:4px" }, "👉 " + evL("눌러서 공지 탭 보기", "Tap to open the Notices tab")));
 }
 function whatsNewSheet(all) {
   let seen = ""; try { seen = localStorage.getItem(newSeenKey()) || ""; } catch (e) {}
@@ -1171,7 +1188,7 @@ function renderStaffHome() {
       h("button", { id: "e-logout", onclick: EMP.preview ? endPreview : staffLogout }, EMP.preview ? evL("관리자로", "Admin") : t("logout"))),
     h("div", { class: "tabs", role: "tablist", id: "staff-tabs" }, (emp.info?.no_payroll ? [["home", t("stab_home")], ["docs", t("stab_docs")], ["board", "📢 " + evL("공지", "Notices")]] : [["home", t("stab_home")], ["adv", t("stab_adv")], ["docs", t("stab_docs")], ["board", "📢 " + evL("공지", "Notices")]]).map(([k, l]) => h("button", { role: "tab", id: "stab-" + k, "aria-selected": String((EMP.tab || "home") === k), onclick: () => { EMP.tab = k; renderStaffHome(); } }, l))),
     EMP.preview ? h("div", { id: "preview-bar", style: "background:var(--gold);color:#2a1c00;padding:8px 14px;font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px" }, "👀 " + evL("직원 화면 미리보기 · 보기만 돼요 (버튼은 작동 안 함)", "Staff screen preview · view only (buttons do not work)"), h("span", { class: "sp" }), h("button", { class: "btn sm", type: "button", onclick: endPreview }, evL("닫기", "Close"))) : "",   // root.append(null) would print "null"
-    h("main", { id: "main" }, myRecvCard(v), (EMP.tab || "home") === "home" && !emp.info?.no_payroll ? myEquipCard() : null, ...(EMP.tab === "board" ? myBoardTab(emp) : EMP.tab === "adv" && !emp.info?.no_payroll ? myAdvTab(v, emp) : EMP.tab === "docs" ? myDocsTab(v, emp) : emp.info?.no_payroll ? [
+    h("main", { id: "main" }, (EMP.tab || "home") === "home" ? myBoardAlert(emp) : null, myRecvCard(v), (EMP.tab || "home") === "home" && !emp.info?.no_payroll ? myEquipCard() : null, ...(EMP.tab === "board" ? myBoardTab(emp) : EMP.tab === "adv" && !emp.info?.no_payroll ? myAdvTab(v, emp) : EMP.tab === "docs" ? myDocsTab(v, emp) : emp.info?.no_payroll ? [
       // Mina (manager, paid outside the restaurant payroll): no pay / advance / 13th / approval cards
       myEventCard(), clockCard(), h("div", { class: "card" }, h("h2", {}, t("myShifts")), shifts), mySchedCard(v, emp), myInfoCard(emp)] : [
       myCashCard(),
@@ -1258,12 +1275,12 @@ function my13DateCard(v) {
   const body = h("div", {}); card.append(body);
   // owner 2026-11-18 (2nd): no request by the chosen date → Dec 24 with everyone
   if (ack.requested_at && ack.pay_date && ack.pay_date.slice(5) !== "12-24" && reqDay13(ack) > ack.pay_date)
-    card.append(h("p", { id: "d13-late", style: "margin-top:10px;color:var(--red,#c0392b);font-weight:700" }, t("d13_late")));
-  if (!ack.requested_at) card.append(h("div", { id: "d13-noreq", style: "margin-top:10px;padding:10px;border-radius:10px;background:#fdecea;color:var(--red,#c0392b);font-weight:700" },
+    card.append(h("p", { id: "d13-late", style: "margin-top:10px;color:var(--accent);font-weight:700" }, t("d13_late")));
+  if (!ack.requested_at) card.append(h("div", { id: "d13-noreq", style: "margin-top:10px;padding:10px;border-radius:10px;background:#fdecea;color:var(--accent);font-weight:700" },
     h("p", { style: "margin:0 0 8px" }, t("d13_noReq")),
     h("button", { class: "btn primary", type: "button", onclick: () => { const b = document.getElementById("my13-open"); if (b) { b.scrollIntoView({ behavior: "smooth", block: "center" }); b.click(); } } }, t("r13_btn"))));
   // owner 2026-11-18 night (supabase/pr_13_after_mid_dec.sql): dates before Dec 19 moved — choose again from Dec 19, or ask early with a reason
-  if (ack.moved_from && !ack.pay_date) card.append(h("div", { id: "d13-moved", style: "margin-top:10px;padding:10px;border-radius:10px;background:#fdecea;color:var(--red,#c0392b);font-weight:700" },
+  if (ack.moved_from && !ack.pay_date) card.append(h("div", { id: "d13-moved", style: "margin-top:10px;padding:10px;border-radius:10px;background:#fdecea;color:var(--accent);font-weight:700" },
     tf("d13_moved", { d: fmtLvDay(ack.moved_from) })));
   const early = h("div", { id: "d13-early", style: "margin-top:12px;padding-top:10px;border-top:1px solid var(--line)" });
   const earlySheet = () => {
@@ -1290,7 +1307,7 @@ function my13DateCard(v) {
   let bad = null;   // chosen date that is now blocked (pr_13_hold, e.g. payday ±3 days — owner 2026-11-14)
   const picker = () => { body.innerHTML = ""; body.append(h("small", { class: "muted" }, "…"));
     db.empDays13(EMP.no, EMP.pin, year).then(r => { body.innerHTML = "";
-      if (bad) body.append(h("p", { id: "d13-bad", style: "color:var(--red,#c0392b);font-weight:700;margin:4px 0 8px" }, tf("d13_payday", { d: fmt(bad) })));
+      if (bad) body.append(h("p", { id: "d13-bad", style: "color:var(--accent);font-weight:700;margin:4px 0 8px" }, tf("d13_payday", { d: fmt(bad) })));
       const days = r.ok ? r.days || [] : [];
       if (!days.length) return body.append(h("p", {}, t("d13_none")));
       // taken days stay in the list, greyed and not selectable (owner 2026-11-13: no double booking)
@@ -1393,7 +1410,7 @@ function my13Card(v, emp) {
       h("div", {}, h("h2", { style: "margin:0" }, t("p13_title")), h("div", { class: "muted" }, P.oneYear === true ? `${year} · ${evL("1년 이상 · 한 달치 (보름 평균 × 2)", "1 year+ · one month (half-month average × 2)")}` : `${year} · ${t("p13_toDate")} ₱${money(P.toDate)}${P.oneYear === false ? " · ÷12" : ""}`)),
       h("span", { class: "sp" }), h("div", { class: "money", style: "font-size:26px;font-weight:800" }, "₱" + money(P.amount))),
     h("p", { style: "margin:6px 0;font-weight:700" }, "📅 " + t("p13_req")),
-    !paidThis && !ack?.requested_at && !early ? h("p", { id: "my13-must", style: "margin:6px 0;color:var(--red,#c0392b);font-weight:700" }, t("r13_must")) : null,
+    !paidThis && !ack?.requested_at && !early ? h("p", { id: "my13-must", style: "margin:6px 0;color:var(--accent);font-weight:700" }, t("r13_must")) : null,
     h("div", { class: "row", style: "flex-wrap:wrap" }, openBtn, ackEl),
     h("small", { class: "muted" }, P.oneYear === true ? evL("1년 이상 근무: 올해 확정·지급된 급여의 보름 평균 기본급 × 2 (한 달치). 초과·야간·가산·인센티브는 빠져요.", "1 year+ of service: half-month average basic pay of this year's finalized/paid payrolls × 2 (one month). No OT, night diff, premiums or incentives.") : t("p13_help")),
     paidList.length ? h("div", { class: "list" }, paidList) : null);
