@@ -866,16 +866,16 @@ const NOTICES = [
   // owner 2026-11-20: staff who keep refusing government contributions. Agree → signed waiver (print). Disagree → "hand in your documents".
   // When someone hands in the documents and is registered, take their emp_no out of emp_nos.
   { id: "2026-11-20-govwaiver", emp_nos: ["00010", "00012", "00009", "00005", "00002", "00011"],   // Jhonvik · June · Felipe · Lorence · Archie · Wilbert
-    title: { en: "Government Contributions (SSS · PhilHealth · Pag-IBIG) — Employee Refusal", ko: "정부기여금 (SSS · PhilHealth · Pag-IBIG) 미가입 — 본인 책임" },
+    title: { en: "Government Contributions (SSS · PhilHealth · Pag-IBIG) — Employee Pays Any Fine", ko: "정부기여금 (SSS · PhilHealth · Pag-IBIG) 미가입 — 벌금은 직원 본인 부담" },
     en: [
       "The company has asked me several times to register for government contributions (SSS, PhilHealth and Pag-IBIG) and to hand in the documents needed for registration.",
       "I have continuously refused, and I have not given the registration documents to the company.",
-      "If any fine, penalty or charge is imposed because I refused to register, I will be responsible for it and settle it myself.",
+      "Therefore, if any fine, penalty or charge is claimed because I am not registered, I (the employee) am fully responsible for it. If it is charged to the company, I will pay the company back the full amount.",
       "If I want to register later, I will hand in my documents to the manager, and the company will register me."],
     ko: [
       "회사는 나에게 정부기여금 (SSS · PhilHealth · Pag-IBIG) 가입과 가입 서류 제출을 여러 차례 권유했어요.",
       "나는 계속 가입을 거부했고, 가입 서류를 회사에 넘겨주지 않았어요.",
-      "내가 가입을 거부해서 벌금·과태료 등이 나오면, 그 책임은 나에게 있고 내가 직접 해결해요.",
+      "그러므로 미가입 때문에 벌금·과태료 등이 청구되면, 그 책임은 전부 직원인 나에게 있어요. 회사에 청구되면 그 금액 전부를 내가 회사에 갚아요.",
       "나중에 가입하고 싶으면 관리자에게 서류를 내고, 회사가 가입시켜 줘요."],
     noTitle: { ko: "📄 서류를 내주세요", en: "📄 Please hand in your documents" },
     noText: { ko: "동의하지 않으면 SSS · PhilHealth · Pag-IBIG 가입에 필요한 서류를 관리자에게 내 주세요. 동의하거나 서류를 낼 때까지 앱을 열 때마다 이 공지가 다시 떠요.",
