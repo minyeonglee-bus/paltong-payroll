@@ -719,6 +719,9 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-21c", popup: false,
+    ko: ["🎁 13th month를 일부 먼저 받았으면 이제 앱에 보여요 (홈 급여 내역 · 13th month 날짜 카드). '받으셨나요?' 카드는 남은 금액만 물어봐요."],
+    en: ["🎁 If you got part of your 13th month first, the app now shows it (pay history on Home · 13th month date card). The 'Did you receive it?' card asks only about the rest."] },
   { id: "2026-11-21b", popup: false,
     ko: ["⚠️ 경고 통지가 이제 앱으로 와요. 앱을 열면 뜨고, 내용을 확인한 뒤 '확인했어요 (사인)'을 눌러 주세요. 사인은 받았다는 확인일 뿐이에요. 할 말이 있으면 5일 안에 해명을 쓸 수 있어요. 통지서는 서류 탭에서 인쇄할 수 있어요."],
     en: ["⚠️ Warning notices now come through the app. One shows when you open the app — read it and press 'I received it (sign)'. Signing only confirms you received it. If you want to explain, you can write it within 5 days. You can print the notice in the Documents tab."] },
@@ -1221,7 +1224,10 @@ function renderStaffHome() {
   // owner 2026-11-18 night: paid 13th month also listed in the pay history (as "13th month")
   const pay13 = (v.thirteenth || []).filter(x => x.paid_on).map(x => h("div", { class: "item", id: "my-pay-13-" + x.year }, h("div", { class: "t" }, `🎁 13th month ${x.year}`),
     h("div", { class: "s" }, `${t("paid")} ${x.paid_on} · ${viaLabel(slipVia(x.paid_via || ""))}`), h("div", { class: "m money" }, "₱" + money(x.amount))));
-  const payList = h("div", { class: "list", id: "my-pay" }, ...pay13, paid.length ? paid.map(p => h("div", { class: "item", onclick: () => {
+  const paidYears = new Set((v.thirteenth || []).map(x => x.year));
+  const part13 = (v.parts13 || []).map(p => h("div", { class: "item", id: "my-pay-13p-" + p.paid_on }, h("div", { class: "t" }, `🎁 13th month ${p.year} · ${evL("일부", "part")}`),
+    h("div", { class: "s" }, `${t("paid")} ${p.paid_on} · ${viaLabel(slipVia(p.paid_via || ""))}` + (paidYears.has(p.year) ? "" : " · " + evL("나머지는 아직", "rest not yet"))), h("div", { class: "m money" }, "₱" + money(p.amount))));
+  const payList = h("div", { class: "list", id: "my-pay" }, ...pay13, ...part13, paid.length ? paid.map(p => h("div", { class: "item", onclick: () => {
       const P = { start: p.period_start, end: p.period_end, daily_rate: p.daily_rate, status: p.status, paid_on: p.paid_on, paid_via: p.paid_via, note: p.note || "" };
       payslip({ ...P, ack_at: p.ack_at, pay_type: p.pay_type || 'daily', monthly_rate: p.monthly_rate }, { name: emp.name, position: emp.position, info: emp.info, signature: v.signature }, p.result); } },
     h("div", { class: "t" }, periodLabel(p.period_start, p.period_end)), h("div", { class: "s" }, p.status === "paid" ? `${t("paid")} ${p.paid_on || ""} · ${viaLabel(slipVia(p.paid_via || ""))}` : t("sharedStaff")), h("div", { class: "m money" }, "₱" + money(p.result.net))))
@@ -1348,7 +1354,10 @@ function my13DateCard(v) {
     h("p", { style: "margin:0 0 8px" }, t("d13_noReq")),
     h("button", { class: "btn primary", type: "button", onclick: () => { const b = document.getElementById("my13-open"); if (b) { b.scrollIntoView({ behavior: "smooth", block: "center" }); b.click(); } } }, t("r13_btn"))));
   // owner 2026-11-18 night (supabase/pr_13_after_mid_dec.sql): dates before Dec 19 moved — choose again from Dec 19, or ask early with a reason
-  if (ack.moved_from && !ack.pay_date) card.append(h("div", { id: "d13-moved", style: "margin-top:10px;padding:10px;border-radius:10px;background:#fdecea;color:var(--accent);font-weight:700" },
+  const parts = parts13Of(v, year), partSum = parts.reduce((s, p) => s + +p.amount, 0);
+  if (partSum) card.append(h("div", { id: "d13-parts", style: "margin-top:10px;padding:10px;border-radius:10px;background:#eef7ee;font-weight:700" },
+    "💸 " + partsTxt(parts), h("br"), h("small", { style: "font-weight:400" }, evL(`남은 금액 약 ₱${money(Math.max(0, (+ack.amount || 0) - partSum))}는 아래에서 고른 날짜에 받아요 (안 고르면 12/24).`, `The rest, about ₱${money(Math.max(0, (+ack.amount || 0) - partSum))}, comes on the date you choose below (Dec 24 if you don't choose).`))));
+  else if (ack.moved_from && !ack.pay_date) card.append(h("div", { id: "d13-moved", style: "margin-top:10px;padding:10px;border-radius:10px;background:#fdecea;color:var(--accent);font-weight:700" },
     tf("d13_moved", { d: fmtLvDay(ack.moved_from) })));
   const early = h("div", { id: "d13-early", style: "margin-top:12px;padding-top:10px;border-top:1px solid var(--line)" });
   const earlySheet = () => {
@@ -1368,7 +1377,7 @@ function my13DateCard(v) {
             Object.assign(ack, { early_date: d, early_reason: why, early_amount: amt, early_at: new Date().toISOString(), early_ok: null }); toast(t("d13_earlySent")); close(); renderStaffHome();
           } catch (er) { ev.currentTarget.disabled = false; toast(errMsg(er)); } } }, t("d13_earlySend")))]);
   };
-  early.append(ack.early_at ? h("p", { id: "d13-early-st", style: "margin:0 0 8px;font-weight:700" },
+  early.append(ack.early_at && !partSum ? h("p", { id: "d13-early-st", style: "margin:0 0 8px;font-weight:700" },
       tf(ack.early_ok === true ? "d13_earlyOk" : ack.early_ok === false ? "d13_earlyNo" : "d13_earlyWait", { d: fmtLvDay(ack.early_date) }), " · " + (ack.early_amount != null ? "₱" + money(ack.early_amount) : evL("전액", "full amount")), h("br"), h("small", { class: "muted" }, "“" + (ack.early_reason || "") + "”")) : null,
     // owner 2026-11-20: still open after approval so the amount can be added / changed (re-request → owner checks again; pay date stays)
     h("button", { class: "btn", type: "button", id: "d13-early-btn", onclick: earlySheet }, "🙏 " + (ack.early_ok === true ? evL("금액 넣기 · 바꾸기 (다시 요청)", "Add / change amount (request again)") : t(ack.early_at ? "d13_earlyAgain" : "d13_earlyBtn"))));
@@ -1406,6 +1415,9 @@ function my13DateCard(v) {
    Top of every tab until they press "받았어요" → owner approves → paid + cash book. Salary from the 11/1–15 payroll on
    (bonuses are inside the payroll); 13th month on the chosen date (Dec 24 when none) once requested. ---- */
 const RECV_FROM = "2026-11-15";
+// 13th month parts paid earlier (pr_13_part via pr_emp_view.parts13, owner 11/21)
+const parts13Of = (v, year) => (v.parts13 || []).filter(p => p.year === year);
+const partsTxt = parts => evL("먼저 받음 ", "Received first ") + parts.map(p => `${fmtLvDay(p.paid_on)} ₱${money(p.amount)} ${viaLabel(slipVia(p.paid_via || ""))}`).join(", ");
 function myRecvCard(v) {
   const td = today(), year = +td.slice(0, 4);
   const pays = (v.payrolls || []).filter(p => (p.status === "paid" || p.shared) && p.result && p.period_end >= RECV_FROM && td >= payDayOf(p.period_start, p.period_end) && !p.recv_at);
@@ -1433,10 +1445,14 @@ function myRecvCard(v) {
     const a13 = ack || {};
     const amt = x13?.amount ?? a13.amount ?? proj13((v.payrolls || []).filter(p => (p.status === "paid" || p.shared) && p.result).map(p => ({ start: p.period_start, end: p.period_end, basic: +p.result.basicFor13th || 0 })), year, EMP.data?.employee || {}).amount;
     const vSel = sel([["CASH", "Cash"], ["GCASH", "GCash"], ["MAYA", "Maya"]], x13?.paid_via && x13.paid_via !== "SAVINGBOX" ? x13.paid_via : "CASH", { id: "recv-13-via" });
-    const label = `13th month ₱${money(amt)}`;
+    // owner 11/21 (June got ₱9,000 first): parts paid earlier are shown, card asks only for the rest
+    const parts = x13 ? [] : parts13Of(v, year), partSum = parts.reduce((s, p) => s + +p.amount, 0);
+    const rest = Math.max(0, Math.round((amt - partSum) * 100) / 100);
+    const label = `13th month ₱${money(rest)}`;
     card.append(h("div", { class: "row", style: "align-items:center;flex-wrap:wrap;padding:8px 0;border-top:1px dashed var(--line)" },
-      h("div", {}, h("b", {}, `13th month · ${year}`), h("div", { class: "muted" }, x13?.paid_on ? evL("지급 기록", "Recorded paid") + " " + fmtLvDay(x13.paid_on) : fmtLvDay(due13(a13, year)))),
-      h("span", { class: "sp" }), h("div", { class: "money", style: "font-size:24px;font-weight:800" }, "₱" + money(amt)),
+      h("div", {}, h("b", {}, `13th month · ${year}`), h("div", { class: "muted" }, x13?.paid_on ? evL("지급 기록", "Recorded paid") + " " + fmtLvDay(x13.paid_on) : fmtLvDay(due13(a13, year))),
+        partSum ? h("div", { class: "muted", id: "recv-13-parts" }, partsTxt(parts) + " · " + evL("남은 금액", "the rest")) : null),
+      h("span", { class: "sp" }), h("div", { class: "money", style: "font-size:24px;font-weight:800" }, "₱" + money(rest)),
       field(evL("받은 방법", "How did you get it?"), vSel),
       h("button", { class: "btn primary", type: "button", id: "recv-13", onclick: () => send("13", year, vSel.value, () => { a13.recv_at = new Date().toISOString(); a13.recv_via = vSel.value; if (!ack) EMP.data.ack13 = [...(EMP.data.ack13 || []), { ...a13, year }]; }, label) }, "✅ " + evL("받았어요", "I received it"))));
   }
@@ -1611,7 +1627,7 @@ async function recvCard() {
       if (is13) await db.recv13Back(x.employee_id, x.year); else await db.recvDecide(x.id, false); render(); } catch (er) { toast(errMsg(er)); } }, { ask: true });
     card.append(h("div", { class: "row", style: "align-items:center;flex-wrap:wrap;padding:6px 0;border-top:1px dashed var(--line)" },
       h("div", {}, h("b", {}, x.name), " · ", is13 ? `13th month ${x.year}` : periodLabel(x.period_start, x.period_end), h("div", { class: "muted" }, `${via} · ${evL("받음", "received")} ${fmtAt(x.recv_at)}`)),
-      h("span", { class: "sp" }), h("b", { class: "money" }, "₱" + money(is13 ? x.amount : x.net)),
+      h("span", { class: "sp" }), h("b", { class: "money" }, "₱" + money(is13 ? Math.max(0, +x.amount - (+x.part || 0)) : x.net), is13 && +x.part ? h("div", { class: "muted", style: "font-size:12px;font-weight:400" }, evL(`먼저 준 ₱${money(x.part)} 뺀 나머지`, `rest after ₱${money(x.part)} paid earlier`)) : null),
       h("button", { class: "btn sm", type: "button", onclick: back }, evL("아직 안 줬어요", "Not paid yet")),
       h("button", { class: "btn sm primary", type: "button", onclick: ok }, "✅ " + evL("승인", "Approve"))));
   }
@@ -3399,7 +3415,7 @@ async function pay13(e, year, total, amount, monthAvg = 0, oneYear = false, pre 
   const partSum = Math.round(parts.reduce((a, x) => a + +x.amount, 0) * 100) / 100;
   const dIn = h("input", { type: "date", id: "p13On", value: pre.date || today() });
   const full = oneYear === true && monthAvg ? monthAvg : amount;   // 1년 이상 → 월평균, 1년 미만·퇴사 정산 → ÷12
-  const def = pre.amount ?? Math.max(0, Math.round((full - partSum) * 100) / 100);
+  const def = Math.max(0, Math.round(((pre.amount ?? full) - partSum) * 100) / 100);   // owner 11/21 (June): staff-confirmed amount also minus parts paid earlier
   const vIn = sel(PAY_OPTS, pre.via || "CASH", { id: "p13Via" });
   const aIn = h("input", { type: "number", id: "p13Amt", value: def, step: 1, min: 0 });
   const [fIn, fField] = feeField(vIn, 0, "p13Fee");
