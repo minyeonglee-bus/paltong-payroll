@@ -935,7 +935,9 @@ const NOTICES = [
       "GCash·Maya 잔고 화면 사진을 찍으세요. 장부와 맞아야 해요.",
       "근무자는 '임시저장'만 눌러요. 다음 교대자가 열어서 직접 다시 세고, 사진도 다시 찍고 마감을 저장해요. 교대자가 센 금액이 다르면 '🔁 차이 넘기기'를 눌러요 — 차이는 임시저장한 근무자 책임이에요.",
       "Mina가 세이빙박스 전체를 장부 총액과 맞춰 세요. Mina 확인이 끝나면 그 마감된 날들은 잠겨서 관리자만 고칠 수 있어요."] },
-  { id: "2026-11-17-equip", title: { en: "Equipment & Stock Policy", ko: "장비 · 재고 규칙" },
+  // owner 2026-11-21: moved back to a normal notice — no agreement needed anymore (no popup, no "Please agree", no Home banner).
+  // Agreements already signed stay printable; Felipe's "not agreed" is kept for the owner to handle.
+  { id: "2026-11-17-equip", noAgree: true, title: { en: "Equipment & Stock Policy", ko: "장비 · 재고 규칙" },
     en: [
       "If kitchen equipment, aircon or anything else the business needs or uses breaks down, or there is a stock problem, report it right away in the app (Home → 🔧 Repairs → Needs repair). If the repair costs less than ₱10,000, call a technician and get it fixed right away. You do not need to wait for the owner's approval. If it is ₱10,000 or more, enter the amount in the app — the owner is notified.",
       "Manage stock properly and on time. If stock is not managed well, it hurts ALL your coworkers, because everyone loses their incentives.",
@@ -954,7 +956,8 @@ const noticeText = n => n.title.en + "\n" + n.en.map((x, i) => `${i + 1}. ${x}`)
 const noticeAgreed = id => (EMP.notices || []).find(a => a.notice_id === id && a.agreed_at);
 const noticeAck = id => (EMP.notices || []).find(a => a.notice_id === id) || {};
 // done = agreed, or the owner marked the documents as handed in (gov waiver)
-const noticeDone = id => !!(noticeAgreed(id) || noticeAck(id).docs_at);
+// noAgree = a policy shown on the notice board only (no agreement asked) → always counts as done
+const noticeDone = id => !!(NOTICES.find(n => n.id === id)?.noAgree || noticeAgreed(id) || noticeAck(id).docs_at);
 const noticeWarn = n => !!(n.warnAfter && (noticeAck(n.id).disagree_n || 0) >= n.warnAfter);
 const noticePast = n => !!(n.deadline && today() > n.deadline);   // after the deadline: one last notice, then no more popups
 const cutSeenKey = n => "pr_notice_cut_" + (EMP.no || "") + "_" + n.id;
@@ -1033,6 +1036,7 @@ async function noticeAdminCard() {
       try { const r = await db.noticeDocs(e.id, n.id, on); if (!r?.ok) throw new Error(r?.err || "noData"); toast(evL("저장했어요", "Saved")); render(); } catch (x) { toast(errMsg(x)); } }, { ask: true });
     const fmt = a => new Date(a).toLocaleString(undefined, { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
     card.append(h("div", { style: "border-top:1px dashed var(--line);padding-top:6px;margin-top:6px" }, h("b", {}, `${n.title.ko} · ${n.id.slice(0, 10)}`), h("span", { class: "muted" }, ` · ${evL("동의", "agreed")} ${yes.length}/${emps.length}`),
+      n.noAgree ? h("div", { class: "muted", style: "font-size:13px" }, "📌 " + evL("공지사항으로 옮김 — 이제 동의 안 받음 (팝업·동의 버튼 없음)", "Moved to the notice board — no agreement asked anymore (no popup or agree button)")) : null,
       ...yes.map(e => { const a = acks.find(x => x.employee_id === e.id);
         return h("div", { class: "row", style: "align-items:center;padding:4px 0" }, h("span", {}, "✅ " + e.name), h("small", { class: "muted" }, " " + fmt(a.agreed_at)), h("span", { class: "sp" }),
           h("button", { class: "btn sm", type: "button", onclick: () => printNotice(n, e, sigs[e.id], a.agreed_at) }, "🖨 " + evL("동의서", "Agreement"))); }),
