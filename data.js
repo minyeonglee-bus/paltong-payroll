@@ -178,6 +178,7 @@ export async function empEquipCb(no, pin, entry, ans, issue) { return must(await
 export async function equipAdmin() { return must(await sb.rpc("pr_equip_admin")); }
 export async function equipWaive(id, note) { return must(await sb.rpc("pr_equip_waive", { p_id: id, p_note: note || null })); }
 export async function empNoticeGet(no, pin) { return must(await sb.rpc("pr_emp_notice_get", { p_no: String(no).trim(), p_pin: String(pin) })); }
+export async function empNewsSeen(no, pin, id) { return must(await sb.rpc("pr_emp_news_seen", { p_no: String(no).trim(), p_pin: String(pin), p_id: id })); }
 export async function empNoticeAnswer(no, pin, id, agree, text) { return must(await sb.rpc("pr_emp_notice_answer", { p_no: String(no).trim(), p_pin: String(pin), p_notice: id, p_agree: !!agree, p_text: text || null })); }
 export async function noticeDocs(empId, id, on) { return must(await sb.rpc("pr_notice_docs", { p_emp: empId, p_notice: id, p_on: !!on })); }
 export async function listNoticeAcks(id) { return must(await sb.from("pr_notice_ack").select("*").eq("notice_id", id)); }

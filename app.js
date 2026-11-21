@@ -836,10 +836,18 @@ const WHATS_NEW = [
       "📶 If the internet drops for a moment, saves like date hired and signature are retried automatically."] },
 ];
 const newSeenKey = () => "pr_new_seen_" + (EMP.no || "");
+// last confirmed "what's new" id: this phone OR the server (owner 2026-11-21: confirmed notices never pop up again,
+// even on another phone — they stay on the 📢 notice tab). supabase/pr_news_seen.sql
+const newSeen = () => { let s = ""; try { s = localStorage.getItem(newSeenKey()) || ""; } catch (e) {} const v = EMP.newsSeen || ""; return v > s ? v : s; };
+function markNewSeen() {
+  const id = WHATS_NEW[0].id; if (newSeen() >= id) return;
+  try { localStorage.setItem(newSeenKey(), id); } catch (e) {}
+  EMP.newsSeen = id; if (!EMP.preview) db.empNewsSeen(EMP.no, EMP.pin, id).catch(() => {});
+}
 /* ---- 📢 staff notice board (owner 2026-11-18): every notice in one tab — policies (NOTICES) + all WHATS_NEW entries,
    newest first. Entries with popup: false (old / resolved) are only here. ---- */
 function myBoardTab(emp) {
-  let seen = ""; try { seen = localStorage.getItem(newSeenKey()) || ""; } catch (e) {}
+  const seen = newSeen();
   const pol = (typeof NOTICES !== "undefined" ? NOTICES : []).filter(n => forEmp(n, emp));
   const news = WHATS_NEW.filter(n => forEmp(n, emp));
   const ul = lines => h("ul", { style: "margin:6px 0 0;padding-left:20px;line-height:1.5" }, lines.map(x => h("li", { style: "margin-bottom:4px" }, x)));
@@ -866,7 +874,7 @@ function myBoardTab(emp) {
 }
 /* home: banner at the very top when something on the 📢 tab still needs checking (owner 2026-11-20 "확인해야하는게 맨위로") */
 function myBoardAlert(emp) {
-  let seen = ""; try { seen = localStorage.getItem(newSeenKey()) || ""; } catch (e) {}
+  const seen = newSeen();
   const nPol = NOTICES.filter(n => forEmp(n, emp) && !noticeDone(n.id) && !noticePast(n)).length;   // past the deadline: no more alerts
   const nNew = WHATS_NEW.filter(n => forEmp(n, emp) && n.id > seen).length;
   if (!nPol && !nNew) return null;
@@ -876,11 +884,11 @@ function myBoardAlert(emp) {
     h("div", { class: "muted", style: "margin-top:4px" }, "👉 " + evL("눌러서 공지 탭 보기", "Tap to open the Notices tab")));
 }
 function whatsNewSheet(all) {
-  let seen = ""; try { seen = localStorage.getItem(newSeenKey()) || ""; } catch (e) {}
+  const seen = newSeen();
   const mine = WHATS_NEW.filter(n => forEmp(n, EMP.data?.employee));
   // popup only for important new entries (owner 2026-11-18): popup !== false and less than 7 days old; the rest live on the 📢 notice tab
   const list = all ? mine : mine.filter(n => n.id > seen && n.popup !== false && n.id.slice(0, 10) >= addD(today(), -7)); if (!list.length) return false;
-  const done = () => { try { localStorage.setItem(newSeenKey(), WHATS_NEW[0].id); } catch (e) {} close(); };
+  const done = () => { markNewSeen(); close(); };
   const close = sheet([h("h3", {}, "🆕 " + t("new_title")),
     ...list.map(n => h("div", { style: "margin-bottom:10px" }, h("b", {}, n.id), h("ul", { style: "margin:4px 0 0;padding-left:20px;line-height:1.5" }, (n[lang] || n.en).map(x => h("li", { style: "margin-bottom:4px" }, x))))),
     h("div", { class: "row", style: "margin-top:8px" }, h("span", { class: "sp" }), h("button", { class: "btn primary", type: "button", id: "new-ok", onclick: done }, t("new_ok")))], { lock: !all });   // 처음 뜰 때는 '확인했어요'를 눌러야만 닫힘
@@ -968,7 +976,7 @@ async function checkNotices() {
   if (EMP.preview) return false;
   let r; try { r = await db.empNoticeGet(EMP.no, EMP.pin); } catch { return false; }
   if (!r?.ok) return false;
-  EMP.notices = r.acks || []; EMP.noticeLater ||= {};
+  EMP.notices = r.acks || []; EMP.noticeLater ||= {}; if (r.news_seen && r.news_seen > (EMP.newsSeen || "")) EMP.newsSeen = r.news_seen;
   let cutSeen = n => { try { return !!localStorage.getItem(cutSeenKey(n)); } catch { return false; } };
   const n = NOTICES.find(n => forEmp(n, EMP.data?.employee) && !noticeDone(n.id) && !(noticePast(n) && cutSeen(n)) && !(EMP.noticeLater[n.id] > Date.now() - 30 * 60000));
   if (!n || document.querySelector("#notice-pop")) return !!n;
