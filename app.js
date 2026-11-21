@@ -543,7 +543,7 @@ function myDocsTab(v, emp) {
         list(rows.map(a => item(`${absIsConf(a) ? t("lt_conf") : t("lt_ex")} · ${absDayL(a.day)}`, absKindL(a.kind) + " · " + absStL(a), () => docSheet(absDoc(a, me, v.signature), absDocName(a, me)))))); };
       if (EMP.abs) fill(EMP.abs); else loadMyAbs().then(fill); return c; })(),
     (() => { const c = h("div", { class: "card", id: "my-warn-docs" }); const fill = rows => { c.innerHTML = ""; if (!rows.length) { c.hidden = true; return; } c.hidden = false;
-        c.append(h("h2", {}, "⚠️ " + evL("경고 통지서", "Warning notices")), list(rows.map(w => item(`${absDayL(String(w.day))} · ${warnCatL(w.cat)}`, warnStepL(w.step) + " · " + (w.ack_at ? evL("사인함 ", "Signed ") + fmtD(w.ack_at) : evL("사인 전", "Not signed yet")), () => docSheet(warnDoc(w, me, v.signature, rows), warnDocName(w, me)))))); };
+        c.append(h("h2", {}, "⚠️ " + evL("경고 통지서 · IR", "Warning notices · IR")), list(rows.map(w => item(`${absDayL(String(w.day))} · ${warnCatL(w.cat)}`, warnTagL(w) + " · " + (w.ack_at ? evL("사인함 ", "Signed ") + fmtD(w.ack_at) : evL("사인 전", "Not signed yet")), () => docSheet(warnDoc(w, me, v.signature, rows), warnDocName(w, me)))))); };
       c.hidden = true; if (EMP.warn) fill(EMP.warn); else loadMyWarn().then(fill); return c; })(),
     h("div", { class: "card" }, h("h2", {}, t("docs_adv")),
       list(advs.map(l => item(`${l.biz_date} · ₱${money(l.amount)}`, l.deducted ? t("led_deducted") : t("led_pending"), () => printAdvance(l, emp, v.signature))))),
@@ -719,6 +719,9 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-21d", popup: false,
+    ko: ["📝 IR(경위서) 요청이 생겼어요. 사장님이 IR을 요청하면 앱을 열 때 뜨고, 무슨 일이 있었는지 써서 제출하면 돼요. 경고가 아니라 횟수에 안 들어가요 (서류 탭에서 인쇄)."],
+    en: ["📝 New: IR (incident report) requests. When the owner asks for an IR it pops up when you open the app — write what happened and submit. It is not a warning and is not counted (print it in the Documents tab)."] },
   { id: "2026-11-21c", popup: false,
     ko: ["🎁 13th month를 일부 먼저 받았으면 이제 앱에 보여요 (홈 급여 내역 · 13th month 날짜 카드). '받으셨나요?' 카드는 남은 금액만 물어봐요."],
     en: ["🎁 If you got part of your 13th month first, the app now shows it (pay history on Home · 13th month date card). The 'Did you receive it?' card asks only about the rest."] },
@@ -1991,14 +1994,18 @@ const ordEn = n => n + (n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd
 const warnStepL = n => n ? evL(`${n}회 · ${WARN_STEP[Math.min(n, 5)][0]}`, `${ordEn(n)} · ${WARN_STEP[Math.min(n, 5)][1]}`) : evL("참고 (횟수 제외)", "Reference (not counted)");
 const warnActL = w => w.step ? evL(`${w.step}회 · `, `${ordEn(w.step)} · `) + (w.action || WARN_STEP[Math.min(w.step, 5)][lang === "ko" ? 0 : 1]) : warnStepL(null) + (w.action ? " · " + w.action : "");
 const warnStepEn = n => n ? `${ordEn(n)} violation — ${WARN_STEP[Math.min(n, 5)][1]}` : "For reference only (not counted)";
+const isIR = w => w.kind === "ir";
+const warnTagL = w => isIR(w) ? "📝 " + evL("IR 요청 (경고 아님)", "IR request (not a warning)") : warnStepL(w.step);
 const warnLate = w => !w.explain && new Date(w.explain_by) < new Date();
 const warnPill = w => h("span", { class: "pill " + (w.ack_at ? "paid" : w.refused_at ? "late" : "draft") },
+  isIR(w) ? (w.ack_at ? evL("IR 제출함", "IR submitted") : w.refused_at ? evL("서명 거부", "Refused to sign") : evL("IR 써 주세요", "Please write IR")) :
   w.ack_at ? evL("확인·사인함", "Signed") : w.refused_at ? evL("서명 거부", "Refused to sign") : evL("확인 필요", "Please confirm"));
 const warnErr = e => ({ warn_late: evL("해명 기한(통지 후 5일)이 지났어요", "The 5-day explanation period has ended"), warn_explained: evL("해명은 이미 냈어요", "You already sent an explanation"),
-  need_sig: evL("먼저 사인을 등록해 주세요", "Please register your signature first"), noData: t("noData") })[e] || pinErr(e, "noData");
-const warnDocName = (w, e) => `Warning notice - ${fullName(e)} - ${w.day}`;
+  ir_need: evL("무슨 일이 있었는지 IR을 적어 주세요", "Please write your incident report"), need_sig: evL("먼저 사인을 등록해 주세요", "Please register your signature first"), noData: t("noData") })[e] || pinErr(e, "noData");
+const warnDocName = (w, e) => `${isIR(w) ? "Incident report" : "Warning notice"} - ${fullName(e)} - ${w.day}`;
 // printable notice; hist = the other warnings of the same group (for the record table)
 function warnDoc(w, e, sig, hist) {
+  if (isIR(w)) return irDoc(w, e, sig);
   e = e || {}; const name = fullName(e);
   const cell = "padding:6px;border:1px solid #999;vertical-align:top";
   const row = (x, y) => h("tr", {}, h("th", { style: cell + ";text-align:left;width:34%;background:#f3f3f3" }, x), h("td", { style: cell }, y));
@@ -2028,9 +2035,58 @@ function warnDoc(w, e, sig, hist) {
     h("div", { style: "display:flex;gap:40px;margin-top:30px" }, sigLine("Employee signature / Date", w.ack_at ? sig : null, w.ack_at ? fmtD(w.ack_at) : ""),
       sigLine("Manager" + (mgrName() ? " / " + mgrName() : "") + " / Date", mgrSig(), fmtD(w.issued_at))));
 }
+// 📝 IR (incident report) — not a warning; the employee writes what happened
+function irDoc(w, e, sig) {
+  e = e || {}; const name = fullName(e);
+  const cell = "padding:6px;border:1px solid #999;vertical-align:top";
+  const row = (x, y) => h("tr", {}, h("th", { style: cell + ";text-align:left;width:34%;background:#f3f3f3" }, x), h("td", { style: cell }, y));
+  const dt = d => new Date(String(d).slice(0, 10) + "T00:00:00").toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" });
+  return h("div", { class: "slip", style: "font-family:Arial,sans-serif;color:#000;background:#fff;padding:24px;max-width:720px;font-size:14px" },
+    h("h2", { style: "text-align:center;margin:0 0 4px" }, "INCIDENT REPORT / 경위서"), h("div", { style: "text-align:center;margin-bottom:14px" }, "Paltong"),
+    h("table", { style: "width:100%;border-collapse:collapse" },
+      row("Employee", name + (e.position ? " · " + e.position : "")), row("Date requested", dt(w.issued_at)), row("Date of incident", dt(w.day)),
+      row("Type", warnCatEn(w.cat) + (w.order_no ? " · Order #" + String(w.order_no).replace(/^#/, "") : "")),
+      row("Incident", h("div", { style: "white-space:pre-wrap" }, w.detail)),
+      (w.proof_n ?? (w.proof || []).length) ? row("Evidence", `${w.proof_n ?? w.proof.length} screenshot(s) on file`) : null),
+    h("p", { style: "margin:12px 0 0" }, "This is a request for an incident report, not a warning. It is not counted as a violation."),
+    h("h3", { style: "margin:16px 0 6px" }, "Employee's report / 직원 경위"),
+    h("div", { style: "border:1px solid #999;min-height:140px;padding:10px;white-space:pre-wrap" }, w.explain ? w.explain + (w.explain_at ? `\n\n(${fmtD(w.explain_at)})` : "") : ""),
+    h("p", { style: "font-size:13px;margin:14px 0 0" }, "I confirm that the report above is true and correct to the best of my knowledge."),
+    h("div", { style: "display:flex;gap:40px;margin-top:30px" }, sigLine("Employee signature / Date", w.ack_at ? sig : null, w.ack_at ? fmtD(w.ack_at) : ""),
+      sigLine("Manager" + (mgrName() ? " / " + mgrName() : "") + " / Date", mgrSig(), fmtD(w.issued_at))));
+}
+function irSheet(w, emp, sig, done) {
+  const canWrite = !w.explain && !warnLate(w);
+  const ex = canWrite ? h("textarea", { id: "ir-text", rows: 7, maxlength: 1500, style: "width:100%", placeholder: evL("예: 주문 받은 시간 → 조리 → 포장 → 배달, 무엇이 왜 잘못됐는지, 앞으로 어떻게 할지", "e.g. time the order came in → cooking → packing → delivery, what went wrong and why, what you will do next time") }) : null;
+  const proofBox = h("div", { class: "row", style: "gap:6px;flex-wrap:wrap" });
+  const showProof = async btn => { btn.disabled = true; try { const r = await db.empWarnProof(EMP.no, EMP.pin, w.id); proofBox.innerHTML = "";
+      (r.proof || []).forEach(p => proofBox.append(h("img", { src: p, style: "width:100%;max-width:320px;border-radius:6px;border:1px solid var(--line)" }))); btn.remove(); } catch (e) { btn.disabled = false; toast(errMsg(e)); } };
+  const go = canWrite ? h("button", { class: "btn primary", type: "button", id: "ir-send", style: "flex:1;padding:12px;font-size:16px" }, "✍️ " + evL("IR 제출 (사인)", "Submit IR (sign)")) : null;
+  if (go) go.onclick = async () => {
+    const txt = ex.value.trim(); if (txt.length < 20) return toast(evL("무슨 일이 있었는지 자세히 적어 주세요", "Please write what happened in detail"));
+    go.disabled = true;
+    try { const r = await db.empWarnAck(EMP.no, EMP.pin, w.id, txt); if (!r.ok) throw new Error(warnErr(r.err));
+      w.ack_at = r.ack_at || w.ack_at; w.explain = txt; w.explain_at = r.explain_at;
+      close(); toast(evL("IR을 제출했어요 · 서류 탭에서 인쇄할 수 있어요", "IR submitted · you can print it in the Documents tab")); done && done(true);
+    } catch (e) { go.disabled = false; toast(errMsg(e)); } };
+  const later = h("button", { class: "btn", type: "button", id: "ir-later", onclick: () => { close(); done && done(false); } }, w.explain ? t("close") : evL("나중에", "Later"));
+  const close = sheet([h("h3", { id: "ir-pop", style: "color:var(--gold)" }, "📝 " + evL("IR (경위서) 작성 요청", "Incident Report (IR) request")),
+    h("div", { style: "border:2px solid var(--gold);border-radius:8px;padding:10px;line-height:1.55" },
+      h("div", {}, h("b", {}, absDayL(String(w.day))), " · ", h("b", {}, warnCatL(w.cat)), w.order_no ? " · #" + String(w.order_no).replace(/^#/, "") : ""),
+      h("div", { style: "white-space:pre-wrap;margin:6px 0;font-size:15px" }, w.detail),
+      w.proof_n ? h("div", { style: "margin-top:6px" }, h("button", { class: "btn sm", type: "button", onclick: e => showProof(e.currentTarget) }, `📷 ${evL("증빙 보기", "See evidence")} (${w.proof_n})`), proofBox) : null),
+    h("small", { class: "muted", style: "display:block;margin:8px 0" }, evL(
+      `경고가 아니에요 (횟수에 안 들어가요). 무슨 일이 있었는지, 왜 그렇게 됐는지 사실대로 적어 주세요. 기한: ${fmtD(w.explain_by)}. 기한까지 안 내면 할 말이 없는 것으로 보고 있는 기록으로 판단해요.`,
+      `This is not a warning (not counted). Please write honestly what happened and why. Deadline: ${fmtD(w.explain_by)}. If nothing is submitted by then, it will be decided on the available records.`)),
+    w.explain ? h("div", { style: "background:var(--line);border-radius:6px;padding:8px;white-space:pre-wrap" }, "📝 " + w.explain) : null,
+    ex, !canWrite && !w.explain ? h("small", { class: "muted" }, warnErr("warn_late")) : null,
+    h("div", { class: "row", style: "margin-top:10px;gap:8px" }, later, go),
+    h("div", { class: "row", style: "margin-top:6px" }, h("span", { class: "sp" }), h("button", { class: "btn sm ghost", type: "button", onclick: () => docSheet(irDoc(w, emp, sig), warnDocName(w, emp)) }, "🖨 " + t("print")))], { lock: true });
+}
 /* staff */
 async function loadMyWarn() { try { const r = await db.empWarnings(EMP.no, EMP.pin); EMP.warn = r.ok ? r.rows || [] : []; } catch { EMP.warn = EMP.warn || []; } return EMP.warn; }
 function warnSheet(w, emp, sig, done) {
+  if (isIR(w)) return irSheet(w, emp, sig, done);
   const canExplain = !w.explain && !warnLate(w);
   const ex = canExplain ? h("textarea", { id: "warn-explain", rows: 4, maxlength: 1500, style: "width:100%", placeholder: evL("해명 (선택 · 5일 안에, 한 번만 낼 수 있어요)", "Your explanation (optional · within 5 days, can be sent once)") }) : null;
   const proofBox = h("div", { class: "row", style: "gap:6px;flex-wrap:wrap" });
@@ -2077,10 +2133,10 @@ function myWarnCard(v, emp) {
   const rows = EMP.warn; if (!rows.length) return null;
   const by = {}; for (const w of rows) if (w.step) { const g = warnGrp(w.cat); by[g] = Math.max(by[g] || 0, w.step); }
   return h("div", { class: "card", id: "my-warn", style: rows.some(w => !w.ack_at) ? "border:2px solid var(--bad)" : "" },
-    h("h2", {}, "⚠️ " + evL("경고", "Warnings")),
+    h("h2", {}, rows.every(isIR) ? "📝 IR" : "⚠️ " + evL("경고 · IR", "Warnings · IR")),
     h("small", { class: "muted" }, Object.entries(by).map(([g, n]) => `${warnGrpL(g)} ${n}${evL("회", "x")}`).join(" · ") || evL("횟수에 들어가는 경고 없음", "No counted warnings")),
     h("div", { class: "list", style: "margin-top:8px" }, rows.slice(0, 10).map(w => h("div", { class: "item", style: "cursor:pointer", onclick: () => warnSheet(w, emp, v.signature, () => renderStaffHome()) },
-      h("div", { class: "t" }, absDayL(String(w.day)) + " · " + warnCatL(w.cat)), h("div", { class: "s" }, warnStepL(w.step) + " · " + w.detail.slice(0, 60)), h("div", { class: "m" }, warnPill(w))))));
+      h("div", { class: "t" }, absDayL(String(w.day)) + " · " + warnCatL(w.cat)), h("div", { class: "s" }, warnTagL(w) + " · " + w.detail.slice(0, 60)), h("div", { class: "m" }, warnPill(w))))));
 }
 /* owner */
 async function warnAdminCard() {
@@ -2107,7 +2163,7 @@ async function warnAdminCard() {
   const line = w => { const e = empOf(w.employee_id);
     return h("div", { class: "item", style: "display:block" + (w.status === "void" ? ";opacity:.55" : "") },
       h("div", { class: "row", style: "align-items:center;gap:6px;flex-wrap:wrap" }, h("b", {}, e.name || "?"), h("span", {}, absDayL(String(w.day))), h("span", {}, warnCatL(w.cat)),
-        h("b", { style: w.step >= 3 ? "color:var(--bad)" : "" }, warnStepL(w.step)), w.status === "void" ? h("span", { class: "pill" }, evL("무효", "Void")) : warnPill(w), h("span", { class: "sp" }),
+        h("b", { style: w.step >= 3 ? "color:var(--bad)" : "" }, warnTagL(w)), w.status === "void" ? h("span", { class: "pill" }, evL("무효", "Void")) : warnPill(w), h("span", { class: "sp" }),
         h("button", { class: "btn sm", type: "button", onclick: () => print(w) }, "🖨"),
         w.status === "active" ? h("button", { class: "btn sm", type: "button", onclick: () => proofEdit(w) }, "📷") : null,
         w.status === "active" && !w.ack_at && !w.refused_at ? h("button", { class: "btn sm", type: "button", onclick: () => op(w, "refused", evL(`${e.name} — 서명 거부로 기록할까요?`, `Record that ${e.name} refused to sign?`), evL("메모 · 증인 (예: 11/21 Mina 앞에서 거부)", "Note · witness")) }, evL("서명 거부", "Refused")) : null,
@@ -2119,7 +2175,7 @@ async function warnAdminCard() {
   const refresh = async () => { const c = await warnAdminCard(); card.replaceWith(c); };
   const open = act.filter(w => !w.ack_at && !w.refused_at);
   card.append(h("div", { class: "row" }, h("h2", {}, "⚠️ " + evL("경고", "Warnings")), h("span", { class: "sp" }),
-      h("button", { class: "btn primary", type: "button", id: "warn-add", onclick: () => warnAddSheet(emps, act, refresh) }, "+ " + evL("경고 등록", "Add warning"))),
+      h("button", { class: "btn primary", type: "button", id: "warn-add", onclick: () => warnAddSheet(emps, act, refresh) }, "+ " + evL("경고 · IR 등록", "Add warning · IR"))),
     h("small", { class: "muted" }, evL("응대·캐시북 합산(9/1부터 1년), 지각·무단결석 각각(11/18부터 1년) · 1회 서면 경고 → 2회 사유서 → 3회 징계 → 4회 정직(최대 7일) → 5회+ 손해배상·해고 절차. 등록하면 직원 앱에 바로 떠요 → 직원이 사인 + 5일 안에 해명.",
       "Service + cash book together (yearly from 9/1), tardiness / absence each (yearly from 11/18) · 1 written warning → 2 explanation → 3 disciplinary → 4 suspension (≤7 days) → 5+ damages / termination. Staff see it in the app right away → sign + explain within 5 days.")),
     sumRows.length ? h("div", { class: "tbl", style: "margin-top:8px" }, h("table", {}, h("tr", {}, h("th", {}, evL("직원", "Staff")), h("th", {}, warnGrpL("svc")), h("th", {}, warnCatL("late")), h("th", {}, warnCatL("absent"))),
@@ -2138,33 +2194,37 @@ function warnAddSheet(emps, act, done) {
   const order = h("input", { type: "text", id: "warn-order", maxlength: 60, placeholder: evL("주문번호 (선택)", "Order no. (optional)") });
   const verbal = h("input", { type: "date", id: "warn-verbal", max: today() });
   const counted = h("input", { type: "checkbox", id: "warn-counted", checked: true });
+  const ir = h("input", { type: "checkbox", id: "warn-ir" });
+  const warnOnly = h("div", {});
   const action = h("input", { type: "text", id: "warn-action", maxlength: 200 });
   const preview = h("div", { id: "warn-step", style: "font-weight:700;margin:6px 0" });
   const catBox = h("div", { class: "row", style: "gap:6px;flex-wrap:wrap;margin:4px 0 8px" });
   // same counting as the server view: group + yearly window, by day order
-  const calc = () => { if (!emp.value || !st.cat || !day.value || !counted.checked) return null;
+  const calc = () => { if (!emp.value || !st.cat || !day.value || !counted.checked || ir.checked) return null;
     const start = warnGrp(st.cat) === "svc" ? "2026-09-01" : "2026-11-18"; if (day.value < start) return null;
     const win = d => { let s = start; for (;;) { const n = String(+s.slice(0, 4) + 1) + s.slice(4); if (d >= n) s = n; else return s; } };
     return act.filter(w => w.employee_id === emp.value && w.grp === warnGrp(st.cat) && w.step && win(String(w.day)) === win(day.value) && String(w.day) <= day.value).length + 1; };
   const upd = () => { catBox.innerHTML = ""; Object.keys(WARN_CAT).forEach(k => catBox.append(h("button", { class: "btn" + (st.cat === k ? " primary" : ""), type: "button", id: "warn-cat-" + k, onclick: () => { st.cat = k; upd(); } }, warnCatL(k))));
-    const n = calc(); preview.textContent = st.cat && emp.value ? "→ " + warnStepL(n) : ""; preview.style.color = n >= 3 ? "var(--bad)" : "";
+    warnOnly.style.display = ir.checked ? "none" : "";
+    const n = calc(); preview.textContent = st.cat && emp.value ? "→ " + (ir.checked ? warnTagL({ kind: "ir" }) : warnStepL(n)) : ""; preview.style.color = n >= 3 ? "var(--bad)" : "";
     action.placeholder = n ? WARN_STEP[Math.min(n, 5)][lang === "ko" ? 0 : 1] : evL("조치 (선택)", "Action (optional)"); };
-  emp.onchange = day.onchange = counted.onchange = upd; upd();
+  emp.onchange = day.onchange = counted.onchange = ir.onchange = upd; upd();
   const send = h("button", { class: "btn primary", type: "button", id: "warn-send" }, evL("등록 · 직원에게 보내기", "Save · send to staff"));
   send.onclick = async () => {
     if (!emp.value) return toast(evL("직원을 골라 주세요", "Pick the staff")); if (!st.cat) return toast(evL("구분을 골라 주세요", "Pick the type"));
     if (!detail.value.trim()) return toast(evL("내용을 적어 주세요", "Write what happened"));
     send.disabled = true;
-    try { const r = await db.warnAdd({ employee_id: emp.value, day: day.value, cat: st.cat, detail: detail.value, order_no: order.value, action: action.value, verbal_on: verbal.value || null, counted: counted.checked, proof: st.photos });
+    try { const r = await db.warnAdd({ employee_id: emp.value, day: day.value, cat: st.cat, detail: detail.value, order_no: order.value, action: action.value, verbal_on: verbal.value || null, counted: counted.checked && !ir.checked, proof: st.photos, kind: ir.checked ? "ir" : "warning" });
       if (!r.ok) throw new Error(r.err === "bad_proof" ? evL("사진을 다시 올려 주세요", "Attach the photos again") : t("noData"));
-      close(); toast(evL(`등록했어요 · ${warnStepL(r.step)}`, `Saved · ${warnStepL(r.step)}`)); done && done();
+      const tag = warnTagL({ kind: r.kind, step: r.step }); close(); toast(evL(`등록했어요 · ${tag}`, `Saved · ${tag}`)); done && done();
     } catch (e) { send.disabled = false; toast(errMsg(e)); } };
   const close = sheet([h("h3", {}, "⚠️ " + evL("경고 등록", "Add warning")),
     field(evL("직원", "Staff"), emp), field(evL("사건 날짜", "Date of incident"), day),
     h("label", { style: "font-weight:700" }, evL("구분", "Type")), catBox, field(evL("내용", "Details"), detail), order, preview,
-    field(evL("조치 (비우면 단계 기본 문구)", "Action (empty = default for the count)"), action),
-    field(evL("구두 경고 한 날 (있으면)", "Verbal warning given on (if any)"), verbal),
-    h("label", { class: "check" }, counted, evL("횟수에 넣기 (끄면 참고 기록)", "Count it (off = reference only)")),
+    h("label", { class: "check" }, ir, evL("📝 IR(경위서)만 요청 — 경고 아님, 횟수 제외", "📝 Ask for an IR only — not a warning, not counted")),
+    (warnOnly.append(field(evL("조치 (비우면 단계 기본 문구)", "Action (empty = default for the count)"), action),
+      field(evL("구두 경고 한 날 (있으면)", "Verbal warning given on (if any)"), verbal),
+      h("label", { class: "check" }, counted, evL("횟수에 넣기 (끄면 참고 기록)", "Count it (off = reference only)"))), warnOnly),
     h("label", { style: "font-weight:700;display:block;margin-top:8px" }, evL("증빙 캡처 (최대 3장, 선택)", "Evidence screenshots (up to 3, optional)")), absPhotoPicker(st.photos, () => { }),
     h("div", { class: "row", style: "margin-top:12px" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => close() }, t("cancel")), send)]);
 }
