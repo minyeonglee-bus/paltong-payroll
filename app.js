@@ -874,13 +874,13 @@ function myBoardTab(emp) {
 }
 /* home: banner at the very top when something on the 📢 tab still needs checking (owner 2026-11-20 "확인해야하는게 맨위로") */
 function myBoardAlert(emp) {
-  const seen = newSeen();
+  // owner 2026-11-21: only things staff must act on (agree / documents) — new-feature news no longer shows here
+  // (it pops up once, then stays on the 📢 tab). Pay received, 13th month and 'Please confirm' have their own top cards.
   const nPol = NOTICES.filter(n => forEmp(n, emp) && !noticeDone(n.id) && !noticePast(n)).length;   // past the deadline: no more alerts
-  const nNew = WHATS_NEW.filter(n => forEmp(n, emp) && n.id > seen).length;
-  if (!nPol && !nNew) return null;
+  if (!nPol) return null;
   return h("div", { class: "card", id: "board-alert", style: "border:2px solid var(--accent);cursor:pointer", onclick: () => { EMP.tab = "board"; renderStaffHome(); } },
-    h("b", {}, "⚠️ " + evL("확인해야 할 공지가 있어요", "You have notices to check")), " ",
-    h("span", {}, [nPol ? evL(`동의 필요 ${nPol}개`, `${nPol} to agree`) : null, nNew ? evL(`새 공지 ${nNew}개`, `${nNew} new`) : null].filter(Boolean).join(" · ")),
+    h("b", {}, "⚠️ " + evL("동의해야 할 공지가 있어요", "You have a notice to agree to")), " ",
+    h("span", {}, evL(`동의 필요 ${nPol}개`, `${nPol} to agree`)),
     h("div", { class: "muted", style: "margin-top:4px" }, "👉 " + evL("눌러서 공지 탭 보기", "Tap to open the Notices tab")));
 }
 function whatsNewSheet(all) {
