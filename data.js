@@ -278,6 +278,7 @@ export async function listWarnings({ employeeId, withProof = false, withVoid = f
 }
 export async function warnProof(id) { const r = must(await sb.from("pr_warnings").select("proof").eq("id", id).maybeSingle()); return r?.proof || []; }
 export async function warnAdd(w) { return must(await sb.rpc("pr_warn_add", { p_emp: w.employee_id, p_day: w.day, p_cat: w.cat, p_detail: w.detail, p_order: w.order_no || null, p_action: w.action || null, p_verbal: w.verbal_on || null, p_counted: w.counted !== false, p_proof: w.proof || [] })); }
+export async function warnProofSet(id, proof) { return must(await sb.rpc("pr_warn_proof_set", { p_id: id, p_proof: proof || [] })); }
 export async function warnSet(id, op, note) { return must(await sb.rpc("pr_warn_set", { p_id: id, p_op: op, p_note: note || null })); }
 export async function empWarnings(no, pin) { if (PREVIEW) return { ok: true, rows: (await listWarnings({ employeeId: PREVIEW })).map(w => ({ ...w, proof_n: null })) }; return must(await sb.rpc("pr_emp_warnings", { p_no: String(no).trim(), p_pin: String(pin) })); }
 export async function empWarnProof(no, pin, id) { if (PREVIEW) return { ok: true, proof: await warnProof(id) }; return must(await sb.rpc("pr_emp_warn_proof", { p_no: String(no).trim(), p_pin: String(pin), p_id: id })); }

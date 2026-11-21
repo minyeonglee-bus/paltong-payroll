@@ -2081,11 +2081,19 @@ async function warnAdminCard() {
   const op = (w, o, ask, withNote) => { const note = withNote ? h("input", { type: "text", maxlength: 300, style: "width:100%", placeholder: withNote }) : null;
     const close = sheet([h("h3", {}, ask), note, h("div", { class: "row", style: "margin-top:10px" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => close() }, t("cancel")),
       h("button", { class: "btn primary", type: "button", onclick: async () => { try { const r = await db.warnSet(w.id, o, note?.value); if (!r.ok) throw new Error(t("noData")); close(); refresh(); } catch (e) { toast(errMsg(e)); } } }, t("ok")))]); };
+  // owner: add / change the evidence screenshots of a registered warning (staff see them under "See evidence")
+  const proofEdit = async w => { let photos = []; try { photos = await db.warnProof(w.id); } catch (e) { return toast(errMsg(e)); }
+    const save = h("button", { class: "btn primary", type: "button", id: "warn-proof-save" }, t("save"));
+    const close = sheet([h("h3", {}, "📷 " + evL("증빙 캡처 (최대 3장)", "Evidence screenshots (up to 3)")), h("small", { class: "muted" }, `${empOf(w.employee_id).name || ""} · ${absDayL(String(w.day))} · ${warnCatL(w.cat)}`),
+      absPhotoPicker(photos, () => { }), h("div", { class: "row", style: "margin-top:12px" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => close() }, t("cancel")), save)]);
+    save.onclick = async () => { save.disabled = true; try { const r = await db.warnProofSet(w.id, photos); if (!r.ok) throw new Error(r.err === "bad_proof" ? evL("사진을 다시 올려 주세요", "Attach the photos again") : t("noData"));
+      close(); toast(evL("증빙을 저장했어요", "Evidence saved")); refresh(); } catch (e) { save.disabled = false; toast(errMsg(e)); } }; };
   const line = w => { const e = empOf(w.employee_id);
     return h("div", { class: "item", style: "display:block" + (w.status === "void" ? ";opacity:.55" : "") },
       h("div", { class: "row", style: "align-items:center;gap:6px;flex-wrap:wrap" }, h("b", {}, e.name || "?"), h("span", {}, absDayL(String(w.day))), h("span", {}, warnCatL(w.cat)),
         h("b", { style: w.step >= 3 ? "color:var(--bad)" : "" }, warnStepL(w.step)), w.status === "void" ? h("span", { class: "pill" }, evL("무효", "Void")) : warnPill(w), h("span", { class: "sp" }),
         h("button", { class: "btn sm", type: "button", onclick: () => print(w) }, "🖨"),
+        w.status === "active" ? h("button", { class: "btn sm", type: "button", onclick: () => proofEdit(w) }, "📷") : null,
         w.status === "active" && !w.ack_at && !w.refused_at ? h("button", { class: "btn sm", type: "button", onclick: () => op(w, "refused", evL(`${e.name} — 서명 거부로 기록할까요?`, `Record that ${e.name} refused to sign?`), evL("메모 · 증인 (예: 11/21 Mina 앞에서 거부)", "Note · witness")) }, evL("서명 거부", "Refused")) : null,
         w.status === "active" && w.refused_at && !w.ack_at ? h("button", { class: "btn sm ghost", type: "button", onclick: () => op(w, "unrefused", evL("서명 거부 기록을 지울까요?", "Remove the refusal?")) }, evL("거부 취소", "Undo refusal")) : null,
         w.status === "active" ? h("button", { class: "btn sm ghost", type: "button", onclick: () => op(w, "void", evL("이 경고를 무효로 할까요? 횟수에서 빠지고 직원 화면에서 사라져요.", "Void this warning? It leaves the count and the staff screen."), evL("사유 (선택)", "Reason (optional)")) }, evL("무효", "Void"))

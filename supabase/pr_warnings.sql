@@ -160,3 +160,16 @@ begin
 end $$;
 drop trigger if exists pr_warn_notify on public.pr_warnings;
 create trigger pr_warn_notify after update of ack_at, explain on public.pr_warnings for each row execute function public.pr_warn_notify();
+
+-- 사장님: 등록한 경고의 증빙 사진 바꾸기 (최대 3장) — 11/21
+create or replace function public.pr_warn_proof_set(p_id uuid, p_proof jsonb)
+returns jsonb language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_owner() then raise exception 'not allowed'; end if;
+  if not public.pr_warn_proof_ok(coalesce(p_proof, '[]'::jsonb)) then return jsonb_build_object('ok', false, 'err', 'bad_proof'); end if;
+  update public.pr_warnings set proof = coalesce(p_proof, '[]'::jsonb) where id = p_id and status = 'active';
+  if not found then return jsonb_build_object('ok', false, 'err', 'noData'); end if;
+  return jsonb_build_object('ok', true);
+end $$;
+revoke all on function public.pr_warn_proof_set(uuid, jsonb) from public, anon;
+grant execute on function public.pr_warn_proof_set(uuid, jsonb) to authenticated;
