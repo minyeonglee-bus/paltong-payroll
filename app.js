@@ -141,6 +141,9 @@ const I18N = {
   },
 };
 let lang = "ko"; try { lang = localStorage.getItem("pp-lang") || "ko"; } catch {}
+// 직원 서류 문구 — 큰 I18N 줄과 따로 둬서 병합 충돌을 피함
+Object.assign(I18N.ko, { doc_title: "📁 서류", doc_help: "COE·계약서 등 PDF나 사진을 보관해요 (1개 최대 8MB). 사장님만 볼 수 있어요.", doc_name: "서류 이름", doc_namePh: "예: COE", doc_file: "파일 (PDF·사진)", doc_up: "올리기", doc_none: "보관된 서류가 없어요", doc_open: "열기", doc_need: "파일을 골라 주세요", doc_big: "파일이 너무 커요 (최대 8MB)", doc_type: "PDF·PNG·JPG·WEBP만 올릴 수 있어요", doc_saved: "서류를 저장했어요", doc_delQ: "이 서류를 삭제할까요?", doc_loading: "불러오는 중…", doc_needTbl: "서류 기능 DB 설정 전이에요 (supabase/pr_docs.sql 실행 필요)" });
+Object.assign(I18N.en, { doc_title: "📁 Documents", doc_help: "Keep COE, contracts and other PDFs or photos here (max 8MB each). Only the owner can see them.", doc_name: "Document name", doc_namePh: "e.g. COE", doc_file: "File (PDF / photo)", doc_up: "Upload", doc_none: "No documents yet", doc_open: "Open", doc_need: "Choose a file", doc_big: "The file is too big (max 8MB)", doc_type: "Only PDF, PNG, JPG or WEBP", doc_saved: "Document saved", doc_delQ: "Delete this document?", doc_loading: "Loading…", doc_needTbl: "Documents are not set up in the database yet (run supabase/pr_docs.sql)" });
 const t = k => I18N[lang][k] ?? I18N.ko[k] ?? k;
 const pinErr = (err, fallback = "pinWrong") => t(err === "locked" ? "pinLocked" : err === "closed" ? "pinClosed" : err === "resigned" ? "punchResigned" : fallback);
 // 재직 중이거나, 이 기간 시작일 이후 퇴사한 직원 (마지막 급여 계산용)
@@ -2666,8 +2669,48 @@ function empForm(e) {
     E.id && h("div", { class: "row", style: "align-items:center" }, sigOf(E.id) ? sigImg(sigOf(E.id), "max-height:44px;background:#fff;border-radius:6px;padding:2px") : null,
       h("span", { class: "muted" }, sigOf(E.id) ? tf("sig_on", { d: fmtD(sigOf(E.id).signed_at) }) : t("sig_off")), h("span", { class: "sp" }),
       sigOf(E.id) ? h("button", { class: "btn sm", type: "button", id: "e-reset-sig", onclick: () => confirmSheet(t("sig_reset") + "?", async () => { try { await db.resetSignature(E.id); S.sigs = await db.listSignatures(); toast(t("sig_resetDone")); close(); render(); } catch (er) { toast(errMsg(er)); } }, { ask: true }) }, t("sig_reset")) : null),
+    E.id ? docsBox(E) : null,
     h("div", { class: "row" }, E.id && h("button", { class: "btn danger sm", type: "button", onclick: () => confirmSheet(t("confirmDel"), async () => { await db.deleteEmployee(E.id); S.employees = await db.listEmployees(true); close(); render(); }) }, t("delete")),
       h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => close() }, t("cancel")), h("button", { class: "btn primary", type: "submit" }, t("save")))));
+}
+
+/* ---- 직원 서류 (pr_docs): COE·계약서 등 PDF/사진 보관, 사장님만 ---- */
+const DOC_MIME = ["application/pdf", "image/png", "image/jpeg", "image/webp"], DOC_MAX = 8 * 1024 * 1024;
+const kb = n => n >= 1048576 ? (n / 1048576).toFixed(1) + "MB" : Math.max(1, Math.round(n / 1024)) + "KB";
+function docsBox(E) {
+  const list = h("div", { class: "list" }, h("div", { class: "muted" }, t("doc_loading")));
+  const title = h("input", { type: "text", id: "docTitle", placeholder: t("doc_namePh") });
+  const file = h("input", { type: "file", id: "docFile", accept: DOC_MIME.join(","), onchange: () => { const f = file.files[0]; if (f && !title.value.trim()) title.value = f.name.replace(/\.[^.]+$/, ""); } });
+  async function load() {
+    let docs;
+    try { docs = await db.listDocs(E.id); } catch (er) { list.replaceChildren(h("div", { class: "muted" }, /pr_docs|does not exist|schema cache/i.test(er.raw || er.message) ? t("doc_needTbl") : errMsg(er))); return; }
+    list.replaceChildren(...(docs.length ? docs.map(d => h("div", { class: "item" },
+      h("div", { class: "t" }, (d.mime === "application/pdf" ? "📄 " : "🖼 ") + d.title),
+      h("div", { class: "s" }, `${fmtD(d.created_at)} · ${kb(d.size)}${d.file_name ? " · " + d.file_name : ""}`),
+      h("div", { class: "row" }, h("button", { class: "btn sm", type: "button", onclick: () => openDoc(d.id) }, t("doc_open")),
+        h("button", { class: "btn danger sm", type: "button", onclick: () => confirmSheet(t("doc_delQ"), async () => { try { await db.deleteDoc(d.id); load(); } catch (er) { toast(errMsg(er)); } }) }, t("delete"))))) : [h("div", { class: "muted" }, t("doc_none"))]));
+  }
+  async function upload() {
+    const f = file.files[0]; if (!f) return toast(t("doc_need"));
+    if (!DOC_MIME.includes(f.type)) return toast(t("doc_type")); if (f.size > DOC_MAX) return toast(t("doc_big"));
+    const data = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = no; r.readAsDataURL(f); });
+    try { await db.addDoc({ employee_id: E.id, title: title.value.trim() || f.name, file_name: f.name, mime: f.type, size: f.size, data }); title.value = ""; file.value = ""; toast(t("doc_saved")); load(); }
+    catch (er) { toast(errMsg(er)); }
+  }
+  load();
+  return h("details", { id: "e-docs" }, h("summary", {}, t("doc_title")), h("small", { class: "muted" }, t("doc_help")), list,
+    h("div", { class: "grid2" }, field(t("doc_name"), title), field(t("doc_file"), file)),
+    h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn primary sm", type: "button", id: "docUp", onclick: upload }, t("doc_up"))));
+}
+async function openDoc(id) {
+  const w = window.open("", "_blank"); // 팝업 차단 피하려고 클릭 순간에 창부터 열기
+  try {
+    const d = await db.getDoc(id);
+    const bin = atob(d.data.split(",")[1]); const buf = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+    const url = URL.createObjectURL(new Blob([buf], { type: d.mime }));
+    if (w) w.location = url; else location.href = url;
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (er) { if (w) w.close(); toast(errMsg(er)); }
 }
 
 /* ---- contract §6: semi-monthly highest-sales-day bonus = top day's sales × 2% ÷ staff who worked that day ---- */
