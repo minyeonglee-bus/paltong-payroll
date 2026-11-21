@@ -2003,6 +2003,7 @@ function warnDoc(w, e, sig, hist) {
         ...past.map(x => h("tr", {}, h("td", { style: cell }, ordEn(x.step)), h("td", { style: cell }, x.day), h("td", { style: cell }, warnCatEn(x.cat) + " — " + x.detail),
           h("td", { style: cell }, x.action || WARN_STEP[Math.min(x.step, 5)][1]))))] : null,
     h("p", { style: "margin:14px 0 0" }, (w.step >= 2 ? "Please submit a written explanation" : "You may submit a written explanation") + ` within 5 days of this notice (until ${dt(w.explain_by || new Date(new Date(w.issued_at).getTime() + 5 * 864e5).toISOString())}).`
+      + " If no explanation is received by then, you are deemed to have waived your right to explain and the matter will be decided on the available evidence."
       + (next ? ` Further violations may lead to — ${next}.` : "")),
     h("h3", { style: "margin:16px 0 6px" }, "Employee's explanation / 직원 해명"),
     h("div", { style: "border:1px solid #999;min-height:80px;padding:10px;white-space:pre-wrap" }, w.explain ? w.explain + (w.explain_at ? `\n\n(${fmtD(w.explain_at)})` : "") : ""),
@@ -2038,8 +2039,8 @@ function warnSheet(w, emp, sig, done) {
       h("div", { style: "font-weight:700;color:var(--bad)" }, warnActL(w)),
       w.verbal_on ? h("div", { class: "muted" }, evL("구두 경고: ", "Verbal warning: ") + absDayL(String(w.verbal_on))) : null,
       w.proof_n ? h("div", { style: "margin-top:6px" }, h("button", { class: "btn sm", type: "button", onclick: e => showProof(e.currentTarget) }, `📷 ${evL("증빙 보기", "See evidence")} (${w.proof_n})`), proofBox) : null),
-    h("small", { class: "muted", style: "display:block;margin:8px 0" }, evL("사인은 통지를 받았다는 확인이에요 (잘못을 인정한다는 뜻은 아니에요). 할 말이 있으면 통지 후 5일 안에 해명을 쓸 수 있어요.",
-      "Signing only confirms you received this notice — it does not mean you admit it. If you want to explain, write it within 5 days of the notice.")),
+    h("small", { class: "muted", style: "display:block;margin:8px 0" }, evL("사인은 통지를 받았다는 확인이에요 (잘못을 인정한다는 뜻은 아니에요). 할 말이 있으면 통지 후 5일 안에 해명을 쓸 수 있어요. 기한까지 해명이 없으면 해명할 권리를 포기한 것으로 보고, 있는 증거로 결정해요.",
+      "Signing only confirms you received this notice — it does not mean you admit it. If you want to explain, write it within 5 days of the notice. If there is no explanation by then, you are deemed to have waived your right to explain and it will be decided on the available evidence.")),
     w.explain ? h("div", { style: "background:var(--line);border-radius:6px;padding:8px;white-space:pre-wrap" }, "📝 " + w.explain) : null,
     ex, !canExplain && !w.explain ? h("small", { class: "muted" }, warnErr("warn_late")) : null,
     h("div", { class: "row", style: "margin-top:10px;gap:8px" }, later, w.ack_at && !canExplain ? null : go),
