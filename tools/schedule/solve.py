@@ -29,6 +29,12 @@ Rules (owner, 2026-11-03):
     (Jonel and Genifer excluded — owner 2026-11-04)
 Hard rules that cannot all be met are relaxed with large penalties and reported in "issues".
 
+Minimum staff (owner 2026-11-21: "인원 못맞추면 최소인원으로 안비게"):
+  kitchen / riders: when the team cannot fill the day's shifts, a smaller set from LADDER that still covers the whole
+  day is planned instead of leaving a shift empty (kitchen 5 → 4: drop 10-20 or 20-6 → 3: 8-18 / 18-4 / 22-8 → 2: 8-20 / 20-8;
+  riders 4 → 3 → 2). Costs WT["minimum"] per dropped shift (below "uncovered"), reported as "minimum staff".
+  Hall already has its 3 / 2 sets. Jonel and Archie may both be off only when both are on approved leave.
+
 Fewer days for one person (owner 2026-11-17: "Lilian as few days as possible from next week"):
   overrides.json "fewer": {"Lilian": "2026-11-22"}  (name: from date)
   * every working day of that person from that date costs WT["fewer"] (more than any off-pattern penalty,
@@ -45,7 +51,13 @@ Re-plan mode (owner 2026-11-04 — approved leave fills itself; see replan.py):
     (an uncovered shift is allowed only with a very large penalty and is reported)
 """
 import json, sys, datetime as dt
-WT = {"offpair": 200, "oneday": 150, "change": 20, "keep": 15, "uncovered": 5000, "fair": 25, "fewer": 250}
+WT = {"offpair": 200, "oneday": 150, "change": 20, "keep": 15, "uncovered": 5000, "fair": 25, "fewer": 250, "minimum": 4000}
+# minimum-staff shift sets, largest first; each covers the whole day (owner 2026-11-21)
+LADDER = {
+    "kitchen": [["8-18", "10-20", "18-4", "20-6", "22-8"], ["8-18", "18-4", "20-6", "22-8"], ["8-18", "10-20", "18-4", "22-8"],
+                ["8-18", "18-4", "22-8"], ["8-20", "20-8"]],
+    "riders": [["8-18", "18-4", "20-6", "22-8"], ["8-18", "18-4", "22-8"], ["8-20", "20-8"]],
+}
 FAIR_SKIP = {"Jonel", "Genifer"}   # fixed 8-18 / prefers 8-20 — not part of the day-shift share
 from ortools.sat.python import cp_model
 
@@ -99,10 +111,17 @@ def solve_team(team, people, days, hol, hist, fixed, overrides, current=None, ex
     closed = {i for i in D if days[i].isoformat() in overrides.get("closed", [])}
     # saved work rows outside the normal shift set (e.g. the 12/31 17-5 event shift) are kept as they are
     extra = {f for p in people for i in D for f in [fixed.get(p, {}).get(days[i].isoformat())] if f and is_work(f)}
-    shifts = sorted({s for i in D for s in (H3 + H2 if hall else need[i])} | extra, key=span)
+    # minimum staff (owner 2026-11-21: "인원 못맞추면 최소인원으로 안비게"): when the team cannot fill the day's demand,
+    # plan a smaller shift set that still covers the whole day instead of leaving a shift empty
+    opts = {}
+    for i in D:
+        if hall or not need[i]: continue
+        opts[i] = [list(need[i])] + [L for L in LADDER.get(team, []) if len(L) < len(need[i])]
+    shifts = sorted({s for i in D for s in (H3 + H2 if hall else [x for L in opts.get(i, [need[i]]) for x in L])} | extra, key=span)
     X = {(p, i, s): m.NewBoolVar("") for p in people for i in D for s in shifts}
     W = {(p, i): m.NewBoolVar("") for p in people for i in D}
     Y = {i: m.NewBoolVar("") for i in D} if hall else {}
+    Z = {(i, k): m.NewBoolVar("") for i in opts for k in range(len(opts[i]))}
 
     fewer = {p: dt.date.fromisoformat(v) for p, v in overrides.get("fewer", {}).items() if p in people}
     def few(p, j=None):   # j = day index (None: any day of the plan)
@@ -130,6 +149,9 @@ def solve_team(team, people, days, hol, hist, fixed, overrides, current=None, ex
                 req = 0
             elif hall:
                 req = {"8-20": 1, "20-4": Y[i], "22-8": Y[i], "20-8": 1 - Y[i]}.get(s, 0)
+            elif i in opts:
+                ks = [k for k, L in enumerate(opts[i]) if s in L]
+                req = sum(Z[i, k] for k in ks) if ks else 0
             else:
                 req = 1 if s in need[i] else 0
             if isinstance(req, int) and req == 0:
@@ -138,6 +160,11 @@ def solve_team(team, people, days, hol, hist, fixed, overrides, current=None, ex
                 miss = m.NewBoolVar("")          # a shift may stay empty only as a last resort (reported)
                 m.Add(tot + miss == req); m.Add(tot <= 1)
                 soft(miss, WT["uncovered"], f"{team} {s} not covered {days[i]:%m/%d}")
+        if i in opts:
+            m.Add(sum(Z[i, k] for k in range(len(opts[i]))) == 1)
+            for k in range(1, len(opts[i])):
+                soft(Z[i, k], WT["minimum"] * (len(opts[i][0]) - len(opts[i][k])),
+                     f"{team} minimum staff {days[i]:%m/%d}: {' / '.join(opts[i][k])}")
         if hall and want3[i]:
             for p in fewer:
                 if few(p, i) and not fixed.get(p, {}).get(days[i].isoformat()):
@@ -244,7 +271,8 @@ def solve_team(team, people, days, hol, hist, fixed, overrides, current=None, ex
     # preferences
     for i, d in enumerate(days):
         if i in closed: continue
-        if "Jonel" in people and "Archie" in people:
+        both_leave = all(fixed.get(q, {}).get(d.isoformat()) in ("off", "sil") for q in ("Jonel", "Archie"))
+        if "Jonel" in people and "Archie" in people and not both_leave:   # both on approved leave (e.g. 11/30): owner's call
             m.AddBoolOr([W["Jonel", i], W["Archie", i]])
         if "Jonel" in people:
             m.Add(X["Jonel", i, "8-18"] == W["Jonel", i])

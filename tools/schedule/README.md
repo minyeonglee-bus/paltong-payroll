@@ -24,6 +24,8 @@ select json_build_object(
 3. Save that JSON as `db.json`, run `python3 weekly.py db.json START > save.sql`, check the printed table and issues.
 4. Run `save.sql` against the database.
 
+**Short-staffed days → minimum staff, no empty shift** (owner 2026-11-21: "인원 못맞추면 최소인원으로 안비게", "근무시간 가능자 늘리기"): when a team cannot fill a day, the solver plans a smaller shift set that still covers the whole day (kitchen 5 → 4 → 8-18 / 18-4 / 22-8 → 8-20 / 20-8, riders 4 → 3 → 8-20 / 20-8; hall 3 → 2), reported as "minimum staff". A shift is left empty only when no one can legally take it (10h rest, 7 days in a row). See `LADDER` in `solve.py`.
+
 Anything already saved for the target week is kept (day-off requests `off` / `sil`, owner edits); only empty days are planned.
 One-off demand changes go in `overrides.json`. `"fewer": {"Lilian": "2026-11-22"}` = that person works as few days as possible from that date (owner 2026-11-17; remove the line to undo). Store-closed days go in its `"closed"` list (2026-12-31 day and 2027-01-01, owner 2026-11-10):
 no regular shifts are planned there, only saved rows (the New Year event shifts staff pick in the app, `pr_event_resp`) are kept.
