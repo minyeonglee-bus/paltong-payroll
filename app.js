@@ -542,6 +542,9 @@ function myDocsTab(v, emp) {
     (() => { const c = h("div", { class: "card", id: "my-abs-docs" }); const fill = rows => { c.innerHTML = ""; c.append(h("h2", {}, "🤒 " + evL("결석 확인서·사유서", "Absence letters")),
         list(rows.map(a => item(`${absIsConf(a) ? t("lt_conf") : t("lt_ex")} · ${absDayL(a.day)}`, absKindL(a.kind) + " · " + absStL(a), () => docSheet(absDoc(a, me, v.signature), absDocName(a, me)))))); };
       if (EMP.abs) fill(EMP.abs); else loadMyAbs().then(fill); return c; })(),
+    (() => { const c = h("div", { class: "card", id: "my-warn-docs" }); const fill = rows => { c.innerHTML = ""; if (!rows.length) { c.hidden = true; return; } c.hidden = false;
+        c.append(h("h2", {}, "⚠️ " + evL("경고 통지서", "Warning notices")), list(rows.map(w => item(`${absDayL(String(w.day))} · ${warnCatL(w.cat)}`, warnStepL(w.step) + " · " + (w.ack_at ? evL("사인함 ", "Signed ") + fmtD(w.ack_at) : evL("사인 전", "Not signed yet")), () => docSheet(warnDoc(w, me, v.signature, rows), warnDocName(w, me)))))); };
+      c.hidden = true; if (EMP.warn) fill(EMP.warn); else loadMyWarn().then(fill); return c; })(),
     h("div", { class: "card" }, h("h2", {}, t("docs_adv")),
       list(advs.map(l => item(`${l.biz_date} · ₱${money(l.amount)}`, l.deducted ? t("led_deducted") : t("led_pending"), () => printAdvance(l, emp, v.signature))))),
     NOTICES.some(n => noticeAgreed(n.id)) ? h("div", { class: "card", id: "my-notices" }, h("h2", {}, "📢 " + evL("공지 동의서", "Notice agreements")),
@@ -716,6 +719,9 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-21b", popup: false,
+    ko: ["⚠️ 경고 통지가 이제 앱으로 와요. 앱을 열면 뜨고, 내용을 확인한 뒤 '확인했어요 (사인)'을 눌러 주세요. 사인은 받았다는 확인일 뿐이에요. 할 말이 있으면 5일 안에 해명을 쓸 수 있어요. 통지서는 서류 탭에서 인쇄할 수 있어요."],
+    en: ["⚠️ Warning notices now come through the app. One shows when you open the app — read it and press 'I received it (sign)'. Signing only confirms you received it. If you want to explain, you can write it within 5 days. You can print the notice in the Documents tab."] },
   { id: "2026-11-21a", popup: true, positions: ["waiter", "rider"],
     ko: ["⛽ 유류비(Fuel)는 기사 근무 시간 안 영수증만 인정해요. 홀 직원: 돈 주기 전에 캐시북 직원 지출 → Fuel에서 영수증 사진을 찍고 이름·날짜·시간을 넣으면 바로 확인돼요. ✅ 나오면 지급, ⛔ 나오면 주지 마세요 (저장도 안 돼요)."],
     en: ["⛽ Fuel is only paid for receipts inside the rider's work schedule. Hall staff: BEFORE giving the money, open Cash book → Staff → Fuel, take the receipt photo and enter the name, date and time — it checks right away. ✅ = pay, ⛔ = do not pay (it can't be saved either)."] },
@@ -1260,6 +1266,7 @@ function renderStaffHome() {
       myEstCard(emp, v),
       clockCard(),
       myAbsCard(v, emp),
+      myWarnCard(v, emp),
       h("div", { class: "card" }, h("h2", {}, t("myPay")), payList),
       h("div", { class: "card" }, h("h2", {}, t("myLedger")), ledList),
       h("div", { class: "card" }, h("h2", {}, t("myShifts")), shifts),
@@ -1269,7 +1276,8 @@ function renderStaffHome() {
       mentionsCard(v, false),
       myInfoCard(emp)])));
   if (!EMP.newShown) { EMP.newShown = true;   // 📢 notice first, then what's new
-    const rest = async () => { if (await equipReminder()) EMP.afterEquip = () => whatsNewSheet(false); else whatsNewSheet(false); };
+    const eq = async () => { if (await equipReminder()) EMP.afterEquip = () => whatsNewSheet(false); else whatsNewSheet(false); };
+    const rest = async () => { if (await warnReminder()) EMP.afterWarn = () => { renderStaffHome(); eq(); }; else eq(); };
     checkNotices().then(shown => { if (shown) EMP.afterNotice = rest; else rest(); }); }
 }
 const addD = (d, n) => { const x = new Date(d + "T00:00:00"); x.setDate(x.getDate() + n); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
@@ -1951,6 +1959,189 @@ async function absenceCard() {
   card.append(pend.length ? h("div", { class: "list" }, pend.map(line)) : h("p", { class: "muted" }, evL("확인할 결석이 없어요", "No absences to check")));
   if (done.length) card.append(h("details", {}, h("summary", { class: "muted" }, evL("최근 결석", "Recent absences") + ` (${done.length})`), h("div", { class: "list" }, done.map(line))));
   return card;
+}
+/* ---- ⚠️ warnings (owner 2026-11-21) — 「징계 규정 및 경고 통지서」 11/17:
+   service + cashbook counted together (from 2026-09-01, yearly), tardiness / unauthorized absence each on their own (from 2026-11-18, yearly).
+   1 written warning · 2 written explanation · 3 disciplinary action · 4 suspension / schedule cut up to 7 days · 5+ damages / termination.
+   Owner registers → staff sees it on app open, confirms with their saved signature and may explain in writing within 5 days → print. ---- */
+const WARN_CAT = { service: ["응대", "Customer service"], cashbook: ["캐시북", "Cash book"], late: ["지각", "Tardiness"], absent: ["무단결석", "Unauthorized absence"] };
+const WARN_STEP = [null, ["서면 경고", "Written warning"], ["사유서 제출", "Written explanation required"], ["징계", "Disciplinary action"],
+  ["정직 또는 스케줄 차감 (최대 7일)", "Suspension or schedule reduction (up to 7 days)"], ["손해배상 청구 또는 해고 절차", "Claim for damages or termination proceedings"]];
+const warnCatL = c => evL(...(WARN_CAT[c] || ["?", "?"]));
+const warnCatEn = c => (WARN_CAT[c] || ["", ""])[1];
+const warnGrp = c => c === "service" || c === "cashbook" ? "svc" : c;
+const warnGrpL = g => g === "svc" ? evL("응대·캐시북", "Service & cash book") : warnCatL(g);
+const ordEn = n => n + (n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] || "th");
+const warnStepL = n => n ? evL(`${n}회 · ${WARN_STEP[Math.min(n, 5)][0]}`, `${ordEn(n)} · ${WARN_STEP[Math.min(n, 5)][1]}`) : evL("참고 (횟수 제외)", "Reference (not counted)");
+const warnActL = w => w.step ? evL(`${w.step}회 · `, `${ordEn(w.step)} · `) + (w.action || WARN_STEP[Math.min(w.step, 5)][lang === "ko" ? 0 : 1]) : warnStepL(null) + (w.action ? " · " + w.action : "");
+const warnStepEn = n => n ? `${ordEn(n)} violation — ${WARN_STEP[Math.min(n, 5)][1]}` : "For reference only (not counted)";
+const warnLate = w => !w.explain && new Date(w.explain_by) < new Date();
+const warnPill = w => h("span", { class: "pill " + (w.ack_at ? "paid" : w.refused_at ? "late" : "draft") },
+  w.ack_at ? evL("확인·사인함", "Signed") : w.refused_at ? evL("서명 거부", "Refused to sign") : evL("확인 필요", "Please confirm"));
+const warnErr = e => ({ warn_late: evL("해명 기한(통지 후 5일)이 지났어요", "The 5-day explanation period has ended"), warn_explained: evL("해명은 이미 냈어요", "You already sent an explanation"),
+  need_sig: evL("먼저 사인을 등록해 주세요", "Please register your signature first"), noData: t("noData") })[e] || pinErr(e, "noData");
+const warnDocName = (w, e) => `Warning notice - ${fullName(e)} - ${w.day}`;
+// printable notice; hist = the other warnings of the same group (for the record table)
+function warnDoc(w, e, sig, hist) {
+  e = e || {}; const name = fullName(e);
+  const cell = "padding:6px;border:1px solid #999;vertical-align:top";
+  const row = (x, y) => h("tr", {}, h("th", { style: cell + ";text-align:left;width:34%;background:#f3f3f3" }, x), h("td", { style: cell }, y));
+  const dt = d => new Date(String(d).slice(0, 10) + "T00:00:00").toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" });
+  const past = (hist || []).filter(x => x.id !== w.id && warnGrp(x.cat) === warnGrp(w.cat) && x.step && (!w.step || x.step < w.step)).sort((a, b) => a.step - b.step);
+  const next = w.step ? [w.step + 1, w.step + 2].filter(n => n <= 5).map(n => `${ordEn(n)}: ${WARN_STEP[n][1]}`).join(" · ") : "";
+  return h("div", { class: "slip", style: "font-family:Arial,sans-serif;color:#000;background:#fff;padding:24px;max-width:720px;font-size:14px" },
+    h("h2", { style: "text-align:center;margin:0 0 4px" }, "NOTICE OF WARNING / 경고 통지서"), h("div", { style: "text-align:center;margin-bottom:14px" }, "Paltong"),
+    h("table", { style: "width:100%;border-collapse:collapse" },
+      row("Employee", name + (e.position ? " · " + e.position : "")), row("Date of notice", dt(w.issued_at)), row("Date of incident", dt(w.day)),
+      row("Violation", warnCatEn(w.cat) + (w.order_no ? " · Order #" + String(w.order_no).replace(/^#/, "") : "")),
+      row("Details", h("div", { style: "white-space:pre-wrap" }, w.detail)),
+      row("Count", warnStepEn(w.step)), row("Action", w.action || (w.step ? WARN_STEP[Math.min(w.step, 5)][1] : "Recorded for reference")),
+      w.verbal_on ? row("Verbal warning given", dt(w.verbal_on)) : null,
+      (w.proof_n ?? (w.proof || []).length) ? row("Evidence", `${w.proof_n ?? w.proof.length} screenshot(s) on file`) : null),
+    past.length ? [h("h3", { style: "margin:16px 0 6px" }, "Previous violations / 이전 위반"),
+      h("table", { style: "width:100%;border-collapse:collapse" }, h("tr", {}, ...["#", "Date", "Details", "Action"].map(x => h("th", { style: cell + ";background:#f3f3f3;text-align:left" }, x))),
+        ...past.map(x => h("tr", {}, h("td", { style: cell }, ordEn(x.step)), h("td", { style: cell }, x.day), h("td", { style: cell }, warnCatEn(x.cat) + " — " + x.detail),
+          h("td", { style: cell }, x.action || WARN_STEP[Math.min(x.step, 5)][1]))))] : null,
+    h("p", { style: "margin:14px 0 0" }, (w.step >= 2 ? "Please submit a written explanation" : "You may submit a written explanation") + ` within 5 days of this notice (until ${dt(w.explain_by || new Date(new Date(w.issued_at).getTime() + 5 * 864e5).toISOString())}).`
+      + (next ? ` Further violations may lead to — ${next}.` : "")),
+    h("h3", { style: "margin:16px 0 6px" }, "Employee's explanation / 직원 해명"),
+    h("div", { style: "border:1px solid #999;min-height:80px;padding:10px;white-space:pre-wrap" }, w.explain ? w.explain + (w.explain_at ? `\n\n(${fmtD(w.explain_at)})` : "") : ""),
+    h("p", { style: "font-size:13px;margin:14px 0 0" }, "I acknowledge that I received this notice. My signature confirms receipt only and does not mean I agree with its contents."),
+    w.refused_at ? h("p", { style: "font-size:13px;margin:6px 0 0;color:#a00" }, `Employee refused to sign on ${fmtD(w.refused_at)}.` + (w.refused_note ? " " + w.refused_note : "")) : null,
+    h("div", { style: "display:flex;gap:40px;margin-top:30px" }, sigLine("Employee signature / Date", w.ack_at ? sig : null, w.ack_at ? fmtD(w.ack_at) : ""),
+      sigLine("Manager" + (mgrName() ? " / " + mgrName() : "") + " / Date", mgrSig(), fmtD(w.issued_at))));
+}
+/* staff */
+async function loadMyWarn() { try { const r = await db.empWarnings(EMP.no, EMP.pin); EMP.warn = r.ok ? r.rows || [] : []; } catch { EMP.warn = EMP.warn || []; } return EMP.warn; }
+function warnSheet(w, emp, sig, done) {
+  const canExplain = !w.explain && !warnLate(w);
+  const ex = canExplain ? h("textarea", { id: "warn-explain", rows: 4, maxlength: 1500, style: "width:100%", placeholder: evL("해명 (선택 · 5일 안에, 한 번만 낼 수 있어요)", "Your explanation (optional · within 5 days, can be sent once)") }) : null;
+  const proofBox = h("div", { class: "row", style: "gap:6px;flex-wrap:wrap" });
+  const showProof = async btn => { btn.disabled = true; try { const r = await db.empWarnProof(EMP.no, EMP.pin, w.id); proofBox.innerHTML = "";
+      (r.proof || []).forEach(p => proofBox.append(h("img", { src: p, style: "width:100%;max-width:320px;border-radius:6px;border:1px solid var(--line)" }))); btn.remove(); } catch (e) { btn.disabled = false; toast(errMsg(e)); } };
+  const go = h("button", { class: "btn primary", type: "button", id: "warn-ack", style: "flex:1;padding:12px;font-size:16px" },
+    w.ack_at ? "📝 " + evL("해명 보내기", "Send explanation") : "✍️ " + evL("확인했어요 (사인)", "I received it (sign)"));
+  go.onclick = async () => {
+    const txt = ex ? ex.value.trim() : "";
+    if (w.ack_at && !txt) return toast(evL("해명을 적어 주세요", "Write your explanation"));
+    if (w.step >= 2 && !w.ack_at && !txt && !confirm(evL("2회부터는 사유서(해명)를 내야 해요. 해명 없이 사인만 할까요? (5일 안에 나중에 낼 수 있어요)", "From the 2nd time a written explanation is required. Sign without it now? (You can still send it within 5 days)"))) return;
+    go.disabled = true;
+    try { const r = await db.empWarnAck(EMP.no, EMP.pin, w.id, txt); if (!r.ok) throw new Error(warnErr(r.err));
+      w.ack_at = r.ack_at || w.ack_at; if (txt) { w.explain = txt; w.explain_at = r.explain_at; }
+      close(); toast(evL("저장했어요 · 서류 탭에서 인쇄할 수 있어요", "Saved · you can print it in the Documents tab")); done && done(true);
+    } catch (e) { go.disabled = false; toast(errMsg(e)); } };
+  const later = h("button", { class: "btn", type: "button", id: "warn-later", onclick: () => { close(); done && done(false); } }, w.ack_at ? t("close") : evL("나중에", "Later"));
+  const close = sheet([h("h3", { id: "warn-pop", style: "color:var(--bad)" }, "⚠️ " + evL("경고 통지", "Warning notice")),
+    h("div", { style: "border:2px solid var(--bad);border-radius:8px;padding:10px;line-height:1.55" },
+      h("div", {}, h("b", {}, absDayL(String(w.day))), " · ", h("b", {}, warnCatL(w.cat)), w.order_no ? " · #" + String(w.order_no).replace(/^#/, "") : ""),
+      h("div", { style: "white-space:pre-wrap;margin:6px 0;font-size:15px" }, w.detail),
+      h("div", { style: "font-weight:700;color:var(--bad)" }, warnActL(w)),
+      w.verbal_on ? h("div", { class: "muted" }, evL("구두 경고: ", "Verbal warning: ") + absDayL(String(w.verbal_on))) : null,
+      w.proof_n ? h("div", { style: "margin-top:6px" }, h("button", { class: "btn sm", type: "button", onclick: e => showProof(e.currentTarget) }, `📷 ${evL("증빙 보기", "See evidence")} (${w.proof_n})`), proofBox) : null),
+    h("small", { class: "muted", style: "display:block;margin:8px 0" }, evL("사인은 통지를 받았다는 확인이에요 (잘못을 인정한다는 뜻은 아니에요). 할 말이 있으면 통지 후 5일 안에 해명을 쓸 수 있어요.",
+      "Signing only confirms you received this notice — it does not mean you admit it. If you want to explain, write it within 5 days of the notice.")),
+    w.explain ? h("div", { style: "background:var(--line);border-radius:6px;padding:8px;white-space:pre-wrap" }, "📝 " + w.explain) : null,
+    ex, !canExplain && !w.explain ? h("small", { class: "muted" }, warnErr("warn_late")) : null,
+    h("div", { class: "row", style: "margin-top:10px;gap:8px" }, later, w.ack_at && !canExplain ? null : go),
+    h("div", { class: "row", style: "margin-top:6px" }, h("span", { class: "sp" }), h("button", { class: "btn sm ghost", type: "button", onclick: () => docSheet(warnDoc(w, emp, sig, EMP.warn), warnDocName(w, emp)) }, "🖨 " + t("print")))], { lock: true });
+}
+// app open: unsigned warnings pop up one by one (before the repair check / what's new)
+async function warnReminder() {
+  if (EMP.preview) return false;
+  const rows = await loadMyWarn(); const todo = rows.filter(w => !w.ack_at);
+  if (!todo.length || document.getElementById("sheetRoot")?.children.length) return false;
+  const emp = EMP.data?.employee || {}, sig = EMP.data?.signature;
+  const nextOne = i => { if (i >= todo.length) { const f = EMP.afterWarn; EMP.afterWarn = null; f?.(); return; }
+    warnSheet(todo[i], emp, sig, () => nextOne(i + 1)); };
+  nextOne(0); return true;
+}
+function myWarnCard(v, emp) {
+  if (!EMP.warn) { loadMyWarn().then(r => { if (r.length && !document.getElementById("my-warn")) renderStaffHome(); }); return null; }
+  const rows = EMP.warn; if (!rows.length) return null;
+  const by = {}; for (const w of rows) if (w.step) { const g = warnGrp(w.cat); by[g] = Math.max(by[g] || 0, w.step); }
+  return h("div", { class: "card", id: "my-warn", style: rows.some(w => !w.ack_at) ? "border:2px solid var(--bad)" : "" },
+    h("h2", {}, "⚠️ " + evL("경고", "Warnings")),
+    h("small", { class: "muted" }, Object.entries(by).map(([g, n]) => `${warnGrpL(g)} ${n}${evL("회", "x")}`).join(" · ") || evL("횟수에 들어가는 경고 없음", "No counted warnings")),
+    h("div", { class: "list", style: "margin-top:8px" }, rows.slice(0, 10).map(w => h("div", { class: "item", style: "cursor:pointer", onclick: () => warnSheet(w, emp, v.signature, () => renderStaffHome()) },
+      h("div", { class: "t" }, absDayL(String(w.day)) + " · " + warnCatL(w.cat)), h("div", { class: "s" }, warnStepL(w.step) + " · " + w.detail.slice(0, 60)), h("div", { class: "m" }, warnPill(w))))));
+}
+/* owner */
+async function warnAdminCard() {
+  const card = h("div", { class: "card", id: "warn-admin" });
+  let rows = []; try { rows = await db.listWarnings({ withVoid: true }); } catch (e) { card.append(h("h2", {}, "⚠️ " + evL("경고", "Warnings")), h("p", { class: "muted" }, errMsg(e))); return card; }
+  const emps = S.employees.filter(e => e.active && !e.resigned_on && e.name !== "test");
+  const empOf = id => S.employees.find(e => e.id === id) || {};
+  const act = rows.filter(w => w.status === "active");
+  const cur = (id, g) => act.filter(w => w.employee_id === id && w.grp === g && w.step).reduce((m, w) => Math.max(m, w.step), 0);
+  const sumRows = emps.map(e => ({ e, s: cur(e.id, "svc"), l: cur(e.id, "late"), a: cur(e.id, "absent") })).filter(x => x.s + x.l + x.a);
+  const pc = n => h("td", { style: n >= 3 ? "color:var(--bad);font-weight:700" : n ? "font-weight:700" : "color:var(--muted)" }, n ? warnStepL(n) : "-");
+  const print = async w => { let full = w; if (!w.proof) { try { full = { ...w, proof: await db.warnProof(w.id) }; } catch { } }
+    docSheet(warnDoc(full, empOf(w.employee_id), sigOf(w.employee_id), act.filter(x => x.employee_id === w.employee_id)), warnDocName(w, empOf(w.employee_id))); };
+  const op = (w, o, ask, withNote) => { const note = withNote ? h("input", { type: "text", maxlength: 300, style: "width:100%", placeholder: withNote }) : null;
+    const close = sheet([h("h3", {}, ask), note, h("div", { class: "row", style: "margin-top:10px" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => close() }, t("cancel")),
+      h("button", { class: "btn primary", type: "button", onclick: async () => { try { const r = await db.warnSet(w.id, o, note?.value); if (!r.ok) throw new Error(t("noData")); close(); refresh(); } catch (e) { toast(errMsg(e)); } } }, t("ok")))]); };
+  const line = w => { const e = empOf(w.employee_id);
+    return h("div", { class: "item", style: "display:block" + (w.status === "void" ? ";opacity:.55" : "") },
+      h("div", { class: "row", style: "align-items:center;gap:6px;flex-wrap:wrap" }, h("b", {}, e.name || "?"), h("span", {}, absDayL(String(w.day))), h("span", {}, warnCatL(w.cat)),
+        h("b", { style: w.step >= 3 ? "color:var(--bad)" : "" }, warnStepL(w.step)), w.status === "void" ? h("span", { class: "pill" }, evL("무효", "Void")) : warnPill(w), h("span", { class: "sp" }),
+        h("button", { class: "btn sm", type: "button", onclick: () => print(w) }, "🖨"),
+        w.status === "active" && !w.ack_at && !w.refused_at ? h("button", { class: "btn sm", type: "button", onclick: () => op(w, "refused", evL(`${e.name} — 서명 거부로 기록할까요?`, `Record that ${e.name} refused to sign?`), evL("메모 · 증인 (예: 11/21 Mina 앞에서 거부)", "Note · witness")) }, evL("서명 거부", "Refused")) : null,
+        w.status === "active" && w.refused_at && !w.ack_at ? h("button", { class: "btn sm ghost", type: "button", onclick: () => op(w, "unrefused", evL("서명 거부 기록을 지울까요?", "Remove the refusal?")) }, evL("거부 취소", "Undo refusal")) : null,
+        w.status === "active" ? h("button", { class: "btn sm ghost", type: "button", onclick: () => op(w, "void", evL("이 경고를 무효로 할까요? 횟수에서 빠지고 직원 화면에서 사라져요.", "Void this warning? It leaves the count and the staff screen."), evL("사유 (선택)", "Reason (optional)")) }, evL("무효", "Void"))
+          : h("button", { class: "btn sm ghost", type: "button", onclick: () => op(w, "unvoid", evL("다시 살릴까요?", "Restore it?")) }, evL("되살리기", "Restore"))),
+      h("div", { class: "muted", style: "font-size:13px;white-space:pre-wrap" }, w.detail + (w.action ? " → " + w.action : "")),
+      w.explain ? h("div", { style: "font-size:13px;margin-top:2px" }, "📝 " + w.explain) : !w.ack_at ? null : warnLate(w) ? h("div", { class: "muted", style: "font-size:13px" }, evL("해명 없음 (기한 지남)", "No explanation (period ended)")) : null); };
+  const refresh = async () => { const c = await warnAdminCard(); card.replaceWith(c); };
+  const open = act.filter(w => !w.ack_at && !w.refused_at);
+  card.append(h("div", { class: "row" }, h("h2", {}, "⚠️ " + evL("경고", "Warnings")), h("span", { class: "sp" }),
+      h("button", { class: "btn primary", type: "button", id: "warn-add", onclick: () => warnAddSheet(emps, act, refresh) }, "+ " + evL("경고 등록", "Add warning"))),
+    h("small", { class: "muted" }, evL("응대·캐시북 합산(9/1부터 1년), 지각·무단결석 각각(11/18부터 1년) · 1회 서면 경고 → 2회 사유서 → 3회 징계 → 4회 정직(최대 7일) → 5회+ 손해배상·해고 절차. 등록하면 직원 앱에 바로 떠요 → 직원이 사인 + 5일 안에 해명.",
+      "Service + cash book together (yearly from 9/1), tardiness / absence each (yearly from 11/18) · 1 written warning → 2 explanation → 3 disciplinary → 4 suspension (≤7 days) → 5+ damages / termination. Staff see it in the app right away → sign + explain within 5 days.")),
+    sumRows.length ? h("div", { class: "tbl", style: "margin-top:8px" }, h("table", {}, h("tr", {}, h("th", {}, evL("직원", "Staff")), h("th", {}, warnGrpL("svc")), h("th", {}, warnCatL("late")), h("th", {}, warnCatL("absent"))),
+      ...sumRows.map(x => h("tr", {}, h("td", {}, x.e.name), pc(x.s), pc(x.l), pc(x.a))))) : "",
+    open.length ? h("p", { style: "margin:8px 0 0;font-weight:700;color:var(--warn)" }, evL(`직원 확인 대기 ${open.length}건`, `${open.length} waiting for the staff`)) : "",
+    rows.length ? h("div", { class: "list", style: "margin-top:6px" }, act.slice(0, 15).map(line)) : h("p", { class: "muted" }, evL("등록된 경고가 없어요", "No warnings yet")),
+    act.length > 15 || rows.length > act.length ? h("details", {}, h("summary", { class: "muted" }, evL("더 보기 · 무효", "More · void") + ` (${rows.length - Math.min(15, act.length)})`),
+      h("div", { class: "list" }, [...act.slice(15), ...rows.filter(w => w.status === "void")].map(line))) : "");   // card.append(null) would print "null"
+  return card;
+}
+function warnAddSheet(emps, act, done) {
+  const st = { cat: null, photos: [] };
+  const emp = sel([["", evL("직원 선택", "Pick staff")], ...emps.map(e => [e.id, e.name])], "", { id: "warn-emp" });
+  const day = h("input", { type: "date", id: "warn-day", value: today(), max: today() });
+  const detail = h("textarea", { id: "warn-detail", rows: 3, maxlength: 1000, style: "width:100%", placeholder: evL("무슨 일이 있었는지 (예: DK 주문 35분 미확인 → 배달 75분, 손님 컴플레인)", "What happened") });
+  const order = h("input", { type: "text", id: "warn-order", maxlength: 60, placeholder: evL("주문번호 (선택)", "Order no. (optional)") });
+  const verbal = h("input", { type: "date", id: "warn-verbal", max: today() });
+  const counted = h("input", { type: "checkbox", id: "warn-counted", checked: true });
+  const action = h("input", { type: "text", id: "warn-action", maxlength: 200 });
+  const preview = h("div", { id: "warn-step", style: "font-weight:700;margin:6px 0" });
+  const catBox = h("div", { class: "row", style: "gap:6px;flex-wrap:wrap;margin:4px 0 8px" });
+  // same counting as the server view: group + yearly window, by day order
+  const calc = () => { if (!emp.value || !st.cat || !day.value || !counted.checked) return null;
+    const start = warnGrp(st.cat) === "svc" ? "2026-09-01" : "2026-11-18"; if (day.value < start) return null;
+    const win = d => { let s = start; for (;;) { const n = String(+s.slice(0, 4) + 1) + s.slice(4); if (d >= n) s = n; else return s; } };
+    return act.filter(w => w.employee_id === emp.value && w.grp === warnGrp(st.cat) && w.step && win(String(w.day)) === win(day.value) && String(w.day) <= day.value).length + 1; };
+  const upd = () => { catBox.innerHTML = ""; Object.keys(WARN_CAT).forEach(k => catBox.append(h("button", { class: "btn" + (st.cat === k ? " primary" : ""), type: "button", id: "warn-cat-" + k, onclick: () => { st.cat = k; upd(); } }, warnCatL(k))));
+    const n = calc(); preview.textContent = st.cat && emp.value ? "→ " + warnStepL(n) : ""; preview.style.color = n >= 3 ? "var(--bad)" : "";
+    action.placeholder = n ? WARN_STEP[Math.min(n, 5)][lang === "ko" ? 0 : 1] : evL("조치 (선택)", "Action (optional)"); };
+  emp.onchange = day.onchange = counted.onchange = upd; upd();
+  const send = h("button", { class: "btn primary", type: "button", id: "warn-send" }, evL("등록 · 직원에게 보내기", "Save · send to staff"));
+  send.onclick = async () => {
+    if (!emp.value) return toast(evL("직원을 골라 주세요", "Pick the staff")); if (!st.cat) return toast(evL("구분을 골라 주세요", "Pick the type"));
+    if (!detail.value.trim()) return toast(evL("내용을 적어 주세요", "Write what happened"));
+    send.disabled = true;
+    try { const r = await db.warnAdd({ employee_id: emp.value, day: day.value, cat: st.cat, detail: detail.value, order_no: order.value, action: action.value, verbal_on: verbal.value || null, counted: counted.checked, proof: st.photos });
+      if (!r.ok) throw new Error(r.err === "bad_proof" ? evL("사진을 다시 올려 주세요", "Attach the photos again") : t("noData"));
+      close(); toast(evL(`등록했어요 · ${warnStepL(r.step)}`, `Saved · ${warnStepL(r.step)}`)); done && done();
+    } catch (e) { send.disabled = false; toast(errMsg(e)); } };
+  const close = sheet([h("h3", {}, "⚠️ " + evL("경고 등록", "Add warning")),
+    field(evL("직원", "Staff"), emp), field(evL("사건 날짜", "Date of incident"), day),
+    h("label", { style: "font-weight:700" }, evL("구분", "Type")), catBox, field(evL("내용", "Details"), detail), order, preview,
+    field(evL("조치 (비우면 단계 기본 문구)", "Action (empty = default for the count)"), action),
+    field(evL("구두 경고 한 날 (있으면)", "Verbal warning given on (if any)"), verbal),
+    h("label", { class: "check" }, counted, evL("횟수에 넣기 (끄면 참고 기록)", "Count it (off = reference only)")),
+    h("label", { style: "font-weight:700;display:block;margin-top:8px" }, evL("증빙 캡처 (최대 3장, 선택)", "Evidence screenshots (up to 3, optional)")), absPhotoPicker(st.photos, () => { }),
+    h("div", { class: "row", style: "margin-top:12px" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => close() }, t("cancel")), send)]);
 }
 const CONF_MODES = ["work", "cover", "relief", "delivery", "errand", "boss"];   // 확인서 (work reasons) — the rest are 사유서
 const isConf = p => CONF_MODES.includes(p.mode) || (p.mode === "personal" && p.kind === "in" && (p.dev_min ?? 0) < 0);
@@ -3090,7 +3281,7 @@ function signedPrintUI(onClose) {   // onClose: inside a sheet (⋯ menu) · non
 async function renderReq() {
   const main = document.getElementById("main");
   main.append(h("div", { class: "card" }, h("h2", {}, "📋 " + evL("요청", "Requests")), h("small", { class: "muted" }, evL("직원이 보낸 것 중 사장님 확인이 필요한 것 — 받음 확인 · 휴가 신청 · 출퇴근 사유 · 13월급 요청.", "Everything from the staff that needs you — received pay · leave · clock-in/out reasons · 13th month requests."))),
-    await equipAdminCard(), await noticeAdminCard(), await recvCard(), await absenceCard(), await silReqCard(), await hallCallCard(), await reviewCard(), await due13Card());
+    await equipAdminCard(), await noticeAdminCard(), await recvCard(), await absenceCard(), await warnAdminCard(), await silReqCard(), await hallCallCard(), await reviewCard(), await due13Card());
 }
 /* ---- 🙋 hall call (owner 2026-11-20): an approved Fri/Sat hall leave leaves the hall short → Mina is asked to come in.
    Mina answers here (print-only login); the owner sees the answers in Requests. "가능" → the 09:40 re-plan puts her on a hall shift. */
