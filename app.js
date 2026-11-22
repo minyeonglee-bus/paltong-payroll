@@ -719,6 +719,9 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-23", popup: false,
+    ko: ["⚠️📝 경고 통지·IR 요청은 이제 '나중에'가 없어요. 사인(경고) 또는 제출(IR)해야 앱을 쓸 수 있어요 (출퇴근 포함). 경고는 사인만 하면 되고 해명은 선택이에요."],
+    en: ["⚠️📝 Warning notices and IR requests no longer have 'Later'. You need to sign (warning) or submit (IR) before using the app, including clock in / out. For a warning, signing is enough — the explanation is optional."] },
   { id: "2026-11-21d", popup: false,
     ko: ["📝 IR(경위서) 요청이 생겼어요. 사장님이 IR을 요청하면 앱을 열 때 뜨고, 무슨 일이 있었는지 써서 제출하면 돼요. 경고가 아니라 횟수에 안 들어가요 (서류 탭에서 인쇄)."],
     en: ["📝 New: IR (incident report) requests. When the owner asks for an IR it pops up when you open the app — write what happened and submit. It is not a warning and is not counted (print it in the Documents tab)."] },
@@ -1042,6 +1045,9 @@ function noticeDoc(n, emp, sig, agreedAt) {
 }
 // app comes back to the screen → show the notice again if it was put off more than 30 min ago
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && EMP.data && EMP.pin && !EMP.preview && EMP.notices && !document.getElementById("sheetRoot")?.children.length) checkNotices(); });
+// app comes back → unsigned warning / IR pops up again (owner 11/23)
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && EMP.data && EMP.pin && !EMP.preview && EMP.newShown)
+  setTimeout(() => { if (!document.getElementById("sheetRoot")?.children.length) warnReminder().then(shown => { if (shown) EMP.afterWarn = () => renderStaffHome(); }); }, 600); });
 const printNotice = (n, emp, sig, at) => docSheet(noticeDoc(n, emp, sig, at), `Notice agreement - ${fullName(emp)} - ${n.id}`);
 // owner: who agreed (🖨 each) / who has not
 async function noticeAdminCard() {
@@ -1997,6 +2003,9 @@ const warnStepEn = n => n ? `${ordEn(n)} violation — ${WARN_STEP[Math.min(n, 5
 const isIR = w => w.kind === "ir";
 const warnTagL = w => isIR(w) ? "📝 " + evL("IR 요청 (경고 아님)", "IR request (not a warning)") : warnStepL(w.step);
 const warnLate = w => !w.explain && new Date(w.explain_by) < new Date();
+// must be done before using the app (owner 11/23: "나중에" was pressed by everyone) — unsigned warning, or IR still writable
+const warnMust = w => !w.ack_at && !w.refused_at && w.status !== "void" && !(isIR(w) && warnLate(w));
+const warnMustNote = () => h("div", { style: "font-weight:700;color:var(--bad);margin:4px 0" }, evL("⛔ 이걸 끝내야 앱을 쓸 수 있어요 (출퇴근 포함).", "⛔ Finish this first to use the app (including clock in / out)."));
 const warnPill = w => h("span", { class: "pill " + (w.ack_at ? "paid" : w.refused_at ? "late" : "draft") },
   isIR(w) ? (w.ack_at ? evL("IR 제출함", "IR submitted") : w.refused_at ? evL("서명 거부", "Refused to sign") : evL("IR 써 주세요", "Please write IR")) :
   w.ack_at ? evL("확인·사인함", "Signed") : w.refused_at ? evL("서명 거부", "Refused to sign") : evL("확인 필요", "Please confirm"));
@@ -2065,11 +2074,12 @@ function irSheet(w, emp, sig, done) {
   if (go) go.onclick = async () => {
     const txt = ex.value.trim(); if (txt.length < 20) return toast(evL("무슨 일이 있었는지 자세히 적어 주세요", "Please write what happened in detail"));
     go.disabled = true;
-    try { const r = await db.empWarnAck(EMP.no, EMP.pin, w.id, txt); if (!r.ok) throw new Error(warnErr(r.err));
+    try { const r = await db.empWarnAck(EMP.no, EMP.pin, w.id, txt); if (!r.ok && r.err === "need_sig") { close(); toast(warnErr("need_sig")); return renderSignFirst(); } if (!r.ok) throw new Error(warnErr(r.err));
       w.ack_at = r.ack_at || w.ack_at; w.explain = txt; w.explain_at = r.explain_at;
       close(); toast(evL("IR을 제출했어요 · 서류 탭에서 인쇄할 수 있어요", "IR submitted · you can print it in the Documents tab")); done && done(true);
     } catch (e) { go.disabled = false; toast(errMsg(e)); } };
-  const later = h("button", { class: "btn", type: "button", id: "ir-later", onclick: () => { close(); done && done(false); } }, w.explain ? t("close") : evL("나중에", "Later"));
+  const must = warnMust(w);
+  const later = must ? null : h("button", { class: "btn", type: "button", id: "ir-later", onclick: () => { close(); done && done(false); } }, t("close"));
   const close = sheet([h("h3", { id: "ir-pop", style: "color:var(--gold)" }, "📝 " + evL("IR (경위서) 작성 요청", "Incident Report (IR) request")),
     h("div", { style: "border:2px solid var(--gold);border-radius:8px;padding:10px;line-height:1.55" },
       h("div", {}, h("b", {}, absDayL(String(w.day))), " · ", h("b", {}, warnCatL(w.cat)), w.order_no ? " · #" + String(w.order_no).replace(/^#/, "") : ""),
@@ -2079,9 +2089,10 @@ function irSheet(w, emp, sig, done) {
       `경고가 아니에요 (횟수에 안 들어가요). 무슨 일이 있었는지, 왜 그렇게 됐는지 사실대로 적어 주세요. 기한: ${fmtD(w.explain_by)}. 기한까지 안 내면 할 말이 없는 것으로 보고 있는 기록으로 판단해요.`,
       `This is not a warning (not counted). Please write honestly what happened and why. Deadline: ${fmtD(w.explain_by)}. If nothing is submitted by then, it will be decided on the available records.`)),
     w.explain ? h("div", { style: "background:var(--line);border-radius:6px;padding:8px;white-space:pre-wrap" }, "📝 " + w.explain) : null,
+    must ? warnMustNote() : null,
     ex, !canWrite && !w.explain ? h("small", { class: "muted" }, warnErr("warn_late")) : null,
     h("div", { class: "row", style: "margin-top:10px;gap:8px" }, later, go),
-    h("div", { class: "row", style: "margin-top:6px" }, h("span", { class: "sp" }), h("button", { class: "btn sm ghost", type: "button", onclick: () => docSheet(irDoc(w, emp, sig), warnDocName(w, emp)) }, "🖨 " + t("print")))], { lock: true });
+    must ? null : h("div", { class: "row", style: "margin-top:6px" }, h("span", { class: "sp" }), h("button", { class: "btn sm ghost", type: "button", onclick: () => docSheet(irDoc(w, emp, sig), warnDocName(w, emp)) }, "🖨 " + t("print")))], { lock: true });
 }
 /* staff */
 async function loadMyWarn() { try { const r = await db.empWarnings(EMP.no, EMP.pin); EMP.warn = r.ok ? r.rows || [] : []; } catch { EMP.warn = EMP.warn || []; } return EMP.warn; }
@@ -2099,11 +2110,12 @@ function warnSheet(w, emp, sig, done) {
     if (w.ack_at && !txt) return toast(evL("해명을 적어 주세요", "Write your explanation"));
     if (w.step >= 2 && !w.ack_at && !txt && !confirm(evL("2회부터는 사유서(해명)를 내야 해요. 해명 없이 사인만 할까요? (5일 안에 나중에 낼 수 있어요)", "From the 2nd time a written explanation is required. Sign without it now? (You can still send it within 5 days)"))) return;
     go.disabled = true;
-    try { const r = await db.empWarnAck(EMP.no, EMP.pin, w.id, txt); if (!r.ok) throw new Error(warnErr(r.err));
+    try { const r = await db.empWarnAck(EMP.no, EMP.pin, w.id, txt); if (!r.ok && r.err === "need_sig") { close(); toast(warnErr("need_sig")); return renderSignFirst(); } if (!r.ok) throw new Error(warnErr(r.err));
       w.ack_at = r.ack_at || w.ack_at; if (txt) { w.explain = txt; w.explain_at = r.explain_at; }
       close(); toast(evL("저장했어요 · 서류 탭에서 인쇄할 수 있어요", "Saved · you can print it in the Documents tab")); done && done(true);
     } catch (e) { go.disabled = false; toast(errMsg(e)); } };
-  const later = h("button", { class: "btn", type: "button", id: "warn-later", onclick: () => { close(); done && done(false); } }, w.ack_at ? t("close") : evL("나중에", "Later"));
+  const must = warnMust(w);
+  const later = must ? null : h("button", { class: "btn", type: "button", id: "warn-later", onclick: () => { close(); done && done(false); } }, t("close"));
   const close = sheet([h("h3", { id: "warn-pop", style: "color:var(--bad)" }, "⚠️ " + evL("경고 통지", "Warning notice")),
     h("div", { style: "border:2px solid var(--bad);border-radius:8px;padding:10px;line-height:1.55" },
       h("div", {}, h("b", {}, absDayL(String(w.day))), " · ", h("b", {}, warnCatL(w.cat)), w.order_no ? " · #" + String(w.order_no).replace(/^#/, "") : ""),
@@ -2114,14 +2126,15 @@ function warnSheet(w, emp, sig, done) {
     h("small", { class: "muted", style: "display:block;margin:8px 0" }, evL("사인은 통지를 받았다는 확인이에요 (잘못을 인정한다는 뜻은 아니에요). 할 말이 있으면 통지 후 5일 안에 해명을 쓸 수 있어요. 기한까지 해명이 없으면 해명할 권리를 포기한 것으로 보고, 있는 증거로 결정해요.",
       "Signing only confirms you received this notice — it does not mean you admit it. If you want to explain, write it within 5 days of the notice. If there is no explanation by then, you are deemed to have waived your right to explain and it will be decided on the available evidence.")),
     w.explain ? h("div", { style: "background:var(--line);border-radius:6px;padding:8px;white-space:pre-wrap" }, "📝 " + w.explain) : null,
+    must ? warnMustNote() : null,
     ex, !canExplain && !w.explain ? h("small", { class: "muted" }, warnErr("warn_late")) : null,
     h("div", { class: "row", style: "margin-top:10px;gap:8px" }, later, w.ack_at && !canExplain ? null : go),
-    h("div", { class: "row", style: "margin-top:6px" }, h("span", { class: "sp" }), h("button", { class: "btn sm ghost", type: "button", onclick: () => docSheet(warnDoc(w, emp, sig, EMP.warn), warnDocName(w, emp)) }, "🖨 " + t("print")))], { lock: true });
+    must ? null : h("div", { class: "row", style: "margin-top:6px" }, h("span", { class: "sp" }), h("button", { class: "btn sm ghost", type: "button", onclick: () => docSheet(warnDoc(w, emp, sig, EMP.warn), warnDocName(w, emp)) }, "🖨 " + t("print")))], { lock: true });
 }
 // app open: unsigned warnings pop up one by one (before the repair check / what's new)
 async function warnReminder() {
   if (EMP.preview) return false;
-  const rows = await loadMyWarn(); const todo = rows.filter(w => !w.ack_at);
+  const rows = await loadMyWarn(); const todo = rows.filter(warnMust);
   if (!todo.length || document.getElementById("sheetRoot")?.children.length) return false;
   const emp = EMP.data?.employee || {}, sig = EMP.data?.signature;
   const nextOne = i => { if (i >= todo.length) { const f = EMP.afterWarn; EMP.afterWarn = null; f?.(); return; }
