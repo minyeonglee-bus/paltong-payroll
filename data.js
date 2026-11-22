@@ -283,3 +283,6 @@ export async function warnSet(id, op, note) { return must(await sb.rpc("pr_warn_
 export async function empWarnings(no, pin) { if (PREVIEW) return { ok: true, rows: (await listWarnings({ employeeId: PREVIEW })).map(w => ({ ...w, proof_n: null })) }; return must(await sb.rpc("pr_emp_warnings", { p_no: String(no).trim(), p_pin: String(pin) })); }
 export async function empWarnProof(no, pin, id) { if (PREVIEW) return { ok: true, proof: await warnProof(id) }; return must(await sb.rpc("pr_emp_warn_proof", { p_no: String(no).trim(), p_pin: String(pin), p_id: id })); }
 export async function empWarnAck(no, pin, id, explain) { return must(await sb.rpc("pr_emp_warn_ack", { p_no: String(no).trim(), p_pin: String(pin), p_id: id, p_explain: explain || null })); }
+// 📲 staff push on this phone (owner 11/23)
+export async function empPushStatus(no, pin, endpoint) { return must(await sb.rpc("pr_emp_push_status", { p_no: String(no).trim(), p_pin: String(pin), p_endpoint: endpoint || null })); }
+export async function empPushSubscribe(no, pin, endpoint, p256dh, auth, label) { return must(await sb.rpc("pr_emp_push_subscribe", { p_no: String(no).trim(), p_pin: String(pin), p_endpoint: endpoint, p_p256dh: p256dh, p_auth: auth, p_label: label })); }

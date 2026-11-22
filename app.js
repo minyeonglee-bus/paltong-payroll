@@ -719,6 +719,9 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-23b", popup: false,
+    ko: ["🔔 이제 이 폰으로 알림을 받을 수 있어요. 앱을 열면 '알림 받을까요?'가 떠요 → '알림 허용' → 폰에서 '허용'. 경고·IR 요청이 오면 바로 알려 드려요."],
+    en: ["🔔 You can now get notifications on this phone. When you open the app it asks 'Get notifications?' → tap 'Allow notifications' → tap 'Allow' on your phone. You will be told right away about warnings and IR requests."] },
   { id: "2026-11-23", popup: false,
     ko: ["⚠️📝 경고 통지·IR 요청은 이제 '나중에'가 없어요. 사인(경고) 또는 제출(IR)해야 앱을 쓸 수 있어요 (출퇴근 포함). 경고는 사인만 하면 되고 해명은 선택이에요."],
     en: ["⚠️📝 Warning notices and IR requests no longer have 'Later'. You need to sign (warning) or submit (IR) before using the app, including clock in / out. For a warning, signing is enough — the explanation is optional."] },
@@ -1293,7 +1296,8 @@ function renderStaffHome() {
   if (!EMP.newShown) { EMP.newShown = true;   // 📢 notice first, then what's new
     const eq = async () => { if (await equipReminder()) EMP.afterEquip = () => whatsNewSheet(false); else whatsNewSheet(false); };
     const rest = async () => { if (await warnReminder()) EMP.afterWarn = () => { renderStaffHome(); eq(); }; else eq(); };
-    checkNotices().then(shown => { if (shown) EMP.afterNotice = rest; else rest(); }); }
+    checkNotices().then(shown => { if (shown) EMP.afterNotice = rest; else rest(); });
+    setTimeout(empPushCheck, 1200); }   // asks once per app open, after the other popups
 }
 const addD = (d, n) => { const x = new Date(d + "T00:00:00"); x.setDate(x.getDate() + n); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
 const planLabel = (v, req, mpv) => v === "off" ? (req ? "Off(R)" : t("off")) : v === "sil" ? (mpv ? "MPV" : "SIL") : SHIFT_LABEL(v);   // mpv = approved monthly paid vacation (stored as sil, owner 11/17)   // req = approved day-off request (owner 11/6)
@@ -2436,6 +2440,37 @@ async function pushSheet() {
         : h("button", { class: "btn primary", type: "button", onclick: async () => { try { await pushEnable(); toast(t("push_done")); close(); render(); } catch (e) { toast(errMsg(e)); } } }, t("push_on")),
       sub ? h("button", { class: "btn", type: "button", onclick: async () => { await pushDisable(); close(); render(); } }, t("push_off")) : null,
       h("button", { class: "btn ghost", type: "button", onclick: () => close() }, t("cancel")))]);
+}
+/* ---- staff: "get notifications?" on app open → allow → this phone gets warning / IR / reminder pushes (owner 11/23) ---- */
+async function empPushEnable() {
+  if (!pushOK()) throw new Error(pushIOS() && !isStandalone() ? evL("아이폰: 공유 → 홈 화면에 추가 → 그 아이콘으로 앱을 열고 다시 눌러 주세요", "iPhone: tap Share → Add to Home Screen, open the app from that icon, then tap again") : evL("이 브라우저는 알림이 안 돼요 (안드로이드는 Chrome으로 열어 주세요)", "This browser cannot get notifications (on Android open it in Chrome)"));
+  if (await Notification.requestPermission() !== "granted") throw new Error(evL("알림이 차단돼 있어요 — 브라우저 설정 → 사이트 설정 → 알림에서 허용해 주세요", "Notifications are blocked — allow them in the browser: Settings → Site settings → Notifications"));
+  const st = await db.empPushStatus(EMP.no, EMP.pin, null); if (!st.ok || !st.public_key) throw new Error(t("noData"));
+  const reg = await navigator.serviceWorker.register("/sw.js"); await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(st.public_key) });
+  const j = sub.toJSON(), label = (pushIOS() ? "iPhone" : /Android/.test(navigator.userAgent) ? "Android" : "PC") + " · " + new Date().toLocaleDateString();
+  const r = await db.empPushSubscribe(EMP.no, EMP.pin, j.endpoint, j.keys.p256dh, j.keys.auth, label); if (!r.ok) throw new Error(t("noData"));
+}
+let empPushAsked = false;
+async function empPushCheck() {
+  if (empPushAsked || EMP.preview || !EMP.data || !EMP.pin) return; empPushAsked = true;
+  const sub = await pushSub(); let st = null;
+  try { st = await db.empPushStatus(EMP.no, EMP.pin, sub?.endpoint || null); } catch { return; }
+  if (!st?.ok || st.on) return;
+  if (sub && "Notification" in window && Notification.permission === "granted") { empPushEnable().catch(() => { }); return; }   // allowed before → re-register quietly
+  const denied = "Notification" in window && Notification.permission === "denied";
+  const wait = n => { if (document.getElementById("sheetRoot")?.children.length) { if (n < 120) setTimeout(() => wait(n + 1), 1500); return; } show(); };
+  const show = () => {
+    const go = h("button", { class: "btn primary", type: "button", id: "emp-push-on", style: "flex:1;padding:12px;font-size:16px" }, "🔔 " + evL("알림 허용", "Allow notifications"));
+    go.onclick = async () => { go.disabled = true; try { await empPushEnable(); close(); toast(evL("✅ 알림을 켰어요 · 테스트 알림을 보냈어요", "✅ Notifications on · a test was sent")); } catch (e) { go.disabled = false; toast(errMsg(e)); } };
+    const close = sheet([h("h3", {}, "🔔 " + evL("이 폰으로 알림을 받을까요?", "Get notifications on this phone?")),
+      h("p", { style: "line-height:1.55" }, evL("경고 통지, IR 요청, 중요한 안내가 오면 바로 알려 드려요. 아래 버튼을 누르고, 폰에서 묻는 창이 뜨면 '허용'을 눌러 주세요.",
+        "We will tell you right away when there is a warning notice, an IR request or an important notice. Tap the button below, then tap 'Allow' when your phone asks.")),
+      denied ? h("small", { class: "muted", style: "display:block;margin-bottom:8px;color:var(--bad)" }, evL("지금 알림이 차단돼 있어요. 브라우저 설정 → 사이트 설정 → 알림에서 이 사이트를 '허용'으로 바꾼 뒤 다시 눌러 주세요.", "Notifications are blocked now. Go to browser Settings → Site settings → Notifications, set this site to 'Allow', then tap again.")) : null,
+      pushIOS() && !isStandalone() ? h("small", { class: "muted", style: "display:block;margin-bottom:8px" }, evL("아이폰: 공유 버튼 → '홈 화면에 추가' → 그 아이콘으로 앱을 열어야 알림을 켤 수 있어요.", "iPhone: tap Share → 'Add to Home Screen', then open the app from that icon to turn on notifications.")) : null,
+      h("div", { class: "row", style: "gap:8px" }, h("button", { class: "btn", type: "button", id: "emp-push-later", onclick: () => close() }, evL("나중에", "Later")), go)], { lock: true }); };
+  wait(0);
 }
 /* ---- owner: "waiting for approval" bar under the tabs (every tab) ---- */
 async function pendingBar() {
