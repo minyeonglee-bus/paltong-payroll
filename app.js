@@ -719,6 +719,9 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-24", popup: false,
+    ko: ["⛔ 사인 안 한 경고나 제출 안 한 IR이 있으면 출근을 찍을 수 없어요. 출근을 누르면 안내가 뜨고 바로 확인 화면으로 가요 → 사인(경고) 또는 제출(IR)한 뒤 다시 출근을 누르세요. 퇴근은 그대로 찍을 수 있어요."],
+    en: ["⛔ You can't clock in while a warning is unsigned or an IR is not submitted. When you tap Clock in, a notice opens it for you → sign (warning) or submit (IR), then tap Clock in again. Clock out still works."] },
   { id: "2026-11-23b", popup: false,
     ko: ["🔔 이제 이 폰으로 알림을 받을 수 있어요. 앱을 열면 '알림 받을까요?'가 떠요 → '알림 허용' → 폰에서 '허용'. 경고·IR 요청이 오면 바로 알려 드려요."],
     en: ["🔔 You can now get notifications on this phone. When you open the app it asks 'Get notifications?' → tap 'Allow notifications' → tap 'Allow' on your phone. You will be told right away about warnings and IR requests."] },
