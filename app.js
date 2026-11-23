@@ -720,8 +720,8 @@ async function eventAdminCard() {
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
   { id: "2026-11-24", popup: false,
-    ko: ["⛔ 사인 안 한 경고나 제출 안 한 IR이 있으면 출근을 찍을 수 없어요. 출근을 누르면 안내가 뜨고 바로 확인 화면으로 가요 → 사인(경고) 또는 제출(IR)한 뒤 다시 출근을 누르세요. 퇴근은 그대로 찍을 수 있어요."],
-    en: ["⛔ You can't clock in while a warning is unsigned or an IR is not submitted. When you tap Clock in, a notice opens it for you → sign (warning) or submit (IR), then tap Clock in again. Clock out still works."] },
+    ko: ["⛔ 사인 안 한 경고나 제출 안 한 IR이 있으면 출근을 찍을 수 없어요. 출근을 누르면 안내가 뜨고 바로 확인 화면으로 가요 → 사인(경고) 또는 제출(IR)한 뒤 다시 출근을 누르세요. 퇴근은 그대로 찍을 수 있어요.", "⏰ 5일 기한 안에 해명(IR)을 안 내면 '해명 포기'로 기록되고, 있는 증거로 결정돼요."],
+    en: ["⛔ You can't clock in while a warning is unsigned or an IR is not submitted. When you tap Clock in, a notice opens it for you → sign (warning) or submit (IR), then tap Clock in again. Clock out still works.", "⏰ If you don't send your explanation (or IR) within 5 days, it is recorded as 'Explanation waived' and decided on the evidence."] },
   { id: "2026-11-23b", popup: false,
     ko: ["🔔 이제 이 폰으로 알림을 받을 수 있어요. 앱을 열면 '알림 받을까요?'가 떠요 → '알림 허용' → 폰에서 '허용'. 경고·IR 요청이 오면 바로 알려 드려요."],
     en: ["🔔 You can now get notifications on this phone. When you open the app it asks 'Get notifications?' → tap 'Allow notifications' → tap 'Allow' on your phone. You will be told right away about warnings and IR requests."] },
@@ -2011,11 +2011,15 @@ const warnStepEn = n => n ? `${ordEn(n)} violation — ${WARN_STEP[Math.min(n, 5
 const isIR = w => w.kind === "ir";
 const warnTagL = w => isIR(w) ? "📝 " + evL("IR 요청 (경고 아님)", "IR request (not a warning)") : warnStepL(w.step);
 const warnLate = w => !w.explain && new Date(w.explain_by) < new Date();
+// no explanation / IR by the deadline → recorded as "explanation waived" (owner 11/24)
+const warnByD = w => absDayL(String(w.explain_by || new Date(new Date(w.issued_at).getTime() + 5 * 864e5).toISOString()).slice(0, 10));
+const warnWaivedL = w => evL(`해명 포기 (${warnByD(w)} 기한 내 미제출)`, `Explanation waived (none by ${warnByD(w)})`);
+const warnWaivedEn = w => `No ${isIR(w) ? "report" : "explanation"} was received by the deadline (${new Date(w.explain_by || new Date(new Date(w.issued_at).getTime() + 5 * 864e5)).toLocaleDateString("en-PH", { timeZone: "Asia/Manila", year: "numeric", month: "long", day: "numeric" })}). The employee is deemed to have waived the right to explain. / 기한 내 해명 없음 — 해명 포기`;
 // must be done before using the app (owner 11/23: "나중에" was pressed by everyone) — unsigned warning, or IR still writable
 const warnMust = w => !w.ack_at && !w.refused_at && w.status !== "void" && !(isIR(w) && warnLate(w));
 const warnMustNote = () => h("div", { style: "font-weight:700;color:var(--bad);margin:4px 0" }, evL("⛔ 이걸 끝내야 앱을 쓸 수 있어요 (출퇴근 포함).", "⛔ Finish this first to use the app (including clock in / out)."));
 const warnPill = w => h("span", { class: "pill " + (w.ack_at ? "paid" : w.refused_at ? "late" : "draft") },
-  isIR(w) ? (w.ack_at ? evL("IR 제출함", "IR submitted") : w.refused_at ? evL("서명 거부", "Refused to sign") : evL("IR 써 주세요", "Please write IR")) :
+  isIR(w) ? (w.ack_at ? evL("IR 제출함", "IR submitted") : w.refused_at ? evL("서명 거부", "Refused to sign") : warnLate(w) ? evL("해명 포기", "Waived") : evL("IR 써 주세요", "Please write IR")) :
   w.ack_at ? evL("확인·사인함", "Signed") : w.refused_at ? evL("서명 거부", "Refused to sign") : evL("확인 필요", "Please confirm"));
 const warnErr = e => ({ warn_late: evL("해명 기한(통지 후 5일)이 지났어요", "The 5-day explanation period has ended"), warn_explained: evL("해명은 이미 냈어요", "You already sent an explanation"),
   ir_need: evL("무슨 일이 있었는지 IR을 적어 주세요", "Please write your incident report"), need_sig: evL("먼저 사인을 등록해 주세요", "Please register your signature first"), noData: t("noData") })[e] || pinErr(e, "noData");
@@ -2054,7 +2058,7 @@ function warnDoc(w, e, sig, hist) {
       + " If no explanation is received by then, you are deemed to have waived your right to explain and the matter will be decided on the available evidence."
       + (next ? ` Further violations may lead to — ${next}.` : "")),
     h("h3", { style: "margin:16px 0 6px" }, "Employee's explanation / 직원 해명"),
-    h("div", { style: "border:1px solid #999;min-height:80px;padding:10px;white-space:pre-wrap" }, w.explain ? w.explain + (w.explain_at ? `\n\n(${fmtD(w.explain_at)})` : "") : ""),
+    h("div", { style: "border:1px solid #999;min-height:80px;padding:10px;white-space:pre-wrap" }, w.explain ? w.explain + (w.explain_at ? `\n\n(${fmtD(w.explain_at)})` : "") : warnLate(w) ? warnWaivedEn(w) : ""),
     h("p", { style: "font-size:13px;margin:14px 0 0" }, "I acknowledge that I received this notice. My signature confirms receipt only and does not mean I agree with its contents."),
     w.refused_at ? h("p", { style: "font-size:13px;margin:6px 0 0;color:#a00" }, `Employee refused to sign on ${fmtD(w.refused_at)}.` + (w.refused_note ? " " + w.refused_note : "")) : null,
     h("div", { style: "display:flex;gap:40px;margin-top:30px" }, sigLine("Employee signature / Date", w.ack_at ? sig : null, w.ack_at ? fmtD(w.ack_at) : ""),
@@ -2075,7 +2079,7 @@ function irDoc(w, e, sig) {
       (w.proof_n ?? (w.proof || []).length) ? row("Evidence", `${w.proof_n ?? w.proof.length} screenshot(s) on file`) : null),
     h("p", { style: "margin:12px 0 0" }, "This is a request for an incident report, not a warning. It is not counted as a violation."),
     h("h3", { style: "margin:16px 0 6px" }, "Employee's report / 직원 경위"),
-    h("div", { style: "border:1px solid #999;min-height:140px;padding:10px;white-space:pre-wrap" }, w.explain ? w.explain + (w.explain_at ? `\n\n(${fmtD(w.explain_at)})` : "") : ""),
+    h("div", { style: "border:1px solid #999;min-height:140px;padding:10px;white-space:pre-wrap" }, w.explain ? w.explain + (w.explain_at ? `\n\n(${fmtD(w.explain_at)})` : "") : warnLate(w) ? warnWaivedEn(w) : ""),
     h("p", { style: "font-size:13px;margin:14px 0 0" }, "I confirm that the report above is true and correct to the best of my knowledge."),
     h("div", { style: "display:flex;gap:40px;margin-top:30px" }, sigLine("Employee signature / Date", w.ack_at ? sig : null, w.ack_at ? fmtD(w.ack_at) : ""),
       sigLine("Manager" + (mgrName() ? " / " + mgrName() : "") + " / Date", mgrSig(), fmtD(w.issued_at))));
@@ -2200,7 +2204,7 @@ async function warnAdminCard() {
         w.status === "active" ? h("button", { class: "btn sm ghost", type: "button", onclick: () => op(w, "void", evL("이 경고를 무효로 할까요? 횟수에서 빠지고 직원 화면에서 사라져요.", "Void this warning? It leaves the count and the staff screen."), evL("사유 (선택)", "Reason (optional)")) }, evL("무효", "Void"))
           : h("button", { class: "btn sm ghost", type: "button", onclick: () => op(w, "unvoid", evL("다시 살릴까요?", "Restore it?")) }, evL("되살리기", "Restore"))),
       h("div", { class: "muted", style: "font-size:13px;white-space:pre-wrap" }, w.detail + (w.action ? " → " + w.action : "")),
-      w.explain ? h("div", { style: "font-size:13px;margin-top:2px" }, "📝 " + w.explain) : !w.ack_at ? null : warnLate(w) ? h("div", { class: "muted", style: "font-size:13px" }, evL("해명 없음 (기한 지남)", "No explanation (period ended)")) : null); };
+      w.explain ? h("div", { style: "font-size:13px;margin-top:2px" }, "📝 " + w.explain) : warnLate(w) ? h("div", { style: "font-size:13px;color:var(--bad);font-weight:700" }, "⏰ " + warnWaivedL(w)) : null); };
   const refresh = async () => { const c = await warnAdminCard(); card.replaceWith(c); };
   const open = act.filter(w => !w.ack_at && !w.refused_at);
   card.append(h("div", { class: "row" }, h("h2", {}, "⚠️ " + evL("경고", "Warnings")), h("span", { class: "sp" }),
