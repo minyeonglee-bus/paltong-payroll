@@ -1702,6 +1702,7 @@ function askReason(kind, r, loc) {
   const head = () => h("p", {}, h("b", {}, t(kind === "in" ? "punchIn" : "punchOut")), " · ", t("rsnPlan"), " ", r.plan && !/^(off|sil)$/.test(r.plan) ? SHIFT_LABEL(r.plan) : "—",
     " · ", t("rsnNow"), " ", fmtT(r.at), h("br"), h("b", { style: "color:var(--bad)" }, devText(r.plan, r.dev)));
   const send = async (reason, msg, close) => { try { const x = await db.punch(EMP.no, EMP.pin, kind, reason, loc || await getLoc());
+      if (!x.ok && x.err === "warn_pending") { close && close(); return warnPunchBlocked(); }
       if (!x.ok) return toast(x.err === "away" ? t("awayErr") : x.need_reason ? t("rsnNeed") : pinErr(x.err)); close && close();
       toast(x.dup ? t("clockDup") : msg || t("rsnSent")); EMP.data = await db.empView(EMP.no, EMP.pin); renderStaffHome(); } catch (e) { toast(errMsg(e)); } };
   const choose = (title, q, opts) => { const close = sheet([h("h3", {}, title), head(), h("p", { style: "font-weight:700" }, q),
@@ -2015,6 +2016,14 @@ const warnPill = w => h("span", { class: "pill " + (w.ack_at ? "paid" : w.refuse
   w.ack_at ? evL("확인·사인함", "Signed") : w.refused_at ? evL("서명 거부", "Refused to sign") : evL("확인 필요", "Please confirm"));
 const warnErr = e => ({ warn_late: evL("해명 기한(통지 후 5일)이 지났어요", "The 5-day explanation period has ended"), warn_explained: evL("해명은 이미 냈어요", "You already sent an explanation"),
   ir_need: evL("무슨 일이 있었는지 IR을 적어 주세요", "Please write your incident report"), need_sig: evL("먼저 사인을 등록해 주세요", "Please register your signature first"), noData: t("noData") })[e] || pinErr(e, "noData");
+// ⛔ server refused clock in: unsigned warning / unsubmitted IR (owner 11/24) → notice + open the popup now
+function warnPunchBlocked(btns) {
+  btns?.forEach(b => b.disabled = false);
+  const close = sheet([h("h3", { style: "color:var(--bad)" }, "⛔ " + evL("출근을 찍을 수 없어요", "You can't clock in yet")),
+    h("p", { style: "font-size:15px;line-height:1.55" }, evL("확인 안 한 경고 또는 IR이 있어요. 경고는 사인, IR은 제출해야 출근을 찍을 수 있어요.", "You have a warning or IR request you haven't finished. Sign the warning / submit the IR first, then clock in.")),
+    h("div", { class: "row", style: "margin-top:10px" }, h("span", { class: "sp" }), h("button", { class: "btn primary", type: "button", id: "warn-block-go", style: "padding:12px;font-size:16px", onclick: () => { close(); EMP.warn = null;
+      warnReminder().then(shown => { if (shown) EMP.afterWarn = () => renderStaffHome(); else renderStaffHome(); }); } }, "✍️ " + evL("지금 확인하기", "Check it now")))], { lock: true });
+}
 const warnDocName = (w, e) => `${isIR(w) ? "Incident report" : "Warning notice"} - ${fullName(e)} - ${w.day}`;
 // printable notice; hist = the other warnings of the same group (for the record table)
 function warnDoc(w, e, sig, hist) {
@@ -2288,6 +2297,7 @@ function clockCard() {
       const loc = await getLoc();
       const r = await db.punch(EMP.no, EMP.pin, kind, null, loc);
       if (!r.ok && r.err === "away") { toast(t("awayErr")); btns.forEach(b => b.disabled = false); return; }
+      if (!r.ok && r.err === "warn_pending") { warnPunchBlocked(btns); return; }
       if (!r.ok && r.need_reason) { btns.forEach(b => b.disabled = false); askReason(kind, r, loc); return; }
       if (!r.ok) { toast(pinErr(r.err)); return; }
       if (r.dup) { toast(t("clockDup")); return; }
