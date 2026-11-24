@@ -3175,7 +3175,7 @@ async function renderLedger() {
       h("div", { class: "s" }, l.biz_date, " ", tf("led_applies", { p: periodLabel(p.start, p.end) }), noteOf(l) ? ` · ${noteOf(l)}` : "", l.kind === "shortage" && !(l.verified && l.authorized) ? " · ⚠ " + t("notDeducted") : ""),
       h("div", { class: "m money " + (l.kind === "bonus" ? "pos" : "neg") }, (l.kind === "bonus" ? "+" : "−") + money(l.amount))));
   }
-  if (owner) main.append(await cashIssuesCard(), await bdayCard());
+  if (owner) main.append(...[await cashIssuesCard(), await bdayCard()].filter(Boolean));
   main.append(h("div", { class: "card" }, h("div", { class: "row" }, h("h2", {}, t("tab_ledger")), h("span", { class: "sp" }), owner && h("button", { class: "btn primary sm", onclick: () => ledgerForm({ employee_id: S.employees[0]?.id || "", kind: "advance", biz_date: today(), amount: "" }, () => render()) }, "+ " + t("led_add"))),
     h("div", { class: "row" }, empSel, kindSel), h("small", { class: "muted" }, t("bonusHint")),
     owner && h("div", { class: "row" }, h("button", { class: "btn sm", type: "button", id: "topBonus", onclick: topBonusSheet }, "🏆 " + t("topBonus"))),
@@ -3537,7 +3537,7 @@ function signedPrintUI(onClose) {   // onClose: inside a sheet (⋯ menu) · non
 async function renderReq() {
   const main = document.getElementById("main");
   main.append(h("div", { class: "card" }, h("h2", {}, "📋 " + evL("요청", "Requests")), h("small", { class: "muted" }, evL("직원이 보낸 것 중 사장님 확인이 필요한 것 — 받음 확인 · 휴가 신청 · 출퇴근 사유 · 13월급 요청.", "Everything from the staff that needs you — received pay · leave · clock-in/out reasons · 13th month requests."))),
-    await equipAdminCard(), await noticeAdminCard(), await recvCard(), await absenceCard(), await warnAdminCard(), await silReqCard(), await hallCallCard(), await reviewCard(), await due13Card());
+    ...[await equipAdminCard(), await noticeAdminCard(), await recvCard(), await absenceCard(), await warnAdminCard(), await silReqCard(), await hallCallCard(), await reviewCard(), await due13Card()].filter(Boolean));
 }
 /* ---- 🙋 hall call (owner 2026-11-20): an approved Fri/Sat hall leave leaves the hall short → Mina is asked to come in.
    Mina answers here (print-only login); the owner sees the answers in Requests. "가능" → the 09:40 re-plan puts her on a hall shift. */
@@ -3563,10 +3563,10 @@ async function hallCallCard() {
 }
 async function renderPrint() {
   const main = document.getElementById("main");
-  main.append(S.user?.role !== "owner" ? await hallCallCard() : null, h("div", { class: "card", id: "print-signed" }, ...signedPrintUI()),
+  main.append(...[S.user?.role !== "owner" ? await hallCallCard() : null, h("div", { class: "card", id: "print-signed" }, ...signedPrintUI()),
     S.user?.role !== "owner" ? null : h("div", { class: "card" }, h("h2", {}, "🧾 " + evL("보름치 급여명세서 일괄 인쇄", "Payslips for a pay period")),
       h("small", { class: "muted", style: "display:block;margin-bottom:8px" }, evL("지급 예정 탭에서 기간을 고르고 '🖨 일괄 인쇄'를 누르면 A4 한 장에 6명씩 나와요.", "In the To pay tab choose the period and press 🖨 Print all — 6 per A4.")),
-      h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => { S.tab = "due"; render(); } }, evL("지급 예정으로 →", "Go to To pay →")))));
+      h("div", { class: "row" }, h("span", { class: "sp" }), h("button", { class: "btn", type: "button", onclick: () => { S.tab = "due"; render(); } }, evL("지급 예정으로 →", "Go to To pay →"))))].filter(Boolean));
 }
 function batchPrint(rows, s, e) {
   const sorted = rows.slice().sort((a, b) => String(a.employees?.name).localeCompare(String(b.employees?.name)));
