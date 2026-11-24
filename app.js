@@ -573,7 +573,7 @@ function myAdvTab(v, emp) {
         try { const r = await db.empAdvance(EMP.no, EMP.pin, a, rsn.value.trim(), via);
           if (!r.ok) { if (r.err === "need_sig") { toast(t("adv_needSig")); return renderSignFirst(); }
             throw new Error(r.err === "over_limit" ? tf("adv_over", { a: money(r.limit?.left || 0) }) : r.err === "bad_value" ? t("adv_bad") : r.err === "bad_via" ? t("adv_viaNeed") : pinErr(r.err)); }
-          toast(t("adv_done")); EMP.data = await db.empView(EMP.no, EMP.pin); EMP.tab = "adv"; renderStaffHome();
+          toast(t("adv_done")); EMP.data = await db.empView(EMP.no, EMP.pin); EMP.tab = "pay"; renderStaffHome();
         } catch (er) { toast(errMsg(er)); send.disabled = false; } }, { ask: true }); } },
     h("h2", {}, t("adv_title")), h("small", { class: "muted" }, t("adv_help")),
     L ? h("div", { id: "adv-limit", style: "margin:10px 0;padding:10px;border:1px solid var(--line);border-radius:8px" },
@@ -611,7 +611,7 @@ function myInfoCard(emp) {
       h("div", { class: "grid2" }, field(t("emp_name"), h("div", { style: "padding:9px 0" }, emp.name)), field(t("emp_bday"), bday), ...INFO_KEYS.map(k => field(t("i_" + k), inp[k]))),
       save),
     mySilSelf(EMP.data?.sil_sum),
-    h("div", { style: "margin-top:12px" }, h("button", { class: "btn sm", type: "button", id: "mi-intro", onclick: introSheet }, "🎬 " + t("intro_rewatch")), " ", h("button", { class: "btn sm", type: "button", id: "mi-new", onclick: () => { EMP.tab = "board"; renderStaffHome(); window.scrollTo(0, 0); } }, "🆕 " + t("new_title"))),
+    h("div", { style: "margin-top:12px" }, h("button", { class: "btn sm", type: "button", id: "mi-intro", onclick: introSheet }, "🎬 " + t("intro_rewatch")), " ", h("button", { class: "btn sm", type: "button", id: "mi-new", onclick: () => { EMP.tab = "home"; (EMP.fold = EMP.fold || {})["home:board-news"] = true; renderStaffHome(); document.getElementById("board-news")?.scrollIntoView({ behavior: "smooth", block: "start" }); } }, "🆕 " + t("new_title"))),
     EMP.data?.signature ? h("div", { id: "mi-sig", style: "margin-top:14px;padding-top:12px;border-top:1px solid var(--line)" }, h("b", {}, t("sig_mine")), h("div", {}, sigImg(EMP.data.signature, "max-height:70px;background:#fff;border-radius:6px;padding:4px")), h("small", { class: "muted" }, tf("sig_on", { d: fmtD(EMP.data.signature.signed_at) }))) : null);
 }
 /* ---- staff: SIL days LEFT — re-entered once (owner 2026-11-14: "마지막이고 이번에 적는 것만 인정"), then locked (owner can still change it).
@@ -719,6 +719,11 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-24b", popup: true,
+    ko: ["🗂 앱 메뉴가 바뀌었어요: 🏠 홈 (공지 · 빨리 할 것 · 출퇴근) · 💰 급여 (급여명세서 · 13월급 · 가불) · 🗓 출석 (휴가 신청 · 스케줄 · 근무 기록 · 결석) · ⚠️ 경고 (경고 · IR) · 🔧 수리 · 📄 서류 (COE · 동의서 다시 보기) · 👤 내 정보 (연락처 · 생일 · 비상 연락처).",
+      "📂 칸은 모두 접혀 있어요. 제목을 누르면 열려요. 빨리 해야 하는 건 홈 맨 위에 나오고, 해야 할 게 있는 메뉴에는 빨간 점이 떠요."],
+    en: ["🗂 The app menu changed: 🏠 Home (notices · do this first · clock in/out) · 💰 Payroll (payslips · 13th month · advance) · 🗓 Attendance (leave request · schedule · work record · absence) · ⚠️ Warnings (warnings · IR) · 🔧 Repairs · 📄 Documents (COE · agreements to view again) · 👤 My page (contact · birthday · emergency contact).",
+      "📂 All boxes are closed. Tap the title to open one. Things to do quickly are at the top of Home, and a menu with something to do shows a red dot."] },
   { id: "2026-11-24", popup: false,
     ko: ["⛔ 사인 안 한 경고나 제출 안 한 IR이 있으면 출근을 찍을 수 없어요. 출근을 누르면 안내가 뜨고 바로 확인 화면으로 가요 → 사인(경고) 또는 제출(IR)한 뒤 다시 출근을 누르세요. 퇴근은 그대로 찍을 수 있어요.", "⏰ 5일 기한 안에 해명(IR)을 안 내면 '해명 포기'로 기록되고, 있는 증거로 결정돼요."],
     en: ["⛔ You can't clock in while a warning is unsigned or an IR is not submitted. When you tap Clock in, a notice opens it for you → sign (warning) or submit (IR), then tap Clock in again. Clock out still works.", "⏰ If you don't send your explanation (or IR) within 5 days, it is recorded as 'Explanation waived' and decided on the evidence."] },
@@ -899,10 +904,10 @@ function myBoardAlert(emp) {
   // (it pops up once, then stays on the 📢 tab). Pay received, 13th month and 'Please confirm' have their own top cards.
   const nPol = NOTICES.filter(n => forEmp(n, emp) && !noticeDone(n.id) && !noticePast(n)).length;   // past the deadline: no more alerts
   if (!nPol) return null;
-  return h("div", { class: "card", id: "board-alert", style: "border:2px solid var(--accent);cursor:pointer", onclick: () => { EMP.tab = "board"; renderStaffHome(); } },
+  return h("div", { class: "card", id: "board-alert", style: "border:2px solid var(--accent);cursor:pointer", onclick: () => { EMP.tab = "home"; (EMP.fold = EMP.fold || {})["home:board-news"] = true; renderStaffHome(); document.getElementById("board-news")?.scrollIntoView({ behavior: "smooth", block: "start" }); } },
     h("b", {}, "⚠️ " + evL("동의해야 할 공지가 있어요", "You have a notice to agree to")), " ",
     h("span", {}, evL(`동의 필요 ${nPol}개`, `${nPol} to agree`)),
-    h("div", { class: "muted", style: "margin-top:4px" }, "👉 " + evL("눌러서 공지 탭 보기", "Tap to open the Notices tab")));
+    h("div", { class: "muted", style: "margin-top:4px" }, "👉 " + evL("눌러서 공지 보기 (홈 아래)", "Tap to see the notice (below on Home)")));
 }
 function whatsNewSheet(all) {
   const seen = newSeen();
@@ -1229,6 +1234,23 @@ async function equipAdminCard() {
     h("ul", {}, r.recover.map(x => h("li", {}, `${x.name || ""} · ${x.source} · ₱${money(x.amount)}`)))));
   return card;
 }
+/* ---- staff tabs: fold cards (owner 2026-11-24 "모든 칸은 접고있는걸 기본으로") ---- */
+// Tap the card title to open/close. Cards with a solid 2px border (= need action) start open; the choice is remembered until the app is closed.
+function foldCards(main, tab) {
+  EMP.fold = EMP.fold || {};
+  const cards = [...main.children].filter(n => n.classList.contains("card") && n.tagName !== "DETAILS" && !n.dataset.nofold && n.id !== "my-coe-x");
+  cards.forEach((n, i) => {
+    const key = tab + ":" + (n.id || i);
+    const hot = /border:\s*2px solid/.test(n.getAttribute("style") || "") && n.id !== "my-coe";
+    const open = key in EMP.fold ? EMP.fold[key] : hot || cards.length === 1;
+    n.classList.add("fold"); n.classList.toggle("shut", !open);
+    n.addEventListener("click", e => {
+      const head = n.firstElementChild;
+      if (!head || !head.contains(e.target) || e.target.closest("button,a,input,select,textarea,label,summary")) return;
+      EMP.fold[key] = !n.classList.toggle("shut");
+    });
+  });
+}
 function renderStaffHome() {
   const v = EMP.data, emp = v.employee;
   if (!EMP.preview && !emp.intro_seen_at) return renderIntro();
@@ -1268,34 +1290,50 @@ function renderStaffHome() {
         h("div", {}, h("b", {}, periodLabel(p.period_start, p.period_end)), h("div", { class: "muted" }, t("sharedStaff"))),
         h("span", { class: "sp" }), h("div", { class: "money", style: "font-size:26px;font-weight:800" }, "₱" + money(p.result.net)),
         h("button", { class: "btn primary", type: "button", onclick: () => { seen = true; openSlip(p); } }, t("myFinalOpen")), ack); })) : null;
+  // owner 2026-11-24: 7 tabs so staff find things fast — 홈 · 급여 · 출석 · 경고 · 수리 · 서류 · 내 정보.
+  // Every card starts folded (tap the title to open); cards that need action (solid border) stay open. Urgent things sit at the top of Home.
+  const noPay = !!emp.info?.no_payroll, year = new Date().getFullYear();
+  const TABS = [["home", "🏠 " + evL("홈", "Home")], ...(noPay ? [] : [["pay", "💰 " + evL("급여", "Payroll")]]), ["att", "🗓 " + evL("출석", "Attendance")],
+    ...(noPay ? [] : [["warn", "⚠️ " + evL("경고", "Warnings")], ["repair", "🔧 " + evL("수리", "Repairs")]]), ["docs", "📄 " + evL("서류", "Documents")], ["me", "👤 " + evL("내 정보", "My page")]];
+  let tab = { adv: "pay", board: "home" }[EMP.tab] || EMP.tab || "home";
+  if (!TABS.some(([k]) => k === tab)) tab = "home";
+  EMP.tab = tab;
+  // things waiting in other tabs → red dot on the tab + a line in Home's "do this first" card
+  const ack13 = (v.ack13 || []).find(a => a.year === year);
+  if (!noPay && !EMP.warn && !EMP.warnLoading) { EMP.warnLoading = true;   // warnings load in the background → dot on ⚠️ + line in "do this first"
+    loadMyWarn().then(() => { EMP.warnLoading = false; if (EMP.data === v && (EMP.warn.length || EMP.tab === "warn")) renderStaffHome(); }); }
+  const todo = [];
+  if (!noPay && finals.some(p => !p.ack_at)) todo.push({ tab: "pay", txt: evL("급여명세서 확인하기", "Check and confirm your payslip") });
+  if (!noPay && ack13?.date_ask_at && !ack13.requested_at && !(v.thirteenth || []).some(x => x.year === year)) todo.push({ tab: "pay", txt: evL("13월급 확인하고 요청하기", "Check and request your 13th month pay") });
+  if (!noPay && v.sil_sum && !v.sil_sum.self_left_at && !v.sil_sum.sil_from) todo.push({ tab: "att", txt: evL("남은 SIL 적기", "Write your SIL days left") });
+  if (!noPay && (EMP.warn || []).some(w => !w.ack_at)) todo.push({ tab: "warn", txt: evL("경고 사인 · IR 제출하기", "Sign the warning · hand in the IR") });
+  const todoCard = todo.length ? h("div", { class: "card", id: "my-todo", style: "border:2px solid var(--accent)" }, h("h2", {}, "🔥 " + evL("먼저 할 것", "Do this first")),
+    h("div", { class: "list" }, todo.map(x => h("div", { class: "item", style: "cursor:pointer", onclick: () => { EMP.tab = x.tab; renderStaffHome(); window.scrollTo(0, 0); } },
+      h("div", { class: "t" }, x.txt), h("div", { class: "s" }, TABS.find(([k]) => k === x.tab)?.[1] || ""), h("div", { class: "m" }, "👉"))))) : null;
+  const card = (title, body, id) => h("div", { class: "card", id }, h("h2", {}, title), body);
+  const warnBox = () => { const w = myWarnCard(v, emp); if (w) return w;
+    return card("⚠️ " + evL("경고 · IR", "Warnings · IR"), h("span", { class: "muted" }, EMP.warn ? "✅ " + evL("경고나 IR이 없어요", "No warnings or IR") : "…"), "my-warn-none"); };
+  const content = tab === "pay" ? [finalCard, my13DateCard(v), myEstCard(emp, v), card(t("myPay"), payList, "my-pay-card"), card(t("myLedger"), ledList, "my-ledger-card"), ...myAdvTab(v, emp), my13Card(v, emp)]
+    : tab === "att" ? (noPay ? [card(t("myShifts"), shifts, "my-shifts-card"), mySchedCard(v, emp)]
+      : [mySilSelf(v.sil_sum, true), mySilCard(v), mySchedCard(v, emp), card(t("myShifts"), shifts, "my-shifts-card"), myAbsCard(v, emp), mentionsCard(v, false)])
+    : tab === "warn" ? [warnBox()]
+    : tab === "repair" ? [myEquipCard()]
+    : tab === "docs" ? myDocsTab(v, emp)
+    : tab === "me" ? [(() => { const c = myInfoCard(emp); c.open = true; return c; })()]
+    // 홈: urgent first (not folded), then clock in/out, then notices
+    : [noPay ? null : myCashCard(), mentionsCard(v, true), myBoardAlert(emp), myRecvCard(v), noPay ? null : myWaitCard(v), todoCard, myEventCard(), clockCard(), ...myBoardTab(emp)];
+  const main = h("main", { id: "main" }, ...content.filter(Boolean));
+  // urgent cards on Home are never folded
+  main.querySelectorAll(":scope > #my-cash, :scope > #my-mentions, :scope > #board-alert, :scope > #my-recv, :scope > #my-wait, :scope > #my-todo, :scope > #clock").forEach(n => n.dataset.nofold = "1");
   root.append(
     h("div", { class: "top" }, h("span", { class: "brand" }, t("app")), h("span", { class: "sp" }),
       h("span", { style: "opacity:.85;font-size:13px" }, `${emp.name} · ${t("empNoLbl")} ${emp.emp_no}`),
       h("button", { onclick: () => { setLangOnly(lang === "ko" ? "en" : "ko"); renderStaffHome(); } }, lang === "ko" ? "EN" : "한"),
       h("button", { id: "e-logout", onclick: EMP.preview ? endPreview : staffLogout }, EMP.preview ? evL("관리자로", "Admin") : t("logout"))),
-    h("div", { class: "tabs", role: "tablist", id: "staff-tabs" }, (emp.info?.no_payroll ? [["home", t("stab_home")], ["docs", t("stab_docs")], ["board", "📢 " + evL("공지", "Notices")]] : [["home", t("stab_home")], ["adv", t("stab_adv")], ["docs", t("stab_docs")], ["board", "📢 " + evL("공지", "Notices")]]).map(([k, l]) => h("button", { role: "tab", id: "stab-" + k, "aria-selected": String((EMP.tab || "home") === k), onclick: () => { EMP.tab = k; renderStaffHome(); } }, l))),
+    h("div", { class: "tabs", role: "tablist", id: "staff-tabs" }, TABS.map(([k, l]) => h("button", { role: "tab", id: "stab-" + k, "aria-selected": String(tab === k), onclick: () => { EMP.tab = k; renderStaffHome(); window.scrollTo(0, 0); } }, l, todo.some(x => x.tab === k) ? h("span", { class: "tabdot" }) : null))),
     EMP.preview ? h("div", { id: "preview-bar", style: "background:var(--gold);color:#2a1c00;padding:8px 14px;font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px" }, "👀 " + evL("직원 화면 미리보기 · 보기만 돼요 (버튼은 작동 안 함)", "Staff screen preview · view only (buttons do not work)"), h("span", { class: "sp" }), h("button", { class: "btn sm", type: "button", onclick: endPreview }, evL("닫기", "Close"))) : "",   // root.append(null) would print "null"
-    h("main", { id: "main" }, mentionsCard(v, true), (EMP.tab || "home") === "home" ? myBoardAlert(emp) : null, myRecvCard(v), (EMP.tab || "home") === "home" && !emp.info?.no_payroll ? myEquipCard() : null, ...(EMP.tab === "board" ? myBoardTab(emp) : EMP.tab === "adv" && !emp.info?.no_payroll ? myAdvTab(v, emp) : EMP.tab === "docs" ? myDocsTab(v, emp) : emp.info?.no_payroll ? [
-      // Mina (manager, paid outside the restaurant payroll): no pay / advance / 13th / approval cards
-      myEventCard(), clockCard(), h("div", { class: "card" }, h("h2", {}, t("myShifts")), shifts), mySchedCard(v, emp), myInfoCard(emp)] : [
-      myCashCard(),
-      myWaitCard(v),
-      my13DateCard(v),
-      mySilSelf(v.sil_sum, true),
-      myEventCard(),
-      finalCard,
-      myEstCard(emp, v),
-      clockCard(),
-      myAbsCard(v, emp),
-      myWarnCard(v, emp),
-      h("div", { class: "card" }, h("h2", {}, t("myPay")), payList),
-      h("div", { class: "card" }, h("h2", {}, t("myLedger")), ledList),
-      h("div", { class: "card" }, h("h2", {}, t("myShifts")), shifts),
-      mySchedCard(v, emp),
-      mySilCard(v),
-      my13Card(v, emp),
-      mentionsCard(v, false),
-      myInfoCard(emp)])));
+    main);
+  foldCards(main, tab);
   if (!EMP.newShown) { EMP.newShown = true;   // 📢 notice first, then what's new
     const eq = async () => { if (await equipReminder()) EMP.afterEquip = () => whatsNewSheet(false); else whatsNewSheet(false); };
     const rest = async () => { if (await warnReminder()) EMP.afterWarn = () => { renderStaffHome(); eq(); }; else eq(); };

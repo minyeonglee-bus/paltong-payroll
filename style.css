@@ -235,3 +235,10 @@ tr.sum.neg td{border-bottom:2px solid var(--fg)}
   body.print-signed #printOne .docPage{page-break-after:always;break-after:page}
   body.print-signed #printOne #batchPrint{display:grid;grid-template-columns:1fr 1fr;gap:0;width:194mm;font-size:9px}
 }
+/* staff tabs: folded cards (2026-11-24) — tap the title to open */
+.card.fold{position:relative;padding-right:40px}
+.card.fold>:first-child{cursor:pointer}
+.card.fold::after{content:"▾";position:absolute;right:14px;top:14px;font-size:18px;color:var(--muted);pointer-events:none}
+.card.fold.shut::after{content:"▸"}
+.card.fold.shut>:not(:first-child){display:none!important}
+.tabs button .tabdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-left:4px;vertical-align:top}
