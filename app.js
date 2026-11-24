@@ -252,7 +252,7 @@ async function staffSignIn(no, pin) {
   } catch (e) { if (auto) return renderStaffLogin(null, no); renderStaffLogin(String(e.message || e), no); }
 }
 async function staffLogout() {
-  const pin = EMP.pin; EMP.pin = ""; EMP.data = null; saveTok(""); EMP.notices = null; EMP.noticeLater = {}; EMP.newShown = false; EMP.newsIds = null; EMP.newsSeen = null;
+  const pin = EMP.pin; EMP.pin = ""; EMP.data = null; saveTok(""); EMP.notices = null; EMP.noticeLater = {}; EMP.newShown = false; EMP.newsIds = null; EMP.newsSeen = null; EMP.warn = null; EMP.warnErr = false; EMP.abs = null; EMP.fold = {};
   if (pin.startsWith("tok:")) try { await db.empLogout(EMP.no, pin); } catch {}
   renderStaffLogin();
 }
@@ -1335,7 +1335,7 @@ function renderStaffHome() {
   // things waiting in other tabs → red dot on the tab + a line in Home's "do this first" card
   const ack13 = (v.ack13 || []).find(a => a.year === year);
   if (!noPay && !EMP.warn && !EMP.warnLoading) { EMP.warnLoading = true;   // warnings load in the background → dot on ⚠️ + line in "do this first"
-    loadMyWarn().then(() => { EMP.warnLoading = false; if (EMP.data === v && (EMP.warn.length || EMP.tab === "warn")) renderStaffHome(); }); }
+    loadMyWarn().then(r => { EMP.warnLoading = false; if (EMP.data === v && (r.length || EMP.tab === "warn")) renderStaffHome(); }); }
   const todo = [];
   const nNew = WHATS_NEW.filter(n => forEmp(n, emp) && !isNewSeen(n)).length;
   if (nNew) todo.push({ tab: "board", txt: evL(`새 공지 ${nNew}개 읽고 확인하기`, `Read ${nNew} new notice(s)`) });
@@ -1348,6 +1348,8 @@ function renderStaffHome() {
       h("div", { class: "t" }, x.txt), h("div", { class: "s" }, TABS.find(([k]) => k === x.tab)?.[1] || ""), h("div", { class: "m" }, "👉"))))) : null;
   const card = (title, body, id) => h("div", { class: "card", id }, h("h2", {}, title), body);
   const warnBox = () => { const w = myWarnCard(v, emp); if (w) return w;
+    if (!EMP.warn && EMP.warnErr) return card("⚠️ " + evL("경고 · IR", "Warnings · IR"), h("div", {}, h("p", { style: "margin:0 0 8px;color:var(--accent)" }, evL("불러오지 못했어요. 인터넷을 확인하고 다시 눌러 주세요.", "Could not load. Check the internet and try again.")),
+      h("button", { class: "btn", type: "button", onclick: async () => { await loadMyWarn(); renderStaffHome(); } }, "🔄 " + evL("다시 불러오기", "Try again"))), "my-warn-none");
     return card("⚠️ " + evL("경고 · IR", "Warnings · IR"), h("span", { class: "muted" }, EMP.warn ? "✅ " + evL("경고나 IR이 없어요", "No warnings or IR") : "…"), "my-warn-none"); };
   // shortcuts staff can put on Home (✏️ 홈 꾸미기) — [key, label, card]
   const PIN = [["clock", "⏱ " + evL("출퇴근", "Clock in / out"), () => clockCard()],
@@ -2208,7 +2210,8 @@ function irSheet(w, emp, sig, done) {
     must ? null : h("div", { class: "row", style: "margin-top:6px" }, h("span", { class: "sp" }), h("button", { class: "btn sm ghost", type: "button", onclick: () => docSheet(irDoc(w, emp, sig), warnDocName(w, emp)) }, "🖨 " + t("print")))], { lock: true });
 }
 /* staff */
-async function loadMyWarn() { try { const r = await db.empWarnings(EMP.no, EMP.pin); EMP.warn = r.ok ? r.rows || [] : []; } catch { EMP.warn = EMP.warn || []; } return EMP.warn; }
+// load failed → keep EMP.warn as it was (never pretend "no warnings") and remember the error (2026-11-24: a 405 showed "No warnings" to staff who had some)
+async function loadMyWarn() { try { const r = await db.empWarnings(EMP.no, EMP.pin); if (!r.ok) throw new Error(r.err); EMP.warn = r.rows || []; EMP.warnErr = false; } catch { EMP.warnErr = true; } return EMP.warn || []; }
 function warnSheet(w, emp, sig, done) {
   if (isIR(w)) return irSheet(w, emp, sig, done);
   const canExplain = !w.explain && !warnLate(w);
@@ -2255,7 +2258,7 @@ async function warnReminder() {
   nextOne(0); return true;
 }
 function myWarnCard(v, emp) {
-  if (!EMP.warn) { loadMyWarn().then(r => { if (r.length && !document.getElementById("my-warn")) renderStaffHome(); }); return null; }
+  if (!EMP.warn) { if (!EMP.warnLoading) { EMP.warnLoading = true; loadMyWarn().then(r => { EMP.warnLoading = false; if (r.length && !document.getElementById("my-warn")) renderStaffHome(); }); } return null; }
   const rows = EMP.warn; if (!rows.length) return null;
   const by = {}; for (const w of rows) if (w.step) { const g = warnGrp(w.cat); by[g] = Math.max(by[g] || 0, w.step); }
   return h("div", { class: "card", id: "my-warn", style: rows.some(w => !w.ack_at) ? "border:2px solid var(--bad)" : "" },
