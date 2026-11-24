@@ -719,6 +719,9 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-24d", popup: true,
+    ko: ["✏️ 홈 꾸미기: 홈 맨 아래 '홈 꾸미기'를 눌러 자주 쓰는 것(출퇴근 · 스케줄 · 휴가 신청 · 가불 · 급여명세서 · COE 등)을 홈에 바로 놓을 수 있어요.", "✍️ 사인·동의·확인해야 하는 것은 항상 홈 맨 위에 나와요."],
+    en: ["✏️ Customize Home: tap 'Customize Home' at the bottom of Home to put what you use often (clock in/out · schedule · leave request · advance · payslips · COE…) right on Home.", "✍️ Things you must sign, agree or confirm always show at the top of Home."] },
   { id: "2026-11-24c", popup: false,
     ko: ["📢 공지 탭: 업데이트와 모든 공지가 여기 있어요. NEW 공지는 읽고 '✅ 확인했어요'를 눌러야 확인돼요 (안 누르면 계속 NEW).", "🔄 앱이 새로 업데이트되면 자동으로 새로고침돼요."],
     en: ["📢 Notices tab: all updates and notices are here. A NEW notice counts as read only after you press '✅ I read it' (it stays NEW until you do).", "🔄 When the app is updated, it refreshes by itself."] },
@@ -1250,20 +1253,37 @@ async function equipAdminCard() {
 }
 /* ---- staff tabs: fold cards (owner 2026-11-24 "모든 칸은 접고있는걸 기본으로") ---- */
 // Tap the card title to open/close. Cards with a solid 2px border (= need action) start open; the choice is remembered until the app is closed.
-function foldCards(main, tab) {
-  EMP.fold = EMP.fold || {};
-  const cards = [...main.children].filter(n => n.classList.contains("card") && n.tagName !== "DETAILS" && !n.dataset.nofold && n.id !== "my-coe-x");
+function foldCards(main, tab, store = EMP, isOpen = null) {
+  const F = store.fold = store.fold || {};
+  const cards = [...main.children].filter(n => n.classList.contains("card") && n.tagName !== "DETAILS" && !n.dataset.nofold && !n.classList.contains("fold"));
   cards.forEach((n, i) => {
-    const key = tab + ":" + (n.id || i);
+    const title = n.querySelector("h2")?.textContent.trim() || "";
+    const key = tab + ":" + (n.id || title || i);
     const hot = /border:\s*2px solid/.test(n.getAttribute("style") || "") && n.id !== "my-coe";
-    const open = key in EMP.fold ? EMP.fold[key] : hot || cards.length === 1;
+    const open = key in F ? F[key] : hot || cards.length === 1 || !!(isOpen && isOpen(n, title));
     n.classList.add("fold"); n.classList.toggle("shut", !open);
     n.addEventListener("click", e => {
       const head = n.firstElementChild;
       if (!head || !head.contains(e.target) || e.target.closest("button,a,input,select,textarea,label,summary")) return;
-      EMP.fold[key] = !n.classList.toggle("shut");
+      F[key] = !n.classList.toggle("shut");
     });
   });
+}
+/* ---- staff Home shortcuts (owner 2026-11-24 "홈화면은 직원들이 편하게 조정 가능하게"): saved per phone + employee ---- */
+const pinKey = () => "pr_home_pins_" + (EMP.no || "");
+const homePins = () => { try { const a = JSON.parse(localStorage.getItem(pinKey()) || "null"); if (Array.isArray(a)) return a; } catch (e) {} return ["clock", "sched"]; };
+function homeEditSheet() {
+  const cur = new Set(homePins());
+  const boxes = (EMP.PIN || []).map(([k, l]) => { const c = h("input", { type: "checkbox", value: k, checked: cur.has(k) });
+    return h("label", { style: "display:flex;gap:10px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:10px;font-size:16px" }, c, l); });
+  const close = sheet([h("h3", {}, "✏️ " + evL("홈 꾸미기", "Customize Home")),
+    h("p", { class: "muted" }, evL("홈에 바로 보일 것을 골라 주세요. 사인·동의·확인해야 하는 것은 항상 홈 맨 위에 나와요 (뺄 수 없어요).", "Pick what you want on Home. Things to sign, agree or confirm always show at the top of Home (they can't be removed).")),
+    h("div", { style: "display:grid;gap:8px" }, boxes),
+    h("div", { class: "row", style: "margin-top:10px" }, h("button", { class: "btn", type: "button", onclick: () => close() }, t("cancel")), h("span", { class: "sp" }),
+      h("button", { class: "btn primary", type: "button", id: "home-edit-save", onclick: () => {
+        const pick = boxes.map(b => b.querySelector("input")).filter(c => c.checked).map(c => c.value);
+        try { localStorage.setItem(pinKey(), JSON.stringify(pick)); } catch (e) {}
+        close(); renderStaffHome(); } }, t("save")))]);
 }
 function renderStaffHome() {
   const v = EMP.data, emp = v.employee;
@@ -1329,6 +1349,20 @@ function renderStaffHome() {
   const card = (title, body, id) => h("div", { class: "card", id }, h("h2", {}, title), body);
   const warnBox = () => { const w = myWarnCard(v, emp); if (w) return w;
     return card("⚠️ " + evL("경고 · IR", "Warnings · IR"), h("span", { class: "muted" }, EMP.warn ? "✅ " + evL("경고나 IR이 없어요", "No warnings or IR") : "…"), "my-warn-none"); };
+  // shortcuts staff can put on Home (✏️ 홈 꾸미기) — [key, label, card]
+  const PIN = [["clock", "⏱ " + evL("출퇴근", "Clock in / out"), () => clockCard()],
+    ["sched", "🗓 " + evL("내 스케줄", "My schedule"), () => mySchedCard(v, emp)],
+    ...(noPay ? [] : [["leave", "🌴 " + evL("휴가 신청 · SIL", "Leave request · SIL"), () => mySilCard(v)],
+      ["est", "💰 " + evL("이번 급여 예상", "This pay estimate"), () => myEstCard(emp, v)],
+      ["pay", "🧾 " + evL("급여명세서", "Payslips"), () => card(t("myPay"), payList, "my-pay-card")],
+      ["adv", "💵 " + evL("가불 신청", "Cash advance"), () => myAdvTab(v, emp)[0]],
+      ["m13", "🎁 " + evL("13월급", "13th month pay"), () => my13Card(v, emp)]]),
+    ["shifts", "📋 " + evL("근무 기록", "Work record"), () => card(t("myShifts"), shifts, "my-shifts-card")],
+    ...(noPay ? [] : [["abs", "🤒 " + evL("결석 알리기", "Report absence"), () => myAbsCard(v, emp)],
+      ["equip", "🔧 " + evL("수리", "Repairs"), () => myEquipCard()],
+      ["coe", "📄 " + evL("재직증명서 (COE)", "Certificate of employment (COE)"), () => myDocsTab(v, emp)[0]]]),
+    ["info", "👤 " + evL("내 정보", "My info"), () => myInfoCard(emp)]];
+  EMP.PIN = PIN;
   const content = tab === "pay" ? [finalCard, my13DateCard(v), myEstCard(emp, v), card(t("myPay"), payList, "my-pay-card"), card(t("myLedger"), ledList, "my-ledger-card"), ...myAdvTab(v, emp), my13Card(v, emp)]
     : tab === "att" ? (noPay ? [card(t("myShifts"), shifts, "my-shifts-card"), mySchedCard(v, emp)]
       : [mySilSelf(v.sil_sum, true), mySilCard(v), mySchedCard(v, emp), card(t("myShifts"), shifts, "my-shifts-card"), myAbsCard(v, emp), mentionsCard(v, false)])
@@ -1338,10 +1372,14 @@ function renderStaffHome() {
     : tab === "board" ? myBoardTab(emp)
     : tab === "me" ? [(() => { const c = myInfoCard(emp); c.open = true; return c; })()]
     // 홈: urgent first (not folded), then clock in/out (notices: 📢 tab)
-    : [noPay ? null : myCashCard(), mentionsCard(v, true), myBoardAlert(emp), myRecvCard(v), noPay ? null : myWaitCard(v), todoCard, myEventCard(), clockCard()];
+    // 홈 (owner 2026-11-24): fixed = things to sign / answer (not removable) · below = shortcuts each person picks (✏️ 홈 꾸미기)
+    : [noPay ? null : myCashCard(), mentionsCard(v, true), myBoardAlert(emp), myRecvCard(v), noPay ? null : myWaitCard(v), todoCard,
+      noPay ? null : finals.some(p => !p.ack_at) ? finalCard : null, noPay ? null : mySilSelf(v.sil_sum, true), myEventCard()];
+  if (tab === "home") content.push(...homePins().map(k => PIN.find(x => x[0] === k)).filter(Boolean).map(x => x[2]()),
+    h("button", { class: "btn", type: "button", id: "home-edit", style: "justify-self:center", onclick: homeEditSheet }, "✏️ " + evL("홈 꾸미기 · 바로가기 고르기", "Customize Home · pick shortcuts")));
   const main = h("main", { id: "main" }, ...content.filter(Boolean));
   // urgent cards on Home are never folded
-  main.querySelectorAll(":scope > #my-cash, :scope > #my-mentions, :scope > #board-alert, :scope > #my-recv, :scope > #my-wait, :scope > #my-todo, :scope > #clock").forEach(n => n.dataset.nofold = "1");
+  main.querySelectorAll(":scope > #my-cash, :scope > #my-mentions, :scope > #board-alert, :scope > #my-recv, :scope > #my-wait, :scope > #my-todo, :scope > #my-final, :scope > #my-sil-redo, :scope > #home-edit").forEach(n => n.dataset.nofold = "1");
   root.append(
     h("div", { class: "top" }, h("span", { class: "brand" }, t("app")), h("span", { class: "sp" }),
       h("span", { style: "opacity:.85;font-size:13px" }, `${emp.name} · ${t("empNoLbl")} ${emp.emp_no}`),
@@ -2474,17 +2512,27 @@ function render() {
   // owner 2026-11-12: no separate 급여 계산 tab (open a payroll from 지급 예정 / 급여 내역); 요청 first, 인쇄 on its own
   const printOnly = S.user?.printer && S.user?.role !== "owner";   // Mina (manager): print signed documents only — nothing to approve or edit
   if (printOnly) S.tab = "print";
-  const tabs = printOnly ? [["print", "🖨 " + evL("인쇄", "Print")]] : [["req", "📋 " + evL("요청", "Requests")], ["due", t("tab_due")], ["sched", t("tab_sched")], ["emp", t("tab_emp")], ["ledger", t("tab_ledger")], ["hist", t("tab_hist")], ["m13", t("tab_13")], ["print", "🖨 " + evL("인쇄", "Print")], ["set", t("tab_set")]];
+  // owner 2026-11-24 "너무 헷갈리고 너저분": 6 tabs — money things grouped under 💰 급여 with a small sub-menu
+  const MONEY = [["due", t("tab_due")], ["hist", t("tab_hist")], ["ledger", t("tab_ledger")], ["m13", t("tab_13")]];
+  const inMoney = S.tab === "pay" || MONEY.some(([k]) => k === S.tab);
+  if (inMoney && S.tab !== "pay") S.moneyTab = S.tab;
+  const tabs = printOnly ? [["print", "🖨 " + evL("인쇄", "Print")]] : [["req", "📋 " + evL("요청", "Requests")], ["money", "💰 " + evL("급여", "Payroll")], ["sched", "🗓 " + evL("스케줄", "Schedule")], ["emp", "👥 " + evL("직원", "Staff")], ["print", "🖨 " + evL("인쇄", "Print")], ["set", "⚙️ " + evL("설정", "Settings")]];
   root.append(
     h("div", { class: "top" }, h("span", { class: "brand" }, t("app")), h("span", { class: "sp" }),
       h("span", { class: "muted", style: "color:inherit;opacity:.8;font-size:13px" }, S.user?.name || ""),
       h("button", { onclick: () => setLang(lang === "ko" ? "en" : "ko") }, lang === "ko" ? "EN" : "한"),
       h("button", { onclick: menu }, "⋯")),
-    h("div", { class: "tabs", role: "tablist" }, tabs.map(([k, l]) => h("button", { role: "tab", class: k === "due" ? "due" : "", "aria-selected": S.tab === k || (S.tab === "pay" && k === "due"), onclick: () => { S.tab = k; render(); } }, l))),
+    h("div", { class: "tabs", role: "tablist" }, tabs.map(([k, l]) => h("button", { role: "tab", "aria-selected": String(k === "money" ? inMoney : S.tab === k), onclick: () => { S.tab = k === "money" ? S.moneyTab || "due" : k; render(); window.scrollTo(0, 0); } }, l))),
+    inMoney && !printOnly ? h("div", { class: "subtabs", role: "tablist" }, MONEY.map(([k, l]) => h("button", { type: "button", "aria-selected": String(S.tab === k || (S.tab === "pay" && k === "due")), onclick: () => { S.tab = k; render(); } }, l))) : "",
     h("div", { id: "pend-bar" }),
     h("main", { id: "main" }));
   pendingBar();
-  ({ req: renderReq, print: renderPrint, pay: renderPay, sched: renderSched, emp: renderEmp, ledger: renderLedger, due: renderDue, hist: renderHist, m13: render13, set: renderSet })[S.tab]();
+  const tab = S.tab, done = ({ req: renderReq, print: renderPrint, pay: renderPay, sched: renderSched, emp: renderEmp, ledger: renderLedger, due: renderDue, hist: renderHist, m13: render13, set: renderSet })[tab]();
+  // fold the side cards (owner 2026-11-24): the tab's own main card and cards that need action (solid border) stay open
+  const mainT = { sched: t("tab_sched"), emp: t("tab_emp"), ledger: t("tab_ledger") }[tab];
+  if (tab === "req" || mainT) Promise.resolve(done).then(() => { const m = document.getElementById("main"); if (!m || S.tab !== tab) return;
+    if (tab === "req") m.firstElementChild?.setAttribute("data-nofold", "1");
+    foldCards(m, "adm-" + tab, S, (n, title) => !!mainT && title.startsWith(mainT)); }).catch(() => {});
 }
 /* ---- owner: web push on this device (approval alerts) ---- */
 const pushOK = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;

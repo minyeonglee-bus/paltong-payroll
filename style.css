@@ -242,3 +242,7 @@ tr.sum.neg td{border-bottom:2px solid var(--fg)}
 .card.fold.shut::after{content:"▸"}
 .card.fold.shut>:not(:first-child){display:none!important}
 .tabs button .tabdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-left:4px;vertical-align:top}
+/* admin: 💰 급여 sub-menu (2026-11-24) */
+.subtabs{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px;background:var(--paper);border-bottom:1px solid var(--line)}
+.subtabs button{border:1px solid var(--line);background:none;border-radius:999px;padding:6px 12px;font-weight:600;color:var(--muted);cursor:pointer}
+.subtabs button[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink,#fff)}
