@@ -719,6 +719,9 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-24e",
+    ko: ["🔔 동료가 '당신 때문에 늦게 퇴근/일찍 출근했다'고 적으면, 확인 요청이 어느 탭에서든 맨 위에 떠요. '맞아요' 또는 '아니에요'를 눌러 주세요."],
+    en: ["🔔 When a coworker writes that they stayed late / came early because of you, the confirmation now shows at the very top of every tab. Please tap 'Yes' or 'No'."] },
   { id: "2026-11-24d", popup: true,
     ko: ["✏️ 홈 꾸미기: 홈 맨 아래 '홈 꾸미기'를 눌러 자주 쓰는 것(출퇴근 · 스케줄 · 휴가 신청 · 가불 · 급여명세서 · COE 등)을 홈에 바로 놓을 수 있어요.", "✍️ 사인·동의·확인해야 하는 것은 항상 홈 맨 위에 나와요."],
     en: ["✏️ Customize Home: tap 'Customize Home' at the bottom of Home to put what you use often (clock in/out · schedule · leave request · advance · payslips · COE…) right on Home.", "✍️ Things you must sign, agree or confirm always show at the top of Home."] },
@@ -1375,8 +1378,10 @@ function renderStaffHome() {
     : tab === "me" ? [(() => { const c = myInfoCard(emp); c.open = true; return c; })()]
     // 홈: urgent first (not folded), then clock in/out (notices: 📢 tab)
     // 홈 (owner 2026-11-24): fixed = things to sign / answer (not removable) · below = shortcuts each person picks (✏️ 홈 꾸미기)
-    : [noPay ? null : myCashCard(), mentionsCard(v, true), myBoardAlert(emp), myRecvCard(v), noPay ? null : myWaitCard(v), todoCard,
+    : [mentionsCard(v, true), noPay ? null : myCashCard(), myBoardAlert(emp), myRecvCard(v), noPay ? null : myWaitCard(v), todoCard,
       noPay ? null : finals.some(p => !p.ack_at) ? finalCard : null, noPay ? null : mySilSelf(v.sil_sum, true), myEventCard()];
+  // owner 2026-11-24: a coworker's "is that right?" request sits at the very top of every tab until answered
+  if (tab !== "home") content.unshift(mentionsCard(v, true));
   if (tab === "home") content.push(...homePins().map(k => PIN.find(x => x[0] === k)).filter(Boolean).map(x => x[2]()),
     h("button", { class: "btn", type: "button", id: "home-edit", style: "justify-self:center", onclick: homeEditSheet }, "✏️ " + evL("홈 꾸미기 · 바로가기 고르기", "Customize Home · pick shortcuts")));
   const main = h("main", { id: "main" }, ...content.filter(Boolean));
