@@ -252,7 +252,7 @@ async function staffSignIn(no, pin) {
   } catch (e) { if (auto) return renderStaffLogin(null, no); renderStaffLogin(String(e.message || e), no); }
 }
 async function staffLogout() {
-  const pin = EMP.pin; EMP.pin = ""; EMP.data = null; saveTok(""); EMP.notices = null; EMP.noticeLater = {}; EMP.newShown = false;
+  const pin = EMP.pin; EMP.pin = ""; EMP.data = null; saveTok(""); EMP.notices = null; EMP.noticeLater = {}; EMP.newShown = false; EMP.newsIds = null; EMP.newsSeen = null;
   if (pin.startsWith("tok:")) try { await db.empLogout(EMP.no, pin); } catch {}
   renderStaffLogin();
 }
@@ -611,7 +611,7 @@ function myInfoCard(emp) {
       h("div", { class: "grid2" }, field(t("emp_name"), h("div", { style: "padding:9px 0" }, emp.name)), field(t("emp_bday"), bday), ...INFO_KEYS.map(k => field(t("i_" + k), inp[k]))),
       save),
     mySilSelf(EMP.data?.sil_sum),
-    h("div", { style: "margin-top:12px" }, h("button", { class: "btn sm", type: "button", id: "mi-intro", onclick: introSheet }, "🎬 " + t("intro_rewatch")), " ", h("button", { class: "btn sm", type: "button", id: "mi-new", onclick: () => { EMP.tab = "home"; (EMP.fold = EMP.fold || {})["home:board-news"] = true; renderStaffHome(); document.getElementById("board-news")?.scrollIntoView({ behavior: "smooth", block: "start" }); } }, "🆕 " + t("new_title"))),
+    h("div", { style: "margin-top:12px" }, h("button", { class: "btn sm", type: "button", id: "mi-intro", onclick: introSheet }, "🎬 " + t("intro_rewatch")), " ", h("button", { class: "btn sm", type: "button", id: "mi-new", onclick: () => { EMP.tab = "board"; renderStaffHome(); window.scrollTo(0, 0); } }, "🆕 " + t("new_title"))),
     EMP.data?.signature ? h("div", { id: "mi-sig", style: "margin-top:14px;padding-top:12px;border-top:1px solid var(--line)" }, h("b", {}, t("sig_mine")), h("div", {}, sigImg(EMP.data.signature, "max-height:70px;background:#fff;border-radius:6px;padding:4px")), h("small", { class: "muted" }, tf("sig_on", { d: fmtD(EMP.data.signature.signed_at) }))) : null);
 }
 /* ---- staff: SIL days LEFT — re-entered once (owner 2026-11-14: "마지막이고 이번에 적는 것만 인정"), then locked (owner can still change it).
@@ -719,10 +719,13 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-24c", popup: false,
+    ko: ["📢 공지 탭: 업데이트와 모든 공지가 여기 있어요. NEW 공지는 읽고 '✅ 확인했어요'를 눌러야 확인돼요 (안 누르면 계속 NEW).", "🔄 앱이 새로 업데이트되면 자동으로 새로고침돼요."],
+    en: ["📢 Notices tab: all updates and notices are here. A NEW notice counts as read only after you press '✅ I read it' (it stays NEW until you do).", "🔄 When the app is updated, it refreshes by itself."] },
   { id: "2026-11-24b", popup: true,
-    ko: ["🗂 앱 메뉴가 바뀌었어요: 🏠 홈 (공지 · 빨리 할 것 · 출퇴근) · 💰 급여 (급여명세서 · 13월급 · 가불) · 🗓 출석 (휴가 신청 · 스케줄 · 근무 기록 · 결석) · ⚠️ 경고 (경고 · IR) · 🔧 수리 · 📄 서류 (COE · 동의서 다시 보기) · 👤 내 정보 (연락처 · 생일 · 비상 연락처).",
+    ko: ["🗂 앱 메뉴가 바뀌었어요: 🏠 홈 (빨리 할 것 · 출퇴근) · 📢 공지 (업데이트 · 모든 공지) · 💰 급여 (급여명세서 · 13월급 · 가불) · 🗓 출석 (휴가 신청 · 스케줄 · 근무 기록 · 결석) · ⚠️ 경고 (경고 · IR) · 🔧 수리 · 📄 서류 (COE · 동의서 다시 보기) · 👤 내 정보 (연락처 · 생일 · 비상 연락처).",
       "📂 칸은 모두 접혀 있어요. 제목을 누르면 열려요. 빨리 해야 하는 건 홈 맨 위에 나오고, 해야 할 게 있는 메뉴에는 빨간 점이 떠요."],
-    en: ["🗂 The app menu changed: 🏠 Home (notices · do this first · clock in/out) · 💰 Payroll (payslips · 13th month · advance) · 🗓 Attendance (leave request · schedule · work record · absence) · ⚠️ Warnings (warnings · IR) · 🔧 Repairs · 📄 Documents (COE · agreements to view again) · 👤 My page (contact · birthday · emergency contact).",
+    en: ["🗂 The app menu changed: 🏠 Home (do this first · clock in/out) · 📢 Notices (updates · all notices) · 💰 Payroll (payslips · 13th month · advance) · 🗓 Attendance (leave request · schedule · work record · absence) · ⚠️ Warnings (warnings · IR) · 🔧 Repairs · 📄 Documents (COE · agreements to view again) · 👤 My page (contact · birthday · emergency contact).",
       "📂 All boxes are closed. Tap the title to open one. Things to do quickly are at the top of Home, and a menu with something to do shows a red dot."] },
   { id: "2026-11-24", popup: false,
     ko: ["⛔ 사인 안 한 경고나 제출 안 한 IR이 있으면 출근을 찍을 수 없어요. 출근을 누르면 안내가 뜨고 바로 확인 화면으로 가요 → 사인(경고) 또는 제출(IR)한 뒤 다시 출근을 누르세요. 퇴근은 그대로 찍을 수 있어요.", "⏰ 5일 기한 안에 해명(IR)을 안 내면 '해명 포기'로 기록되고, 있는 증거로 결정돼요."],
@@ -865,28 +868,38 @@ const newSeenKey = () => "pr_new_seen_" + (EMP.no || "");
 // last confirmed "what's new" id: this phone OR the server (owner 2026-11-21: confirmed notices never pop up again,
 // even on another phone — they stay on the 📢 notice tab). supabase/pr_news_seen.sql
 const newSeen = () => { let s = ""; try { s = localStorage.getItem(newSeenKey()) || ""; } catch (e) {} const v = EMP.newsSeen || ""; return v > s ? v : s; };
-function markNewSeen() {
-  const id = WHATS_NEW[0].id; if (newSeen() >= id) return;
-  try { localStorage.setItem(newSeenKey(), id); } catch (e) {}
-  EMP.newsSeen = id; if (!EMP.preview) db.empNewsSeen(EMP.no, EMP.pin, id).catch(() => {});
+// owner 2026-11-24: an update is read only when "✅ 확인했어요" is pressed on it (supabase/pr_news_ack.sql).
+// newSeen() = old "seen up to" mark from before this change (no longer moved) · EMP.newsIds = ids confirmed one by one.
+const newIdsKey = () => "pr_news_ids_" + (EMP.no || "");
+const newsIds = () => { if (!EMP.newsIds) { let a = []; try { a = JSON.parse(localStorage.getItem(newIdsKey()) || "[]"); } catch (e) {} EMP.newsIds = new Set(a); } return EMP.newsIds; };
+const isNewSeen = n => n.id <= newSeen() || newsIds().has(n.id);
+function ackNews(ids) {
+  ids = ids.filter(id => !newsIds().has(id)); if (!ids.length) return;
+  ids.forEach(id => EMP.newsIds.add(id));
+  try { localStorage.setItem(newIdsKey(), JSON.stringify([...EMP.newsIds])); } catch (e) {}
+  if (!EMP.preview) db.empNewsAck(EMP.no, EMP.pin, ids).catch(() => {});
 }
 /* ---- 📢 staff notice board (owner 2026-11-18): every notice in one tab — policies (NOTICES) + all WHATS_NEW entries,
    newest first. Entries with popup: false (old / resolved) are only here. ---- */
 function myBoardTab(emp) {
-  const seen = newSeen();
   const pol = (typeof NOTICES !== "undefined" ? NOTICES : []).filter(n => forEmp(n, emp));
   const news = WHATS_NEW.filter(n => forEmp(n, emp));
   const ul = lines => h("ul", { style: "margin:6px 0 0;padding-left:20px;line-height:1.5" }, lines.map(x => h("li", { style: "margin-bottom:4px" }, x)));
   const day = id => { const d = id.slice(0, 10); return `${+d.slice(5, 7)}/${+d.slice(8)}`; };
   // owner 2026-11-20: staff don't scroll — what needs checking first (⚠️ policy not agreed yet → NEW unseen), then newest first
   const key = n => n.title ? n.id.slice(0, 10) + "~" : n.id;   // a policy goes above that day's news
-  const rank = x => x.pol ? (noticeDone(x.n.id) ? 2 : 0) : (x.n.id > seen ? 1 : 2);
+  const rank = x => x.pol ? (noticeDone(x.n.id) ? 2 : 0) : (isNewSeen(x.n) ? 2 : 1);
   const all = [...pol.map(n => ({ n, pol: true })), ...news.map(n => ({ n, pol: false }))]
     .sort((a, b) => rank(a) - rank(b) || (key(b.n) < key(a.n) ? -1 : key(b.n) > key(a.n) ? 1 : 0));
   const openSheet = n => { EMP.afterNotice = () => renderStaffHome(); noticeSheet(n); };
+  const unread = all.filter(x => rank(x) === 1).map(x => x.n.id);
+  const okBtn = ids => h("button", { class: "btn" + (ids.length > 1 ? "" : " primary"), type: "button", style: "margin-top:6px", onclick: () => { ackNews(ids); renderStaffHome(); } },
+    "✅ " + (ids.length > 1 ? evL(`새 공지 ${ids.length}개 모두 확인했어요`, `I read all ${ids.length} new notices`) : t("new_ok")));
   return [h("div", { class: "card", id: "board-news" }, h("h2", {}, "📢 " + evL("공지사항 · 확인할 것 먼저", "Notices · to check first")),
+    h("small", { class: "muted" }, evL("NEW 공지는 읽고 '✅ 확인했어요'를 눌러야 확인돼요.", "A NEW notice counts as read only after you press '✅ I read it'.")),
+    unread.length > 1 && !EMP.preview ? okBtn(unread) : null,
     h("div", { class: "list" }, all.map((x, i) => { const { n, pol } = x, r = rank(x);
-      return h("details", { class: "item", style: "display:block" + (r === 0 ? ";border-left:4px solid var(--accent)" : r === 1 ? ";border-left:4px solid var(--gold)" : ""), open: r < 2 || i < 3 },
+      return h("details", { class: "item", style: "display:block" + (r === 0 ? ";border-left:4px solid var(--accent)" : r === 1 ? ";border-left:4px solid var(--gold)" : ""), open: r === 0 || i < 3 },
       h("summary", {}, h("b", {}, day(n.id)),
         r === 0 ? h("span", { class: "pill", style: "margin-left:6px;background:var(--accent);color:var(--accent-ink)" }, "⚠️ " + evL("동의 필요", "Please agree")) : pol ? h("span", { class: "pill", style: "margin-left:6px" }, "📌 " + evL("규정", "Policy")) : null,
         r === 1 ? h("span", { class: "pill draft", style: "margin-left:6px" }, "NEW") : null,
@@ -895,7 +908,8 @@ function myBoardTab(emp) {
       ul(n[lang] || n.en),
       r === 0 && noticePast(n) ? h("p", { style: "margin:6px 0 0;color:var(--bad,#c00)" }, n.cutText[lang] || n.cutText.en)
         : r === 0 && noticeWarn(n) ? h("p", { style: "margin:6px 0 0;color:var(--bad,#c00)" }, n.warnText[lang] || n.warnText.en) : null,
-      r === 0 && !EMP.preview ? h("button", { class: "btn primary", type: "button", style: "margin-top:6px", onclick: () => openSheet(n) }, "✅ " + evL("읽고 동의하기", "Read and agree")) : null); }))),
+      r === 0 && !EMP.preview ? h("button", { class: "btn primary", type: "button", style: "margin-top:6px", onclick: () => openSheet(n) }, "✅ " + evL("읽고 동의하기", "Read and agree")) : null,
+      r === 1 && !EMP.preview ? okBtn([n.id]) : null); }))),
   ];
 }
 /* home: banner at the very top when something on the 📢 tab still needs checking (owner 2026-11-20 "확인해야하는게 맨위로") */
@@ -904,17 +918,16 @@ function myBoardAlert(emp) {
   // (it pops up once, then stays on the 📢 tab). Pay received, 13th month and 'Please confirm' have their own top cards.
   const nPol = NOTICES.filter(n => forEmp(n, emp) && !noticeDone(n.id) && !noticePast(n)).length;   // past the deadline: no more alerts
   if (!nPol) return null;
-  return h("div", { class: "card", id: "board-alert", style: "border:2px solid var(--accent);cursor:pointer", onclick: () => { EMP.tab = "home"; (EMP.fold = EMP.fold || {})["home:board-news"] = true; renderStaffHome(); document.getElementById("board-news")?.scrollIntoView({ behavior: "smooth", block: "start" }); } },
+  return h("div", { class: "card", id: "board-alert", style: "border:2px solid var(--accent);cursor:pointer", onclick: () => { EMP.tab = "board"; renderStaffHome(); window.scrollTo(0, 0); } },
     h("b", {}, "⚠️ " + evL("동의해야 할 공지가 있어요", "You have a notice to agree to")), " ",
     h("span", {}, evL(`동의 필요 ${nPol}개`, `${nPol} to agree`)),
-    h("div", { class: "muted", style: "margin-top:4px" }, "👉 " + evL("눌러서 공지 보기 (홈 아래)", "Tap to see the notice (below on Home)")));
+    h("div", { class: "muted", style: "margin-top:4px" }, "👉 " + evL("눌러서 공지 탭 보기", "Tap to open the Notices tab")));
 }
 function whatsNewSheet(all) {
-  const seen = newSeen();
   const mine = WHATS_NEW.filter(n => forEmp(n, EMP.data?.employee));
   // popup only for important new entries (owner 2026-11-18): popup !== false and less than 7 days old; the rest live on the 📢 notice tab
-  const list = all ? mine : mine.filter(n => n.id > seen && n.popup !== false && n.id.slice(0, 10) >= addD(today(), -7)); if (!list.length) return false;
-  const done = () => { markNewSeen(); close(); };
+  const list = all ? mine : mine.filter(n => !isNewSeen(n) && n.popup !== false && n.id.slice(0, 10) >= addD(today(), -7)); if (!list.length) return false;
+  const done = () => { ackNews(list.map(n => n.id)); close(); if (EMP.data && !document.getElementById("sheetRoot")?.children.length) renderStaffHome(); };   // only the updates shown here (owner 2026-11-24)
   const close = sheet([h("h3", {}, "🆕 " + t("new_title")),
     ...list.map(n => h("div", { style: "margin-bottom:10px" }, h("b", {}, n.id), h("ul", { style: "margin:4px 0 0;padding-left:20px;line-height:1.5" }, (n[lang] || n.en).map(x => h("li", { style: "margin-bottom:4px" }, x))))),
     h("div", { class: "row", style: "margin-top:8px" }, h("span", { class: "sp" }), h("button", { class: "btn primary", type: "button", id: "new-ok", onclick: done }, t("new_ok")))], { lock: !all });   // 처음 뜰 때는 '확인했어요'를 눌러야만 닫힘
@@ -1003,6 +1016,7 @@ async function checkNotices() {
   let r; try { r = await db.empNoticeGet(EMP.no, EMP.pin); } catch { return false; }
   if (!r?.ok) return false;
   EMP.notices = r.acks || []; EMP.noticeLater ||= {}; if (r.news_seen && r.news_seen > (EMP.newsSeen || "")) EMP.newsSeen = r.news_seen;
+  (r.news_ids || []).forEach(id => newsIds().add(id));
   let cutSeen = n => { try { return !!localStorage.getItem(cutSeenKey(n)); } catch { return false; } };
   const n = NOTICES.find(n => forEmp(n, EMP.data?.employee) && !noticeDone(n.id) && !(noticePast(n) && cutSeen(n)) && !(EMP.noticeLater[n.id] > Date.now() - 30 * 60000));
   if (!n || document.querySelector("#notice-pop")) return !!n;
@@ -1293,9 +1307,9 @@ function renderStaffHome() {
   // owner 2026-11-24: 7 tabs so staff find things fast — 홈 · 급여 · 출석 · 경고 · 수리 · 서류 · 내 정보.
   // Every card starts folded (tap the title to open); cards that need action (solid border) stay open. Urgent things sit at the top of Home.
   const noPay = !!emp.info?.no_payroll, year = new Date().getFullYear();
-  const TABS = [["home", "🏠 " + evL("홈", "Home")], ...(noPay ? [] : [["pay", "💰 " + evL("급여", "Payroll")]]), ["att", "🗓 " + evL("출석", "Attendance")],
+  const TABS = [["home", "🏠 " + evL("홈", "Home")], ["board", "📢 " + evL("공지", "Notices")], ...(noPay ? [] : [["pay", "💰 " + evL("급여", "Payroll")]]), ["att", "🗓 " + evL("출석", "Attendance")],
     ...(noPay ? [] : [["warn", "⚠️ " + evL("경고", "Warnings")], ["repair", "🔧 " + evL("수리", "Repairs")]]), ["docs", "📄 " + evL("서류", "Documents")], ["me", "👤 " + evL("내 정보", "My page")]];
-  let tab = { adv: "pay", board: "home" }[EMP.tab] || EMP.tab || "home";
+  let tab = { adv: "pay" }[EMP.tab] || EMP.tab || "home";
   if (!TABS.some(([k]) => k === tab)) tab = "home";
   EMP.tab = tab;
   // things waiting in other tabs → red dot on the tab + a line in Home's "do this first" card
@@ -1303,6 +1317,8 @@ function renderStaffHome() {
   if (!noPay && !EMP.warn && !EMP.warnLoading) { EMP.warnLoading = true;   // warnings load in the background → dot on ⚠️ + line in "do this first"
     loadMyWarn().then(() => { EMP.warnLoading = false; if (EMP.data === v && (EMP.warn.length || EMP.tab === "warn")) renderStaffHome(); }); }
   const todo = [];
+  const nNew = WHATS_NEW.filter(n => forEmp(n, emp) && !isNewSeen(n)).length;
+  if (nNew) todo.push({ tab: "board", txt: evL(`새 공지 ${nNew}개 읽고 확인하기`, `Read ${nNew} new notice(s)`) });
   if (!noPay && finals.some(p => !p.ack_at)) todo.push({ tab: "pay", txt: evL("급여명세서 확인하기", "Check and confirm your payslip") });
   if (!noPay && ack13?.date_ask_at && !ack13.requested_at && !(v.thirteenth || []).some(x => x.year === year)) todo.push({ tab: "pay", txt: evL("13월급 확인하고 요청하기", "Check and request your 13th month pay") });
   if (!noPay && v.sil_sum && !v.sil_sum.self_left_at && !v.sil_sum.sil_from) todo.push({ tab: "att", txt: evL("남은 SIL 적기", "Write your SIL days left") });
@@ -1319,9 +1335,10 @@ function renderStaffHome() {
     : tab === "warn" ? [warnBox()]
     : tab === "repair" ? [myEquipCard()]
     : tab === "docs" ? myDocsTab(v, emp)
+    : tab === "board" ? myBoardTab(emp)
     : tab === "me" ? [(() => { const c = myInfoCard(emp); c.open = true; return c; })()]
-    // 홈: urgent first (not folded), then clock in/out, then notices
-    : [noPay ? null : myCashCard(), mentionsCard(v, true), myBoardAlert(emp), myRecvCard(v), noPay ? null : myWaitCard(v), todoCard, myEventCard(), clockCard(), ...myBoardTab(emp)];
+    // 홈: urgent first (not folded), then clock in/out (notices: 📢 tab)
+    : [noPay ? null : myCashCard(), mentionsCard(v, true), myBoardAlert(emp), myRecvCard(v), noPay ? null : myWaitCard(v), todoCard, myEventCard(), clockCard()];
   const main = h("main", { id: "main" }, ...content.filter(Boolean));
   // urgent cards on Home are never folded
   main.querySelectorAll(":scope > #my-cash, :scope > #my-mentions, :scope > #board-alert, :scope > #my-recv, :scope > #my-wait, :scope > #my-todo, :scope > #clock").forEach(n => n.dataset.nofold = "1");
@@ -1330,7 +1347,7 @@ function renderStaffHome() {
       h("span", { style: "opacity:.85;font-size:13px" }, `${emp.name} · ${t("empNoLbl")} ${emp.emp_no}`),
       h("button", { onclick: () => { setLangOnly(lang === "ko" ? "en" : "ko"); renderStaffHome(); } }, lang === "ko" ? "EN" : "한"),
       h("button", { id: "e-logout", onclick: EMP.preview ? endPreview : staffLogout }, EMP.preview ? evL("관리자로", "Admin") : t("logout"))),
-    h("div", { class: "tabs", role: "tablist", id: "staff-tabs" }, TABS.map(([k, l]) => h("button", { role: "tab", id: "stab-" + k, "aria-selected": String(tab === k), onclick: () => { EMP.tab = k; renderStaffHome(); window.scrollTo(0, 0); } }, l, todo.some(x => x.tab === k) ? h("span", { class: "tabdot" }) : null))),
+    h("div", { class: "tabs", role: "tablist", id: "staff-tabs" }, TABS.map(([k, l]) => h("button", { role: "tab", id: "stab-" + k, "aria-selected": String(tab === k), onclick: () => { EMP.tab = k; renderStaffHome(); window.scrollTo(0, 0); } }, l, todo.some(x => x.tab === k) || (k === "board" && NOTICES.some(n => forEmp(n, emp) && !noticeDone(n.id) && !noticePast(n))) ? h("span", { class: "tabdot" }) : null))),
     EMP.preview ? h("div", { id: "preview-bar", style: "background:var(--gold);color:#2a1c00;padding:8px 14px;font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px" }, "👀 " + evL("직원 화면 미리보기 · 보기만 돼요 (버튼은 작동 안 함)", "Staff screen preview · view only (buttons do not work)"), h("span", { class: "sp" }), h("button", { class: "btn sm", type: "button", onclick: endPreview }, evL("닫기", "Close"))) : "",   // root.append(null) would print "null"
     main);
   foldCards(main, tab);
@@ -3673,6 +3690,22 @@ function renderSet() {
 let A2H = null; let a2hShut = false;
 const isStandalone = () => window.matchMedia?.("(display-mode: standalone)").matches || navigator.standalone === true;
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
+/* ---- auto update (owner 2026-11-24 "왜 직원들 자동 업데이트 안되는거지"): phones keep the app open in the background for
+   days, so a new deploy never loaded. Compare app.js's ETag when the app comes back to the screen and every 5 minutes;
+   if it changed, reload — but only when no popup is open and nobody is typing (sign-in stays: token in localStorage). ---- */
+const buildTag = async () => { try { const r = await fetch("/app.js", { method: "HEAD", cache: "no-store" }); return r.ok ? r.headers.get("etag") || r.headers.get("last-modified") : null; } catch { return null; } };
+let BUILD = null, updWaiting = false;
+buildTag().then(x => { BUILD = x; });
+const updSafe = () => !document.getElementById("sheetRoot")?.children.length && !document.querySelector("#notice-pop")
+  && !(document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
+async function checkUpdate() {
+  if (!BUILD) { BUILD = await buildTag(); return; }
+  if (!updWaiting) { const x = await buildTag(); if (!x || x === BUILD) return; updWaiting = true; }
+  if (updSafe()) location.reload();
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkUpdate(); });
+setInterval(() => { if (updWaiting || document.visibilityState === "visible") checkUpdate(); }, 5 * 60000);
+document.addEventListener("focusout", () => { if (updWaiting) setTimeout(checkUpdate, 1500); });
 window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); A2H = e; showA2H(); });
 window.addEventListener("appinstalled", () => { A2H = null; document.getElementById("a2h")?.remove(); });
 function showA2H() {
