@@ -719,6 +719,9 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-26", popup: false,
+    ko: ["📢 새 공지 '쉬는 시간 규칙': 손님이 있을 때는 쉬지 말고 개인 폰·연락도 하지 마세요. 앞으로 IR 대상이에요. 읽고 동의해 주세요."],
+    en: ["📢 New notice 'Break Time Rules': no breaks and no personal phone/calls while there are customers. From now on this is subject to an IR. Please read and agree."] },
   { id: "2026-11-24e",
     ko: ["🔔 동료가 '당신 때문에 늦게 퇴근/일찍 출근했다'고 적으면, 확인 요청이 어느 탭에서든 맨 위에 떠요. '맞아요' 또는 '아니에요'를 눌러 주세요."],
     en: ["🔔 When a coworker writes that they stayed late / came early because of you, the confirmation now shows at the very top of every tab. Please tap 'Yes' or 'No'."] },
@@ -944,6 +947,23 @@ function whatsNewSheet(all) {
    (Documents tab / owner Requests tab). Disagree → "contact the manager", closes for now and shows again the next
    time the app is opened (or comes back after 30 min). A new notice = a new entry with a new id at the top. ---- */
 const NOTICES = [
+  // owner 2026-11-26 04:06: all staff — no breaks / personal phone while customers are in the store (→ IR from now on).
+  // Came from 11/26 03:24–03:29 (Lilian on break with many customers, did not follow instructions → IR).
+  { id: "2026-11-26-break", title: { en: "Break Time Rules", ko: "쉬는 시간 규칙" },
+    en: [
+      "When your work is done, or when there are no customers, you are free to rest however you like — sleep, use your phone, rest inside or outside the store.",
+      "When there are customers, please do NOT take a break. If customers come in while you are resting, come back to work as quickly as possible. If you need to keep resting, stay outside the store.",
+      "When there are customers, do not make personal calls or messages and do not do personal things.",
+      "If you really must do something personal, go outside the store to do it.",
+      "From now on, taking a break while there are customers is subject to an IR (Incident Report).",
+      "Customers are not here all day — every day there are always two or three hours with no customers. Please take your rest at those times, not when customers are here."],
+    ko: [
+      "내 할 일을 다 했거나 손님이 없을 때는 자든, 폰을 하든, 매장 안이든 밖이든 자유롭게 쉬어도 돼요.",
+      "손님이 있을 때는 제발 쉬는 시간을 갖지 마세요. 쉬다가 손님이 오면 최대한 빨리 일하러 돌아오세요. 계속 쉬어야 하면 매장 밖에 계세요.",
+      "손님이 있을 때는 개인 연락(전화·문자 등)이나 개인적인 행동을 하지 마세요.",
+      "꼭 해야 하면 매장 밖에 나가서 하세요.",
+      "앞으로 손님이 있을 때 쉬는 시간을 가지면 IR(경위서) 대상이에요.",
+      "손님이 하루 종일 있는 것도 아니고, 하루에 두세 시간은 꼭 손님이 없는 시간이 있어요. 쉬는 건 그때 하고, 손님이 있을 때는 일해 주세요."] },
   // owner 2026-11-20: staff who keep refusing government contributions. Agree → signed waiver (print). Disagree → "hand in your documents".
   // owner 2026-11-20 22:45: only two choices — agree, or "I will hand in my documents and register" (counted as not agreeing).
   // 3+ times not agreeing → "documents required by 11/30". Not agreed and no documents after 11/30 → schedule cut as much as
