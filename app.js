@@ -720,8 +720,8 @@ async function eventAdminCard() {
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
   { id: "2026-11-26", popup: true,
-    ko: ["☕ 출퇴근 화면에 '쉬는 시간 시작 / 끝' 버튼이 생겼어요. 쉴 때마다 꼭 누르세요 — 손님·주문 시간과 자동으로 대조해요.", "📢 새 공지 '쉬는 시간 규칙 (11/26 오전부터)': 손님 있을 때 휴식 = IR · 손님 때문에 못 쉰 휴게 = 급여 포함 · 손님 없는데 일부러 안 쉼 = 미지급 · 사유서. 읽고 동의해 주세요."],
-    en: ["☕ The Clock in / out screen now has 'Break start / end'. Press it every time you rest — it is checked against customer / order time automatically.", "📢 New notice 'Break Time Rules (from Nov 26, morning)': break while customers = IR · meal break not possible because of customers = paid · no break on purpose when there were no customers = not paid + explanation letter. Please read and agree."] },
+    ko: ["☕ 출퇴근 화면에 '쉬는 시간 시작 / 끝' 버튼이 생겼어요. 쉴 때마다 꼭 누르세요 — 손님·주문 시간과 자동으로 대조해요.", "📢 새 공지 '쉬는 시간 규칙 (11/26 오전부터)': 손님 있을 때 휴식 = IR 자동 요청 · 손님 때문에 못 쉰 휴게 = 급여 포함 · 손님 없는데 일부러 안 쉼 = 미지급 + 사유서(IR) 자동 요청. 읽고 동의해 주세요."],
+    en: ["☕ The Clock in / out screen now has 'Break start / end'. Press it every time you rest — it is checked against customer / order time automatically.", "📢 New notice 'Break Time Rules (from Nov 26, morning)': break while customers = automatic IR · meal break not possible because of customers = paid · no break on purpose when there were no customers = not paid + automatic IR (explanation letter). Please read and agree."] },
   { id: "2026-11-24e",
     ko: ["🔔 동료가 '당신 때문에 늦게 퇴근/일찍 출근했다'고 적으면, 확인 요청이 어느 탭에서든 맨 위에 떠요. '맞아요' 또는 '아니에요'를 눌러 주세요."],
     en: ["🔔 When a coworker writes that they stayed late / came early because of you, the confirmation now shows at the very top of every tab. Please tap 'Yes' or 'No'."] },
@@ -959,9 +959,9 @@ const NOTICES = [
       "When there are customers, do not make personal calls or messages and do not do personal things. If you really must, go outside the store to do it.",
       "☕ Every time you rest, press 'Break start' in the app (Clock in / out), and 'Break end' when you come back. You can only do this while clocked in. If you forget 'Break end', the break lasts until you clock out.",
       "Your break times are checked automatically against the times when there are customers (dine-in tables) and orders (delivery / pickup being made) in the order app.",
-      "Taking a break while there are customers is subject to an IR (Incident Report). If you press 'Break start' while there are customers, the app warns you first.",
+      "Taking a break while there are customers is subject to an IR (Incident Report). If you press 'Break start' while there are customers, the app warns you first. If your break overlaps customers / orders for 5 minutes or more, an IR request is sent to you AUTOMATICALLY.",
       "If customers were there the whole time and you really could not take your meal break, the break time you could not take is added to your pay.",
-      "If there was time with no customers but you did not rest on purpose (to be paid for the break), that time is NOT paid. It is treated as dishonesty / deception, and you must write an explanation letter.",
+      "If there was time with no customers but you did not rest on purpose (to be paid for the break), that time is NOT paid. It is treated as dishonesty / deception, and an IR (explanation letter) request is sent to you AUTOMATICALLY after you clock out.",
       "Customers are not here all day — every day there are always two or three hours with no customers. Please take your rest at those times, not when customers are here."],
     ko: [
       "이 규칙은 2026년 11월 26일 오전부터 시행해요.",
@@ -970,9 +970,9 @@ const NOTICES = [
       "손님이 있을 때는 개인 연락(전화·문자 등)이나 개인적인 행동을 하지 마세요. 꼭 해야 하면 매장 밖에 나가서 하세요.",
       "☕ 쉴 때마다 앱(출퇴근 화면)에서 '쉬는 시간 시작'을 누르고, 돌아오면 '쉬는 시간 끝'을 누르세요. 출근 중일 때만 누를 수 있어요. '끝'을 안 누르면 퇴근할 때까지 쉰 것으로 기록돼요.",
       "쉬는 시간은 주문 앱의 손님(홀 테이블)·주문(배달·포장 만드는 중) 시간과 자동으로 대조해요.",
-      "손님이 있을 때 쉬면 IR(경위서) 대상이에요. 손님이 있을 때 '쉬는 시간 시작'을 누르면 앱이 먼저 경고해요.",
+      "손님이 있을 때 쉬면 IR(경위서) 대상이에요. 손님이 있을 때 '쉬는 시간 시작'을 누르면 앱이 먼저 경고해요. 쉬는 시간이 손님·주문 시간과 5분 이상 겹치면 IR 요청이 자동으로 와요.",
       "손님이 계속 있어서 정말 식사 휴게를 못 쉬었으면, 못 쉰 시간만큼 급여에 포함돼요.",
-      "손님이 없는 시간이 있었는데 일부러 안 쉬었으면 (휴게 시간도 돈을 받으려고), 그 시간은 지급하지 않아요. 거짓말·기만으로 보고 사유서 대상이에요.",
+      "손님이 없는 시간이 있었는데 일부러 안 쉬었으면 (휴게 시간도 돈을 받으려고), 그 시간은 지급하지 않아요. 거짓말·기만으로 보고, 퇴근 후 사유서(IR) 요청이 자동으로 와요.",
       "손님이 하루 종일 있는 것도 아니고, 하루에 두세 시간은 꼭 손님이 없는 시간이 있어요. 쉬는 건 그때 하고, 손님이 있을 때는 일해 주세요."] },
   // owner 2026-11-20: staff who keep refusing government contributions. Agree → signed waiver (print). Disagree → "hand in your documents".
   // owner 2026-11-20 22:45: only two choices — agree, or "I will hand in my documents and register" (counted as not agreeing).
@@ -2321,19 +2321,19 @@ async function breakAdminCard() {
   const dayOf = x => { const d = new Date(x); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
   const bad = R.breaks.filter(b => b.cust_min > 0), lies = R.days.filter(d => d.deceit_min >= 10), paid = R.days.filter(d => d.paid_min > 0);
   card.append(h("h2", {}, "☕ " + evL("쉬는 시간 · 손님 시간 대조", "Breaks vs customer time")),
-    h("small", { class: "muted", style: "display:block;margin-bottom:8px" }, evL("11/26부터 · 손님 = 홀 테이블 열림 + 배달·포장 주문 만드는 중 (주문 앱). 손님 있을 때 휴식 → IR · 손님 없는데 휴게 안 씀 → 미지급 · 사유서 대상 · 손님 때문에 못 씀 → 보너스로 자동 지급 (취소하려면 보너스 줄 삭제). 지난 14일.",
-      "From 11/26 · customers = dine-in tables open + delivery/pickup orders being made. Break with customers → IR · no break although no customers → not paid, explanation letter · not possible because of customers → paid automatically as a bonus line. Last 14 days.")));
+    h("small", { class: "muted", style: "display:block;margin-bottom:8px" }, evL("11/26부터 · 손님 = 홀 테이블 열림 + 배달·포장 주문 만드는 중 (주문 앱). 손님 있을 때 5분 이상 휴식 → IR 자동 요청 · 손님 없는데 휴게 안 씀(10분 이상) → 미지급 + IR 자동 요청 · 손님 때문에 못 씀 → 보너스로 자동 지급 (취소하려면 보너스 줄 삭제). 잘못 나간 IR은 경고 카드에서 무효. 지난 14일.",
+      "From 11/26 · customers = dine-in tables open + delivery/pickup orders being made. Break with customers 5+ min → IR sent automatically · no break although no customers (10+ min) → not paid + IR sent automatically · not possible because of customers → paid automatically as a bonus line. Void a wrong IR on the Warnings card. Last 14 days.")));
   const sec = (title, rows, f) => rows.length ? h("div", { style: "margin-top:8px" }, h("b", {}, title), h("div", { class: "list" }, rows.map(f))) : null;
   card.append(
     sec(evL("⚠️ 손님 있을 때 휴식 (IR 대상)", "⚠️ Break while customers (IR)"), bad, b => h("div", { class: "item" },
       h("div", { class: "t" }, `${b.name} · ${md(b.start)} ${hm(b.start)}–${b.end ? hm(b.end) : "…"}`, h("span", { class: "pill late", style: "margin-left:6px" }, evL(`손님 ${b.cust_min}분`, `${b.cust_min} min`))),
       h("div", { class: "s" }, custL(b.cust) + (b.auto ? evL(" · 퇴근 때 자동 종료", " · closed at clock-out") : "")),
-      h("button", { class: "btn sm", type: "button", onclick: () => askIR(b.employee_id, b.name, dayOf(b.start),
+      b.ir_id ? h("span", { class: "pill draft" }, evL("📝 IR 자동 요청됨", "📝 IR sent automatically")) : h("button", { class: "btn sm", type: "button", onclick: () => askIR(b.employee_id, b.name, dayOf(b.start),
         `Took a break while there were customers / orders — ${md(b.start)} ${hm(b.start)}–${b.end ? hm(b.end) : "?"} (${b.cust_min} min with ${custL(b.cust).replace(/[🍽🛵] /gu, "")}).\nRule (notice 'Break Time Rules', from Nov 26): no breaks while there are customers.\n\nPlease write: why you took a break at that time, what work was waiting, and what you will do so it does not happen again.`) }, "📝 IR"))),
     sec(evL("📝 손님 없는데 휴게 안 씀 (미지급 · 사유서 대상)", "📝 No break although no customers (not paid · explanation)"), lies, d => h("div", { class: "item" },
       h("div", { class: "t" }, `${d.name} · ${md(d.in_at)} ${hm(d.in_at)}–${hm(d.out_at)}`, h("span", { class: "pill late", style: "margin-left:6px" }, evL(`${d.deceit_min}분 안 쉼`, `${d.deceit_min} min`))),
       h("div", { class: "s" }, evL(`휴게 ${d.taken_min}/${d.need_min}분 · 손님 없는 시간 ${d.free_min}분`, `break ${d.taken_min}/${d.need_min} min · no-customer time ${d.free_min} min`)),
-      h("button", { class: "btn sm", type: "button", onclick: () => askIR(d.employee_id, d.name, dayOf(d.in_at),
+      d.ir_id ? h("span", { class: "pill draft" }, evL("📝 IR 자동 요청됨", "📝 IR sent automatically")) : h("button", { class: "btn sm", type: "button", onclick: () => askIR(d.employee_id, d.name, dayOf(d.in_at),
         `Meal break not taken although there were no customers — shift ${md(d.in_at)} ${hm(d.in_at)}–${hm(d.out_at)}: break taken ${d.taken_min} of ${d.need_min} min, while there were ${d.free_min} min with no customers / orders.\nRule (from Nov 26): rest when there are no customers. Not resting on purpose to be paid for the break is treated as dishonesty — these ${d.deceit_min} min are not paid.\n\nPlease write: why you did not take your break when there were no customers, and what you will do from now on.`) }, "📝 IR"))),
     sec(evL("💰 손님 때문에 못 쉰 휴게 (급여 포함)", "💰 Break not possible because of customers (paid)"), paid, d => h("div", { class: "item" },
       h("div", { class: "t" }, `${d.name} · ${md(d.in_at)}`), h("div", { class: "s" }, evL(`휴게 ${d.taken_min}/${d.need_min}분 · ${d.paid_min}분 지급`, `break ${d.taken_min}/${d.need_min} · ${d.paid_min} min paid`)),
@@ -2525,7 +2525,7 @@ function breakBox(inNow) {
       }
       if (!r.ok) { toast(r.err === "not_in" ? evL("출근 중일 때만 쉬는 시간을 찍을 수 있어요", "You can only take a break while clocked in") : r.err === "open" ? evL("이미 쉬는 중이에요", "You are already on a break") : r.err === "no_open" ? evL("쉬는 중이 아니에요", "You are not on a break") : pinErr(r.err)); }
       else if (act === "start") toast(evL("☕ 쉬는 시간 시작 ", "☕ Break started ") + fmtT(r.at));
-      else toast(evL("✅ 쉬는 시간 끝 ", "✅ Break ended ") + fmtT(r.end) + (r.cust_min ? evL(` · ⚠️ 손님 있던 시간 ${r.cust_min}분`, ` · ⚠️ ${r.cust_min} min with customers`) : ""));
+      else toast(evL("✅ 쉬는 시간 끝 ", "✅ Break ended ") + fmtT(r.end) + (r.cust_min ? evL(` · ⚠️ 손님 있던 시간 ${r.cust_min}분`, ` · ⚠️ ${r.cust_min} min with customers`) : "") + (r.ir ? evL(" → 📝 IR 요청이 왔어요", " → 📝 IR request sent") : ""));
       await loadMyBreaks(); renderStaffHome();
     } catch (e) { toast(errMsg(e)); if (btn) btn.disabled = false; }
   };
