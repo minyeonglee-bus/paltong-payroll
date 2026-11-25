@@ -974,14 +974,14 @@ const NOTICES = [
     en: [
       "I, Erika Fernandez, worked at Paltong Restaurant as a waiter from August 1, 2025 until I resigned on October 28, 2026.",
       "I received my final pay for October 16–30, 2026 (₱2,761.00, paid October 31, 2026), and I received my pro-rated 13th month pay for 2026 in the amount of ₱12,503.01 (₱150,036.13 ÷ 12).",
-      "With these payments, I have received in full everything due to me from my employment — salary, overtime, holiday pay, service incentive leave, 13th month pay, allowances, bonuses, incentives and any other benefits.",
+      "With these payments, I have received in full everything due to me from my employment — salary, overtime, holiday pay, 13th month pay, allowances, bonuses, incentives and any other benefits.",
       "I release and forever discharge Paltong Restaurant, its owner and its managers from any and all claims, demands or complaints of any kind related to my employment and its end. I will not file any case or complaint about these matters.",
       "I sign this voluntarily. I have read and understood it, and nobody forced or pressured me.",
       "(Tagalog) Natanggap ko nang buo ang aking huling sahod at ang aking 13th month pay na ₱12,503.01. Wala na akong anumang hahabulin sa Paltong Restaurant tungkol sa aking trabaho. Kusang-loob ko itong pinipirmahan."],
     ko: [
       "저 Erika Fernandez는 2025년 8월 1일부터 2026년 10월 28일 퇴사할 때까지 Paltong 레스토랑에서 홀 직원으로 일했습니다.",
       "10/16–30 마지막 급여(₱2,761.00, 10월 31일 지급)와 2026년 13th month ₱12,503.01(₱150,036.13 ÷ 12)을 받았습니다.",
-      "이로써 근무와 관련해 받을 돈(급여·초과근무·공휴일 수당·SIL·13th month·수당·보너스·인센티브 등)을 모두 받았습니다.",
+      "이로써 근무와 관련해 받을 돈(급여·초과근무·공휴일 수당·13th month·수당·보너스·인센티브 등)을 모두 받았습니다.",
       "근무와 퇴사에 관한 어떤 청구·요구·민원도 Paltong 레스토랑, 사장, 매니저에게 하지 않으며, 소송이나 진정도 하지 않습니다.",
       "강요 없이 내용을 이해하고 자발적으로 사인합니다.",
       "(따갈로그어) 마지막 급여와 13th month ₱12,503.01을 다 받았고, 더 이상 청구할 것이 없으며, 자발적으로 사인합니다."] },
