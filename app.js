@@ -252,7 +252,7 @@ async function staffSignIn(no, pin) {
   } catch (e) { if (auto) return renderStaffLogin(null, no); renderStaffLogin(String(e.message || e), no); }
 }
 async function staffLogout() {
-  const pin = EMP.pin; EMP.pin = ""; EMP.data = null; saveTok(""); EMP.notices = null; EMP.noticeLater = {}; EMP.newShown = false; EMP.newsIds = null; EMP.newsSeen = null; EMP.warn = null; EMP.warnErr = false; EMP.abs = null; EMP.fold = {}; EMP.brk = undefined;
+  const pin = EMP.pin; EMP.pin = ""; EMP.data = null; saveTok(""); EMP.notices = null; EMP.noticeLater = {}; EMP.newShown = false; EMP.newsIds = null; EMP.newsSeen = null; EMP.warn = null; EMP.warnErr = false; EMP.abs = null; EMP.fold = {}; EMP.brk = undefined; document.getElementById("break-float")?.remove();
   if (pin.startsWith("tok:")) try { await db.empLogout(EMP.no, pin); } catch {}
   renderStaffLogin();
 }
@@ -720,8 +720,8 @@ async function eventAdminCard() {
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
   { id: "2026-11-26", popup: true,
-    ko: ["☕ 출퇴근 화면에 '쉬는 시간 시작 / 끝' 버튼이 생겼어요. 쉴 때마다 꼭 누르세요 — 손님·주문 시간과 자동으로 대조해요.", "📢 새 공지 '쉬는 시간 규칙 (11/26 오전부터)': 손님 있을 때 휴식 = IR 자동 요청 · 손님 때문에 못 쉰 휴게 = 급여 포함 · 손님 없는데 일부러 안 쉼 = 미지급 + 사유서(IR) 자동 요청. 읽고 동의해 주세요."],
-    en: ["☕ The Clock in / out screen now has 'Break start / end'. Press it every time you rest — it is checked against customer / order time automatically.", "📢 New notice 'Break Time Rules (from Nov 26, morning)': break while customers = automatic IR · meal break not possible because of customers = paid · no break on purpose when there were no customers = not paid + automatic IR (explanation letter). Please read and agree."] },
+    ko: ["☕ 출퇴근 화면에 '쉬는 시간 시작 / 끝' 버튼이 생겼어요. 쉴 때마다 꼭 누르세요 — 손님·주문 시간과 자동으로 대조해요. 나눠서 쉬어도 되고 합계 1시간, 넘으면 끝을 누를 때까지 1분마다 알림이 와요. 깜박하고 안 누르면 부주의 사유서예요.", "📢 새 공지 '쉬는 시간 규칙 (11/26 오전부터)': 손님 있을 때 휴식 = IR 자동 요청 · 손님 때문에 못 쉰 휴게 = 급여 포함 · 손님 없는데 일부러 안 쉼 = 미지급 + 사유서(IR) 자동 요청. 읽고 동의해 주세요."],
+    en: ["☕ The Clock in / out screen now has 'Break start / end'. Press it every time you rest — it is checked against customer / order time automatically. You may split breaks (1 hour in total); past 1 hour you get an alert every minute until you press end. Forgetting to press = carelessness → explanation letter.", "📢 New notice 'Break Time Rules (from Nov 26, morning)': break while customers = automatic IR · meal break not possible because of customers = paid · no break on purpose when there were no customers = not paid + automatic IR (explanation letter). Please read and agree."] },
   { id: "2026-11-24e",
     ko: ["🔔 동료가 '당신 때문에 늦게 퇴근/일찍 출근했다'고 적으면, 확인 요청이 어느 탭에서든 맨 위에 떠요. '맞아요' 또는 '아니에요'를 눌러 주세요."],
     en: ["🔔 When a coworker writes that they stayed late / came early because of you, the confirmation now shows at the very top of every tab. Please tap 'Yes' or 'No'."] },
@@ -957,7 +957,9 @@ const NOTICES = [
       "When your work is done, or when there are no customers, you are free to rest however you like — sleep, use your phone, rest inside or outside the store.",
       "When there are customers, please do NOT take a break. If customers come in while you are resting, come back to work as quickly as possible. If you need to keep resting, stay outside the store.",
       "When there are customers, do not make personal calls or messages and do not do personal things. If you really must, go outside the store to do it.",
-      "☕ Every time you rest, press 'Break start' in the app (Clock in / out), and 'Break end' when you come back. You can only do this while clocked in. If you forget 'Break end', the break lasts until you clock out.",
+      "☕ Every time you rest, press 'Break start' in the app (Clock in / out), and 'Break end' when you come back. You can only do this while clocked in. You may split your rest into several short breaks — the total for the shift is 1 hour.",
+      "When your total break passes 1 hour, the app alerts you (sound / vibration / notification) every minute until you press 'Break end'.",
+      "'I forgot to press it' is not an excuse. Not pressing Break end (it then counts until you clock out) or resting without pressing Break start is carelessness, and an IR (explanation letter) request is sent automatically.",
       "Your break times are checked automatically against the times when there are customers (dine-in tables) and orders (delivery / pickup being made) in the order app.",
       "Taking a break while there are customers is subject to an IR (Incident Report). If you press 'Break start' while there are customers, the app warns you first. If your break overlaps customers / orders for 5 minutes or more, an IR request is sent to you AUTOMATICALLY.",
       "If customers were there the whole time and you really could not take your meal break, the break time you could not take is added to your pay.",
@@ -968,7 +970,9 @@ const NOTICES = [
       "내 할 일을 다 했거나 손님이 없을 때는 자든, 폰을 하든, 매장 안이든 밖이든 자유롭게 쉬어도 돼요.",
       "손님이 있을 때는 제발 쉬는 시간을 갖지 마세요. 쉬다가 손님이 오면 최대한 빨리 일하러 돌아오세요. 계속 쉬어야 하면 매장 밖에 계세요.",
       "손님이 있을 때는 개인 연락(전화·문자 등)이나 개인적인 행동을 하지 마세요. 꼭 해야 하면 매장 밖에 나가서 하세요.",
-      "☕ 쉴 때마다 앱(출퇴근 화면)에서 '쉬는 시간 시작'을 누르고, 돌아오면 '쉬는 시간 끝'을 누르세요. 출근 중일 때만 누를 수 있어요. '끝'을 안 누르면 퇴근할 때까지 쉰 것으로 기록돼요.",
+      "☕ 쉴 때마다 앱(출퇴근 화면)에서 '쉬는 시간 시작'을 누르고, 돌아오면 '쉬는 시간 끝'을 누르세요. 출근 중일 때만 누를 수 있어요. 나눠서 여러 번 쉬어도 돼요 (퐁당퐁당) — 한 근무 합계 1시간이에요.",
+      "쉬는 시간 합계가 1시간을 넘으면 '쉬는 시간 끝'을 누를 때까지 앱이 1분마다 알림(소리·진동·푸시)을 보내요.",
+      "'깜박하고 안 눌렀다'는 변명이 안 돼요. '끝'을 안 누르면(퇴근할 때까지 쉰 것으로 기록) 또는 '시작'을 안 누르고 쉬면, 왜 신경 쓰지 않았는지 부주의로 보고 사유서(IR) 요청이 자동으로 와요.",
       "쉬는 시간은 주문 앱의 손님(홀 테이블)·주문(배달·포장 만드는 중) 시간과 자동으로 대조해요.",
       "손님이 있을 때 쉬면 IR(경위서) 대상이에요. 손님이 있을 때 '쉬는 시간 시작'을 누르면 앱이 먼저 경고해요. 쉬는 시간이 손님·주문 시간과 5분 이상 겹치면 IR 요청이 자동으로 와요.",
       "손님이 계속 있어서 정말 식사 휴게를 못 쉬었으면, 못 쉰 시간만큼 급여에 포함돼요.",
@@ -1324,6 +1328,7 @@ function renderStaffHome() {
   if (!EMP.preview && !v.signature) return renderSignFirst();
   if (!EMP.preview && !emp.hired_self_at) return renderHiredFirst();
   root.innerHTML = "";
+  if (EMP.brk === undefined) { EMP.brk = null; loadMyBreaks().then(() => { if (EMP.brk && document.getElementById("break-box")) renderStaffHome(); }); } else breakFloat();
   const paid = v.payrolls.filter(p => (p.status === "paid" || p.shared) && p.result);
   // owner 2026-11-18 night: paid 13th month also listed in the pay history (as "13th month")
   const pay13 = (v.thirteenth || []).filter(x => x.paid_on).map(x => h("div", { class: "item", id: "my-pay-13-" + x.year }, h("div", { class: "t" }, `🎁 13th month ${x.year}`),
@@ -2505,10 +2510,38 @@ function clockCard() {
 /* ---- ☕ break start / end (owner 2026-11-26 · supabase/pr_breaks.sql). Only while clocked in. Starting while customers
    or orders are in → warning first (IR). After clock-out the shift's meal break is checked against customer time:
    could not rest because of customers → paid · did not rest although there was no customer → explanation letter. ---- */
-async function loadMyBreaks() { try { const r = await db.empBreaks(EMP.no, EMP.pin); if (r.ok) EMP.brk = r; } catch { } return EMP.brk; }
+async function loadMyBreaks() { try { const r = await db.empBreaks(EMP.no, EMP.pin); if (r.ok) { EMP.brk = r; EMP.brkAt = Date.now(); } } catch { } breakFloat(); return EMP.brk; }
+/* ⏰ owner 2026-11-26 04:24: breaks may be split; the shift total is 1 hour. A floating bar on every tab counts down while
+   on a break; past 1:00:00 it turns red, vibrates and beeps every 10 s until "Break end" is pressed (the server also
+   pushes every minute — pr_break_nag). */
+let breakTick = null, breakBeepAt = 0;
+const brkUsedS = () => { const B = EMP.brk; if (!B) return 0; return (B.used_s || 0) + (B.open ? Math.floor((Date.now() - (EMP.brkAt || Date.now())) / 1000) : 0); };
+const mmss = sec => { const a = Math.abs(sec); return `${a >= 3600 ? Math.floor(a / 3600) + ":" : ""}${String(Math.floor(a % 3600 / 60)).padStart(a >= 3600 ? 2 : 1, "0")}:${String(a % 60).padStart(2, "0")}`; };
+function breakBeep() { try { const C = window.AudioContext || window.webkitAudioContext; const ctx = breakBeep.ctx || (breakBeep.ctx = new C()); const o = ctx.createOscillator(), g = ctx.createGain();
+  o.frequency.value = 880; o.connect(g); g.connect(ctx.destination); g.gain.value = 0.25; o.start(); o.stop(ctx.currentTime + 0.6); } catch { } }
+function breakFloat() {
+  let el = document.getElementById("break-float");
+  const B = EMP.brk;
+  if (!EMP.data || !B?.open) { el?.remove(); if (breakTick) { clearInterval(breakTick); breakTick = null; } return; }
+  if (!el) { el = h("div", { id: "break-float", style: "position:fixed;left:8px;right:8px;bottom:8px;z-index:9999;padding:10px 12px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.3);display:flex;align-items:center;gap:8px;font-weight:700" }); document.body.append(el); }
+  const draw = () => {
+    if (!EMP.brk?.open) return breakFloat();
+    const need = EMP.brk.need_s || 3600, used = brkUsedS(), left = need - used, over = left < 0;
+    el.style.background = over ? "var(--bad)" : "var(--gold, #c9a227)"; el.style.color = "#fff";
+    el.replaceChildren(h("span", {}, over ? evL(`⏰ 쉬는 시간 1시간 지남 (+${mmss(-left)}) — 지금 끝을 누르세요!`, `⏰ Break time is over (+${mmss(-left)}) — press Break end now!`)
+        : evL(`☕ 쉬는 중 · 남은 시간 ${mmss(left)}`, `☕ On break · ${mmss(left)} left`)),
+      h("span", { style: "flex:1" }),
+      h("button", { class: "btn", type: "button", id: "break-float-end", style: "background:#fff;color:#000", onclick: async e => { e.target.disabled = true;
+        try { const r = await db.empBreak(EMP.no, EMP.pin, "end"); if (!r.ok && r.err !== "no_open") throw new Error(r.err);
+          toast(evL("✅ 쉬는 시간 끝 ", "✅ Break ended ") + (r.end ? fmtT(r.end) : "") + (r.ir ? evL(" → 📝 IR 요청이 왔어요", " → 📝 IR request sent") : ""));
+          await loadMyBreaks(); renderStaffHome(); } catch (err) { e.target.disabled = false; toast(errMsg(err)); } } }, "■ " + evL("끝", "End")));
+    if (over && Date.now() - breakBeepAt > 10000) { breakBeepAt = Date.now(); breakBeep(); try { navigator.vibrate?.([400, 200, 400]); } catch { } }
+  };
+  draw();
+  if (!breakTick) breakTick = setInterval(draw, 1000);
+}
 const custL = c => (c || []).map(x => (x.kind === "table" ? "🍽 " : "🛵 ") + x.no).join(", ");
 function breakBox(inNow) {
-  if (EMP.brk === undefined) { EMP.brk = null; loadMyBreaks().then(() => { if (EMP.data && document.getElementById("break-box")) renderStaffHome(); }); }
   const B = EMP.brk || {}, open = B.open;
   const go = async (act, force) => {
     const btn = document.getElementById("break-btn"); if (btn) btn.disabled = true;
@@ -2540,8 +2573,10 @@ function breakBox(inNow) {
       h("span", { class: "sp" }),
       h("button", { class: "btn" + (open ? " primary" : ""), type: "button", id: "break-btn", disabled: !inNow && !open, onclick: () => go(open ? "end" : "start") },
         open ? "■ " + evL("쉬는 시간 끝", "Break end") : "☕ " + evL("쉬는 시간 시작", "Break start"))),
-    h("small", { class: "muted", style: "display:block;margin-top:4px" }, evL("쉴 때는 꼭 시작 · 끝을 누르세요. 손님 · 주문 있는 시간과 자동으로 대조해요. 손님 때문에 못 쉰 휴게는 급여에 포함돼요.",
-      "Always press start and end when you rest. It is checked against customer / order time automatically. Meal break you could not take because of customers is paid.")),
+    B.need_s ? h("div", { style: "margin-top:4px;font-size:13px;font-weight:700" + (brkUsedS() > B.need_s ? ";color:var(--bad)" : "") },
+      evL(`이번 근무 쉬는 시간 ${mmss(brkUsedS())} / ${mmss(B.need_s)} · 나눠서 쉬어도 돼요 (합계 1시간)`, `Break used this shift ${mmss(brkUsedS())} / ${mmss(B.need_s)} · you can split it (1 hour in total)`)) : null,
+    h("small", { class: "muted", style: "display:block;margin-top:4px" }, evL("쉴 때는 꼭 시작 · 끝을 누르세요 (깜박했다는 건 부주의 → 사유서). 손님 · 주문 있는 시간과 자동으로 대조해요. 손님 때문에 못 쉰 휴게는 급여에 포함돼요. 1시간이 지나면 끝을 누를 때까지 계속 알림이 와요.",
+      "Always press start and end when you rest ('I forgot' = carelessness → explanation letter). It is checked against customer / order time automatically. Meal break you could not take because of customers is paid. After 1 hour you get alerts until you press end.")),
     recent.length ? h("div", { style: "margin-top:6px;font-size:13px;display:grid;gap:2px" }, recent.map(b => h("div", {},
       `${fmtT(b.start)}–${b.end ? fmtT(b.end) : "…"} · ${mins(b)}${evL("분", " min")}` + (b.auto ? evL(" (퇴근 때 자동 종료)", " (closed at clock-out)") : ""),
       b.cust_min ? h("b", { style: "color:var(--bad)" }, evL(` · ⚠️ 손님 ${b.cust_min}분 (${custL(b.cust)})`, ` · ⚠️ customers ${b.cust_min} min (${custL(b.cust)})`)) : null))) : null,
