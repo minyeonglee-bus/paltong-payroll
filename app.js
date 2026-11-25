@@ -891,7 +891,7 @@ function ackNews(ids) {
 /* ---- 📢 staff notice board (owner 2026-11-18): every notice in one tab — policies (NOTICES) + all WHATS_NEW entries,
    newest first. Entries with popup: false (old / resolved) are only here. ---- */
 function myBoardTab(emp) {
-  const pol = (typeof NOTICES !== "undefined" ? NOTICES : []).filter(n => forEmp(n, emp));
+  const pol = (typeof NOTICES !== "undefined" ? NOTICES : []).filter(n => forEmp(n, emp) && !(n.from && today() < n.from));   // from = show from that day (Erika quitclaim 11/27)
   const news = WHATS_NEW.filter(n => forEmp(n, emp));
   const ul = lines => h("ul", { style: "margin:6px 0 0;padding-left:20px;line-height:1.5" }, lines.map(x => h("li", { style: "margin-bottom:4px" }, x)));
   const day = id => { const d = id.slice(0, 10); return `${+d.slice(5, 7)}/${+d.slice(8)}`; };
@@ -925,7 +925,7 @@ function myBoardTab(emp) {
 function myBoardAlert(emp) {
   // owner 2026-11-21: only things staff must act on (agree / documents) — new-feature news no longer shows here
   // (it pops up once, then stays on the 📢 tab). Pay received, 13th month and 'Please confirm' have their own top cards.
-  const nPol = NOTICES.filter(n => forEmp(n, emp) && !noticeDone(n.id) && !noticePast(n)).length;   // past the deadline: no more alerts
+  const nPol = NOTICES.filter(n => forEmp(n, emp) && !(n.from && today() < n.from) && !noticeDone(n.id) && !noticePast(n)).length;   // past the deadline: no more alerts
   if (!nPol) return null;
   return h("div", { class: "card", id: "board-alert", style: "border:2px solid var(--accent);cursor:pointer", onclick: () => { EMP.tab = "board"; renderStaffHome(); window.scrollTo(0, 0); } },
     h("b", {}, "⚠️ " + evL("동의해야 할 공지가 있어요", "You have a notice to agree to")), " ",
@@ -947,6 +947,44 @@ function whatsNewSheet(all) {
    (Documents tab / owner Requests tab). Disagree → "contact the manager", closes for now and shows again the next
    time the app is opened (or comes back after 30 min). A new notice = a new entry with a new id at the top. ---- */
 const NOTICES = [
+  // owner 2026-11-26 05:22: Erika (resigned 10/28) — 13th month ready, pick up 11/27 · then a quitclaim "nothing more to receive".
+  // ₱12,503.01 = 2026 basic ₱150,036.13 ÷ 12 (resigned → ÷12, 11/17). pr_13_ack.pay_date = 11/27 → "Did you receive it?" card from 11/27.
+  { id: "2026-11-26-erika13", emp_nos: ["00013"], title: { en: "Your 13th Month Pay Is Ready — Pick It Up on November 27", ko: "13th month 준비 완료 — 11월 27일에 받으러 오세요" },
+    yesBtn: { en: "✅ OK, I understand", ko: "✅ 확인했어요" }, noBtn: { en: "I have a question", ko: "궁금한 게 있어요" },
+    docTitle: "13TH MONTH PAY — PICK-UP NOTICE", docLine: "I have read and understood the notice above.",
+    en: [
+      "Your pro-rated 13th month pay for 2026 is ready: ₱12,503.01.",
+      "Computation: your total basic pay from January 1 to October 28, 2026 (₱150,036.13) ÷ 12 = ₱12,503.01, as required by law for employees who resigned.",
+      "Please come to the store to pick it up on Thursday, November 27, 2026.",
+      "When you receive it, press 'I received it' in this app and sign the Release, Waiver and Quitclaim. It will appear in the app on November 27.",
+      "This is the last payment. Your final pay for October 16–30 (₱2,761.00) was already paid on October 31, 2026. After the 13th month pay, the company has no other amount to pay you.",
+      "Your app login closes 7 days after the 13th month is paid. Before then, save or print any documents you need (payslips, certificate of employment)."],
+    ko: [
+      "2026년 13th month(비례 계산)가 준비됐어요: ₱12,503.01.",
+      "계산: 2026년 1월 1일 ~ 10월 28일 기본급 합계 ₱150,036.13 ÷ 12 = ₱12,503.01 (퇴사자 법정 계산).",
+      "2026년 11월 27일(목)에 매장으로 받으러 오세요.",
+      "받으면 앱에서 '받았어요'를 누르고 권리포기서(Release, Waiver and Quitclaim)에 사인해 주세요. 11월 27일에 앱에 떠요.",
+      "이번이 마지막 지급이에요. 10/16–30 마지막 급여(₱2,761.00)는 10월 31일에 이미 지급됐어요. 13th month 이후에는 회사가 더 지급할 돈이 없어요.",
+      "13th month 지급 7일 뒤 앱 로그인이 막혀요. 그 전에 필요한 서류(급여명세서·재직증명서)를 저장하거나 인쇄하세요."] },
+  { id: "2026-11-27-erika-quitclaim", emp_nos: ["00013"], from: "2026-11-27", title: { en: "Release, Waiver and Quitclaim", ko: "권리포기서 (Release, Waiver and Quitclaim)" },
+    yesBtn: { en: "✅ I received it — I sign", ko: "✅ 받았어요 — 사인" }, noBtn: { en: "I have not received it yet", ko: "아직 못 받았어요" },
+    noTitle: { en: "📞 Please talk to the manager", ko: "📞 관리자에게 말하세요" },
+    noText: { en: "Sign this after you receive your 13th month pay. It will show again each time you open the app.", ko: "13th month를 받은 뒤 사인하세요. 앱을 열 때마다 다시 떠요." },
+    docTitle: "RELEASE, WAIVER AND QUITCLAIM", docLine: "I have read and understood this Release, Waiver and Quitclaim, and I sign it voluntarily.",
+    en: [
+      "I, Erika Fernandez, worked at Paltong Restaurant as a waiter from August 1, 2025 until I resigned on October 28, 2026.",
+      "I received my final pay for October 16–30, 2026 (₱2,761.00, paid October 31, 2026), and I received my pro-rated 13th month pay for 2026 in the amount of ₱12,503.01 (₱150,036.13 ÷ 12).",
+      "With these payments, I have received in full everything due to me from my employment — salary, overtime, holiday pay, service incentive leave, 13th month pay, allowances, bonuses, incentives and any other benefits.",
+      "I release and forever discharge Paltong Restaurant, its owner and its managers from any and all claims, demands or complaints of any kind related to my employment and its end. I will not file any case or complaint about these matters.",
+      "I sign this voluntarily. I have read and understood it, and nobody forced or pressured me.",
+      "(Tagalog) Natanggap ko nang buo ang aking huling sahod at ang aking 13th month pay na ₱12,503.01. Wala na akong anumang hahabulin sa Paltong Restaurant tungkol sa aking trabaho. Kusang-loob ko itong pinipirmahan."],
+    ko: [
+      "저 Erika Fernandez는 2025년 8월 1일부터 2026년 10월 28일 퇴사할 때까지 Paltong 레스토랑에서 홀 직원으로 일했습니다.",
+      "10/16–30 마지막 급여(₱2,761.00, 10월 31일 지급)와 2026년 13th month ₱12,503.01(₱150,036.13 ÷ 12)을 받았습니다.",
+      "이로써 근무와 관련해 받을 돈(급여·초과근무·공휴일 수당·SIL·13th month·수당·보너스·인센티브 등)을 모두 받았습니다.",
+      "근무와 퇴사에 관한 어떤 청구·요구·민원도 Paltong 레스토랑, 사장, 매니저에게 하지 않으며, 소송이나 진정도 하지 않습니다.",
+      "강요 없이 내용을 이해하고 자발적으로 사인합니다.",
+      "(따갈로그어) 마지막 급여와 13th month ₱12,503.01을 다 받았고, 더 이상 청구할 것이 없으며, 자발적으로 사인합니다."] },
   // owner 2026-11-26 04:06: all staff — no breaks / personal phone while customers are in the store (→ IR from now on).
   // Came from 11/26 03:24–03:29 (Lilian on break with many customers, did not follow instructions → IR).
   // 04:10–04:13: + ☕ break start/end in the app, checked against customer time (supabase/pr_breaks.sql), from 11/26 morning;
@@ -1058,14 +1096,14 @@ async function checkNotices() {
   EMP.notices = r.acks || []; EMP.noticeLater ||= {}; if (r.news_seen && r.news_seen > (EMP.newsSeen || "")) EMP.newsSeen = r.news_seen;
   (r.news_ids || []).forEach(id => newsIds().add(id));
   let cutSeen = n => { try { return !!localStorage.getItem(cutSeenKey(n)); } catch { return false; } };
-  const n = NOTICES.find(n => forEmp(n, EMP.data?.employee) && !noticeDone(n.id) && !(noticePast(n) && cutSeen(n)) && !(EMP.noticeLater[n.id] > Date.now() - 30 * 60000));
+  const n = NOTICES.find(n => forEmp(n, EMP.data?.employee) && !(n.from && today() < n.from) && !noticeDone(n.id) && !(noticePast(n) && cutSeen(n)) && !(EMP.noticeLater[n.id] > Date.now() - 30 * 60000));
   if (!n || document.querySelector("#notice-pop")) return !!n;
   if (noticePast(n)) { noticeCutSheet(n); return true; }
   noticeSheet(n); return true;
 }
 function noticeSheet(n) {
   const list = arr => h("ol", { style: "margin:6px 0 0;padding-left:22px;line-height:1.55;font-size:15px" }, arr.map(x => h("li", { style: "margin-bottom:6px" }, x)));
-  const agree = h("button", { class: "btn primary", type: "button", id: "notice-agree", style: "flex:1;padding:12px;font-size:16px" }, "✅ " + evL("동의", "I agree"));
+  const agree = h("button", { class: "btn primary", type: "button", id: "notice-agree", style: "flex:1;padding:12px;font-size:16px" }, n.yesBtn ? (n.yesBtn[lang] || n.yesBtn.en) : "✅ " + evL("동의", "I agree"));
   const no = h("button", { class: "btn", type: "button", id: "notice-disagree", style: "flex:1;padding:12px;font-size:16px" }, n.noBtn ? (n.noBtn[lang] || n.noBtn.en) : evL("미동의", "I do not agree"));
   const warnBox = () => h("p", { class: "notice-warn", style: "font-size:15px;line-height:1.55;border:2px solid var(--bad,#c00);border-radius:8px;padding:8px 10px;margin:8px 0" }, n.warnText[lang] || n.warnText.en);
   let close;
@@ -1101,11 +1139,11 @@ function noticeCutSheet(n) {
 function noticeDoc(n, emp, sig, agreedAt) {
   const d = agreedAt ? new Date(agreedAt) : null, ds = d ? d.toLocaleDateString("en-PH", { timeZone: "Asia/Manila", year: "numeric", month: "long", day: "numeric" }) : "";
   return h("div", { class: "slip", style: "font-family:Arial,sans-serif;color:#000;background:#fff;padding:24px;max-width:720px" },
-    h("h2", { style: "text-align:center;margin:0 0 4px" }, "NOTICE AGREEMENT / 공지 동의서"), h("div", { style: "text-align:center;margin-bottom:16px" }, "Paltong"),
+    h("h2", { style: "text-align:center;margin:0 0 4px" }, n.docTitle || "NOTICE AGREEMENT / 공지 동의서"), h("div", { style: "text-align:center;margin-bottom:16px" }, "Paltong"),
     h("table", { style: "width:100%;border-collapse:collapse;font-size:14px" }, ...[["Employee name", fullName(emp)], ["Position", emp.position || ""], ["Notice", n.title.en], ["Agreed", d ? d.toLocaleString("en-PH", { timeZone: "Asia/Manila" }) : "Not agreed"]].map(([a, b]) =>
       h("tr", {}, h("th", { style: "text-align:left;width:38%;padding:6px;border:1px solid #999;background:#f3f3f3" }, a), h("td", { style: "padding:6px;border:1px solid #999" }, b)))),
     h("h3", { style: "margin:18px 0 6px" }, n.title.en), h("ol", { style: "font-size:14px;line-height:1.55;padding-left:22px;margin:0" }, n.en.map(x => h("li", { style: "margin-bottom:6px" }, x))),
-    h("p", { style: "font-size:13px;margin:14px 0 0" }, "I have read and understood the notice above, and I agree to it."),
+    h("p", { style: "font-size:13px;margin:14px 0 0" }, n.docLine || "I have read and understood the notice above, and I agree to it."),
     h("div", { style: "display:flex;gap:40px;margin-top:36px" }, sigLine("Employee signature / Date", d ? sig : null, ds), h("div", { style: "flex:1" })));
 }
 // app comes back to the screen → show the notice again if it was put off more than 30 min ago
@@ -1120,7 +1158,7 @@ async function noticeAdminCard() {
   const card = h("div", { class: "card", id: "notice-admin" }, h("h2", {}, "📢 " + evL("급여 공지 동의", "Payroll notice — agreement")));
   for (const n of NOTICES) {
     let acks = []; try { acks = await db.listNoticeAcks(n.id); } catch { return null; }
-    const emps = S.employees.filter(e => e.active && !e.info?.no_payroll && forEmp(n, e));
+    const emps = S.employees.filter(e => (e.active || n.emp_nos?.includes(e.emp_no)) && !e.info?.no_payroll && forEmp(n, e));   // named notices: resigned staff too (Erika)
     const yes = emps.filter(e => acks.some(a => a.employee_id === e.id && a.agreed_at));
     const docs = emps.filter(e => !yes.includes(e) && acks.some(a => a.employee_id === e.id && a.docs_at)), notYet = emps.filter(e => !yes.includes(e) && !docs.includes(e));
     const setDocs = (e, on) => confirmSheet(on ? evL(`${e.name}: 가입 서류 받았어요? 공지와 스케줄 축소가 멈춰요.`, `${e.name}: documents received? The notice and schedule cut stop.`) : evL(`${e.name}: 서류 받음 취소?`, `${e.name}: undo documents received?`), async () => {
