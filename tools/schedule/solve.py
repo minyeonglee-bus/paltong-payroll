@@ -214,6 +214,12 @@ def solve_team(team, people, days, hol, hist, fixed, overrides, current=None, ex
             if is_work(last):
                 if span(s)[0] + 1440 - span(last)[1] < 600: m.Add(X[p, 0, s] == 0)
                 if s != last: soft(X[p, 0, s], WT["change"], f"{p} shift change {days[0]:%m/%d}")
+        # rest >= 10h before a shift already saved for the day after the plan (2026-11-25: Albert 12/5 18-4 was planned
+        # under a saved 12/6 8-18 → 4h rest). history may carry that day; a saved shift on the last plan day is the owner's choice.
+        nxt = h.get((days[-1] + dt.timedelta(days=1)).isoformat())
+        if is_work(nxt or "") and not is_work(fixed.get(p, {}).get(days[-1].isoformat()) or ""):
+            for s in shifts:
+                if span(nxt)[0] + 1440 - span(s)[1] < 600: m.Add(X[p, len(days) - 1, s] == 0)
         for i in list(D)[:-1]:
             fx = lambda j: fixed.get(p, {}).get(days[j].isoformat())
             both = is_work(fx(i) or "") and is_work(fx(i + 1) or "")   # two saved shifts (e.g. 12/31 event + 1/1 duty): owner's choice

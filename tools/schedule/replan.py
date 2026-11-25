@@ -70,6 +70,9 @@ for sun in sorted(weeks):
     ppl = [p for t in teams.values() for p in t]
     hist = {p: {(a - dt.timedelta(days=k)).isoformat(): plan.get(p, {}).get((a - dt.timedelta(days=k)).isoformat())
                 for k in range(1, 8)} for p in ppl}
+    for p in ppl:   # the day after b, if saved: keep 10h rest before it (2026-11-25)
+        nk = (b + dt.timedelta(days=1)).isoformat()
+        if plan.get(p, {}).get(nk): hist[p][nk] = plan[p][nk]
     fixed, exempt, current = {}, {}, {}
     for p in ppl:
         for d in days:

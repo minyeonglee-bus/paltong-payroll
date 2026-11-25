@@ -20,6 +20,7 @@ for r in db["plan"]:
     d = dt.date.fromisoformat(r["day"])
     if d < start: hist.setdefault(r["name"], {})[r["day"]] = r["shift"]
     elif d <= end: fixed.setdefault(r["name"], {})[r["day"]] = r["shift"]
+    elif d == end + dt.timedelta(days=1): hist.setdefault(r["name"], {})[r["day"]] = r["shift"]   # next Sunday, if saved: 10h rest
 ov = json.load(open(os.path.join(here, "overrides.json"))) if os.path.exists(os.path.join(here, "overrides.json")) else {}
 # gov contributions: no documents and not agreed by 11/30 (owner 2026-11-20, supabase/pr_gov_waiver.sql pr_gov_cut) → as few days as possible
 for p in db.get("gov_cut") or []: ov.setdefault("fewer", {})[p] = start.isoformat()
