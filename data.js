@@ -14,7 +14,7 @@ export const idToEmail = id => { id = String(id || "").trim().toLowerCase(); ret
 // Phones on weak mobile data often drop a request before it reaches the server ("TypeError: Failed to fetch").
 // Retry those automatically — but only for reads and for staff writes the server already guards against doubling
 // (one-time / locked values), so a retried request can never create a second punch, advance, etc.
-const RETRY_RPC = new Set(["pr_emp_view", "pr_emp_token", "pr_emp_set_hired", "pr_emp_set_sil", "pr_emp_intro_done", "pr_emp_ack", "pr_emp_ack13", "pr_emp_req13", "pr_emp_set_signature", "pr_emp_event_get", "pr_emp_event_set", "pr_emp_recv", "pr_emp_jobs", "pr_emp_notice_get", "pr_emp_equip_list", "pr_emp_warnings", "pr_emp_warn_proof"]);
+const RETRY_RPC = new Set(["pr_emp_view", "pr_emp_token", "pr_emp_set_hired", "pr_emp_set_sil", "pr_emp_intro_done", "pr_emp_ack", "pr_emp_ack13", "pr_emp_req13", "pr_emp_set_signature", "pr_emp_event_get", "pr_emp_event_set", "pr_emp_recv", "pr_emp_jobs", "pr_emp_notice_get", "pr_emp_equip_list", "pr_emp_warnings", "pr_emp_warn_proof", "pr_emp_breaks"]);
 async function retryFetch(input, init = {}) {
   const url = typeof input === "string" ? input : input.url, method = String(init.method || "GET").toUpperCase();
   const rpc = (url.match(/\/rest\/v1\/rpc\/([a-z0-9_]+)/) || [])[1];
@@ -210,6 +210,10 @@ export async function listPayrollsYear(year) {
 }
 
 // ---------- 출퇴근 (직원이 앱에서 버튼 · 앱 기록이 근태 기준) ----------
+// ☕ break start / end + customer-time check (supabase/pr_breaks.sql, owner 2026-11-26)
+export async function empBreak(no, pin, act, force = false) { if (PREVIEW) return { ok: false, err: "preview" }; return must(await sb.rpc("pr_emp_break", { p_no: String(no).trim(), p_pin: String(pin), p_act: act, p_force: !!force })); }
+export async function empBreaks(no, pin) { if (PREVIEW) return { ok: true, open: null, breaks: [], days: [] }; return must(await sb.rpc("pr_emp_breaks", { p_no: String(no).trim(), p_pin: String(pin) })); }
+export async function breakAdmin(days = 14) { return must(await sb.rpc("pr_break_admin", { p_days: days })); }
 export async function punch(no, pin, kind, reason = null, loc = null) { return must(await sb.rpc("pr_punch3", { p_no: String(no).trim(), p_pin: String(pin), p_kind: kind, p_reason: reason, p_lat: loc?.lat ?? null, p_lng: loc?.lng ?? null })); }
 // ---------- 연말 특근 신청 (12/31 · 1/1, 근무 원함 / 휴무 원함 → 스케줄 자동 반영) ----------
 export async function empEventGet(no, pin, event) { return must(await sb.rpc("pr_emp_event_get", { p_no: String(no).trim(), p_pin: String(pin), p_event: event })); }
