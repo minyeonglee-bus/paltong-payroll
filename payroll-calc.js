@@ -28,6 +28,10 @@ const toMin = x => { if (x == null || x === "") return NaN; const [h, m = "0"] =
 export const parseShift = v => { if (!v) return null; const [a, b] = String(v).split("-"); const s = toMin(a), e = toMin(b); return isNaN(s) || isNaN(e) ? null : { start: s, end: e }; };
 export const SHIFT_LABEL = v => { const p = parseShift(v); if (!p) return v; const f = m => `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; return `${f(p.start)}–${f(p.end)}${p.end > 1440 ? " (+1)" : ""}`; };
 export const isPreset = v => SHIFTS.includes(v);
+// 20-4 shift (8h) = no meal break, whole 8h paid (owner 2026-11-28). Riders: no break at all (breakFor in app.js).
+export const NO_BREAK_SHIFTS = ["20-4"];
+const isNoBreak = v => { const p = parseShift(v); return !!p && NO_BREAK_SHIFTS.some(x => { const q = parseShift(x); return q.start === p.start && q.end % 1440 === p.end % 1440; }); };
+export const dayBreak = (d, breakHrs = 1) => d && (d.noBreak || isNoBreak(d.plan) || (!d.plan && isNoBreak(d.shift))) ? 0 : breakHrs;
 export const MONTHLY_FACTOR = 313 / 12; // 6-day week → 313 paid days a year
 export const HOURS_PER_DAY = 10;        // paper: a day = 10h shift; OT hourly = daily ÷ 10
 /** paper scheme: overtime from the shift = span past hoursPerDay, ½-hour steps */
@@ -116,8 +120,9 @@ export function computePayroll(days, opts) {
   const rows = [];
   for (const d of days || []) {
     const t = DAY_TYPES[d.type] || DAY_TYPES.regular;
-    const sh = t.worked ? shiftHours(d.shift, breakHrs) : { hours: 0, worked: 0, reg: 0, ot: 0, nd: 0 };
-    const ot = !t.worked ? 0 : paper ? (d.ot != null && d.ot !== "" ? Math.max(0, +d.ot || 0) : paperOt(sh, hpd, breakHrs)) : sh.ot;   // paper: shift past 10h, or typed from the card · contract: from the shift
+    const bH = dayBreak(d, breakHrs);
+    const sh = t.worked ? shiftHours(d.shift, bH) : { hours: 0, worked: 0, reg: 0, ot: 0, nd: 0 };
+    const ot = !t.worked ? 0 : paper ? (d.ot != null && d.ot !== "" ? Math.max(0, +d.ot || 0) : paperOt(sh, hpd, bH)) : sh.ot;   // paper: shift past 10h, or typed from the card · contract: from the shift
     const nd = paper ? 0 : sh.nd, ndOt = paper ? 0 : Math.min(sh.ndOt || 0, nd, sh.ot);
     let base = 0, extra = 0, otp = 0, ndp = 0;
     if (t.paidDay) {

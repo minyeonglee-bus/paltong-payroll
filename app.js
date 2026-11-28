@@ -1,5 +1,5 @@
 import * as db from "./data.js";
-import { applyHolidays, computePayroll, shiftHours, paperOt, pairPunches, SHIFTS, SHIFT_LABEL, isPreset, parseShift, DAY_TYPES, dayTypesFor, periodOf, periodForDate, datesBetween, fmtDate, addDays, isNightShift, carriesOver, paidDays, paidShift, payDayOf } from "./payroll-calc.js";
+import { applyHolidays, computePayroll, shiftHours, paperOt, pairPunches, SHIFTS, SHIFT_LABEL, isPreset, parseShift, DAY_TYPES, dayTypesFor, periodOf, periodForDate, datesBetween, fmtDate, addDays, isNightShift, carriesOver, paidDays, paidShift, payDayOf, dayBreak } from "./payroll-calc.js";
 
 /* ---------- i18n ---------- */
 const I18N = {
@@ -719,6 +719,9 @@ async function eventAdminCard() {
    Every staff-facing change adds an entry at the TOP (id = date, newest first). Staff see the unseen entries once
    after login (remembered per phone + employee no.), and can reopen them from "My info". ---- */
 const WHATS_NEW = [
+  { id: "2026-11-28",
+    ko: ["⏰ 20:00–04:00 (20-4) 근무와 라이더는 식사 휴게가 없어요 — 8시간 전부 급여로 계산해요. 이 근무에는 '휴게 안 씀' 사유서가 나가지 않아요."],
+    en: ["⏰ The 20:00–04:00 (20-4) shift and riders have no meal break — all 8 hours are paid. No 'break not taken' explanation letter for these shifts."] },
   { id: "2026-11-26", popup: true,
     ko: ["☕ 출퇴근 화면에 '쉬는 시간 시작 / 끝' 버튼이 생겼어요. 쉴 때마다 꼭 누르세요 — 손님·주문 시간과 자동으로 대조해요. 나눠서 쉬어도 되고 합계 1시간, 넘으면 끝을 누를 때까지 1분마다 알림이 와요. 깜박하고 안 누르면 부주의 사유서예요.", "📢 새 공지 '쉬는 시간 규칙 (11/26 오전부터)': 손님 있을 때 휴식 = IR 자동 요청 · 손님 때문에 못 쉰 휴게 = 급여 포함 · 손님 없는데 일부러 안 쉼 = 미지급 + 사유서(IR) 자동 요청. 읽고 동의해 주세요."],
     en: ["☕ The Clock in / out screen now has 'Break start / end'. Press it every time you rest — it is checked against customer / order time automatically. You may split breaks (1 hour in total); past 1 hour you get an alert every minute until you press end. Forgetting to press = carelessness → explanation letter.", "📢 New notice 'Break Time Rules (from Nov 26, morning)': break while customers = automatic IR · meal break not possible because of customers = paid · no break on purpose when there were no customers = not paid + automatic IR (explanation letter). Please read and agree."] },
@@ -2670,7 +2673,7 @@ function staffCalcCard(emp, v) {
     rosterEl.innerHTML = "";
     for (const d of SC.days) {
       const dow = new Date(d.date + "T00:00:00").getDay(); const wk = dow === 5 || dow === 6;
-      const sh = DAY_TYPES[d.type]?.worked ? shiftHours(d.shift, breakFor(emp, EMP.data?.settings?.break_hours)) : null;
+      const sh = DAY_TYPES[d.type]?.worked ? shiftHours(d.shift, dayBreak(d, breakFor(emp, EMP.data?.settings?.break_hours))) : null;
       const toggle = () => { if (d.type === "off") { d.shift = d.shift || SC.fillShift; d.type = "regular"; } else { d.shift = ""; d.type = "off"; } draw(); };
       rosterEl.append(h("div", { class: "day" + (d.type === "off" ? " off" : "") + (d.type === "sil" ? " sil" : "") + (/holiday|special|absent/.test(d.type) ? " hol" : "") + (wk ? " wknd" : "") },
         h("div", { class: "d", role: "button", style: "cursor:pointer", onclick: toggle }, t("dow")[dow], h("b", {}, +d.date.slice(8))),
@@ -3039,7 +3042,7 @@ async function renderPay() {
   const summary = () => summaryText(R);
   const paper = schemeOf(emp) === "paper";
   const hrsText = sh => hrsLine(sh, paper, monthly, +S.settings.hours_per_day || 10, P.break_hours);
-  const refreshHrs = d => { const el = rosterEl.querySelector(`.hrs[data-d="${d.date}"]`); if (el) el.textContent = hrsText(DAY_TYPES[d.type]?.worked ? shiftHours(d.shift, P.break_hours) : null); };
+  const refreshHrs = d => { const el = rosterEl.querySelector(`.hrs[data-d="${d.date}"]`); if (el) el.textContent = hrsText(DAY_TYPES[d.type]?.worked ? shiftHours(d.shift, dayBreak(d, P.break_hours)) : null); };
   function drawRoster() {
     rosterEl.innerHTML = "";
     for (const d of P.days) {
@@ -3047,7 +3050,7 @@ async function renderPay() {
       const toggle = () => { if (locked) return; if (d.type === "off") { d.shift = d.shift || P.fillShift; d.type = "regular"; } else { d.shift = ""; d.type = "off"; d.ot = null; } drawRoster(); refresh(); };
       const tag = d.abs ? absTag(d) : d.type === "sil" && P.mpv?.has(d.date) ? "MPV · " + evL("개근휴가", "monthly paid vacation") : HOL[d.date] && !d.carry ? "🎌 " + (HOL[d.date].kind === "regular" ? t("holReg") : t("holSp")) : d.carry ? (paidDays([d]).length ? t("carryIn") : t("carryInNone")) : carriesOver(d.date, d.shift) ? t("carryOut") : "";
       const lbl = h("div", { class: "d", role: "button", title: t("off"), style: locked ? "" : "cursor:pointer", onclick: toggle }, t("dow")[dow], h("b", {}, (d.carry ? +d.date.slice(5, 7) + "/" : "") + +d.date.slice(8)), tag && h("small", { class: "carryTag" }, tag));
-      const sh = DAY_TYPES[d.type]?.worked ? shiftHours(d.shift, P.break_hours) : null;
+      const sh = DAY_TYPES[d.type]?.worked ? shiftHours(d.shift, dayBreak(d, P.break_hours)) : null;
       const cls = "day" + (d.carry ? " carry" : "") + (!d.carry && carriesOver(d.date, d.shift) ? " carryOut" : "") + (HOL[d.date] ? " hol" : "") + (d.type === "off" ? " off" : "") + (d.type === "sil" || d.type === "excused" ? " sil" : "") + (/holiday|special|absent/.test(d.type) ? " hol" : "") + (wk ? " wknd" : "");
       const shiftCtl = shiftPicker(d, locked, (redraw = true) => { if (redraw || d.carry || [15, 30].includes(+d.date.slice(8))) drawRoster(); else { refreshHrs(d); const o = rosterEl.querySelector(`.otin[data-d="${d.date}"] input`); if (o) o.placeholder = String(paperOt(shiftHours(d.shift, 0), +S.settings.hours_per_day || 10, P.break_hours)); } refresh(); }, P.fillShift);
       const typeSel = sel(dayTypesFor(schemeOf(emp), P.pay_type).map(k => [k, t("type_" + k)]), d.type, { disabled: locked, "aria-label": "day type", onchange: e => { d.type = e.target.value; if (!DAY_TYPES[d.type].worked) d.shift = ""; else if (!d.shift) d.shift = P.fillShift; drawRoster(); refresh(); } });
